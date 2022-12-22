@@ -10,13 +10,11 @@ Collection:
   url: "https://originbyte.io/"
 
 Launchpad:
-  admin: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
-  receiver: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+  receiver: "@0xcf9bcdb25929869053dd4a2c467539f8b792346f"
 
 Slots:
   - !Slot
-    admin: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
-    receiver: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+    receiver: "@0xcf9bcdb25929869053dd4a2c467539f8b792346f"
     markets:
       - !FixedPrice
         token: "sui::sui::SUI"

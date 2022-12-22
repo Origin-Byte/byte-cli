@@ -5,6 +5,10 @@
 //! OriginByte protocol.
 use serde::Deserialize;
 
+fn default_admin() -> String {
+    "tx_context::sender(ctx)".to_string()
+}
+
 /// Enum representing the NFT types currently available in the protocol
 #[derive(Debug, Deserialize)]
 pub enum NftType {
@@ -104,7 +108,9 @@ impl NftType {
 /// Contains the market configurations of the launchpad
 #[derive(Debug, Deserialize)]
 pub struct Launchpad {
+    #[serde(default = "default_admin")]
     admin: String,
+    #[serde(default = "default_admin")]
     receiver: String,
 }
 
@@ -113,8 +119,8 @@ impl Launchpad {
         format!(
             "
         let launchpad = nft_protocol::launchpad::new(
-            @{admin},
-            @{receiver},
+            {admin},
+            {receiver},
             false,
             nft_protocol::flat_fee::new(0, ctx),
             ctx,
@@ -135,7 +141,9 @@ impl Launchpad {
 
 #[derive(Debug, Deserialize)]
 pub struct Slot {
+    #[serde(default = "default_admin")]
     admin: String,
+    #[serde(default = "default_admin")]
     receiver: String,
     markets: Vec<Market>,
 }
@@ -148,8 +156,8 @@ impl Slot {
             "
         let slot = nft_protocol::slot::new(
             &launchpad,
-            @{admin},
-            @{receiver},
+            {admin},
+            {receiver},
             ctx,
         );
 ",

@@ -67,8 +67,8 @@ module gutenberg::suitraders {
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         let launchpad = nft_protocol::launchpad::new(
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            tx_context::sender(ctx),
+            @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
             false,
             nft_protocol::flat_fee::new(0, ctx),
             ctx,
@@ -76,8 +76,8 @@ module gutenberg::suitraders {
 
         let slot = nft_protocol::slot::new(
             &launchpad,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            tx_context::sender(ctx),
+            @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
             ctx,
         );
 
