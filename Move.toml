@@ -17,7 +17,7 @@ rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol"
 # version 0.15.0
-rev = "a18b65670c12e7a99b01aed1033a7e1bc242b4e7"
+rev = "b16206b87e84c1a4b78d55466aa6b42c29c6d8bd"
 
 [addresses]
 nft_collection = "0x0"
