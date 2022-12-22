@@ -1,0 +1,27 @@
+NftType:
+
+Collection:
+  name:
+  description:
+  symbol:
+  tags:
+  royalty_fee_bps:
+  url:
+
+Launchpad:
+  admin: 
+  receiver:
+
+Slots:
+  - admin:
+    receiver:
+    markets:
+      - !FixedPrice
+        token:
+        price:
+        is_whitelisted:
+
+      - !DutchAuction
+        token:
+        reserve_price:
+        is_whitelisted:

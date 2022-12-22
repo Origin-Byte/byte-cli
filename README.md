@@ -14,8 +14,8 @@ We describe the process for configuring NFT collections and running Gutenberg in
 
 To configure an NFT collection, the creator will have to populate a configuration file.
 
-A number of example configuration files are available in [`gutenberg/examples`](./examples).
-A blank template is available in [`gutenberg/config.yaml`](./config.yaml) which has the following structure:
+A number of example configuration files are available in [`./examples`](./examples).
+A blank template is available in [`./examples/blank.yaml`](./examples/blank.yaml) which has the following structure:
 
 ```yaml
 NftType:
@@ -24,18 +24,27 @@ Collection:
   name:
   description:
   symbol:
-  max_supply:
-  receiver:
   tags:
-    -
   royalty_fee_bps:
-  is_mutable:
-  data:
+  url:
 
 Launchpad:
-  market_type: []
-  prices: []
-  whitelists: []
+  admin: 
+  receiver:
+
+Slots:
+  - admin:
+    receiver:
+    markets:
+      - !FixedPrice
+        token:
+        price:
+        is_whitelisted:
+
+      - !DutchAuction
+        token:
+        reserve_price:
+        is_whitelisted:
 ```
 
 The top-level fields are defined as follows:
@@ -43,10 +52,11 @@ The top-level fields are defined as follows:
 | Field            | Type          | Description |
 | ---------------- | ------------- | ----------- |
 | `NftType`        | `String`      | Name of the NFT type (`Classic`*) |
-| `Collection`     | `Dictionary`  | List of fields defining the collection |
-| `Launchpad`      | `Dictionary`  | List of fields defining the launchpad |
+| `Collection`     | `Dictionary`  | List of fields defining the properties of the `Collection` |
+| `Launchpad`      | `Dictionary`  | List of fields defining the `Launchpad`, this field is optional, defining `Launchpad` will cause one to be created |
+| `Slots`          | `List`        | List of fields defining the `Slots` to be registered with the `Launchpad` |
 
-* Further types such as `Collectible` and `CNft` will be re-added.
+* Further types such as collectible and composable NFTs will be supported in the future.
 
 Where the fields for `Collection` are:
 
@@ -57,21 +67,24 @@ Where the fields for `Collection` are:
 | symbol          | `String`   | The symbol/ticker of the collection |
 | tags            | `List`     | A set of strings that categorize the domain in which the NFT operates |
 | royalty_fee_bps | `Integer`  | The royalty fees creators accumulate on the sale of NFTs |
-| url            | `String`    | Url of the Collection Website |
+| url             | `String`   | Url of the Collection Website |
 
 And where the fields for `Launchpad` are:
 
-| Field        | Type               | Description |
-| ------------ | ------------------ | ----------- |
-| admin          | `String`           | The administrator address of the Launchpad |
-| receiver       | `String`           | The receiver address of the NFT sales |
-| market_type    | `Array<String>`    | Array of markets (`fixed_price`, `dutch_auction`) |
-| prices         | `Array<Integer>`   | Array of prices for sale outlets * |
-| is_whitelisted | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
+| Field          | Type             | Description |
+| -------------- | ---------------- | ----------- |
+| admin          | `Option<String>` | The administrator address of the Launchpad, if not set then the transaction sender will be used |
+| receiver       | `Option<String>` | The receiver address of the NFT sales, if not set then the transaction sender will be used |
 
-* Note: For dutch auctions the `prices` refers to the `reserve prices` of the auction.
+For each `Slot` the fields are:
 
-Some examples of yaml configurations are provided in `/gutenberg/examples`.
+| Field    | Type             | Description |
+| -------- | ---------------- | ----------- |
+| admin    | `Option<String>` | The administrator address of the Launchpad, if not set then the transaction sender will be used |
+| receiver | `Option<String>` | The receiver address of the NFT sales, if not set then the transaction sender will be used |
+| markets  | `Vec<Market>`    | List of markets that will be associated with the `Slot`
+
+Example configurations are provided in `./examples`.
 
 #### Single vs. Multiple Sale Outlets
 
@@ -80,19 +93,28 @@ OriginByte's launchpad configurations allow creators to segregate their NFT sale
 Here is an example of a single sale configuration:
 
 ```yaml
-Launchpad:
-  market_type: ["fixed_price"]
-  prices: [1000]
-  whitelists: [false]
+Slots:
+  - markets:
+      - !FixedPrice
+        token: sui::sui::SUI
+        price: 100
+        is_whitelisted: false
 ```
 
-Whilst a multi sale configuration is:
+Whilst a multi fixed price sale configuration is defined like so:
 
 ```yaml
-Launchpad:
-  market_type: ["fixed_price", "fixed_price", "fixed_price", "dutch_auction"]
-  reserve_prices: [1000, 2000, 3000, 4000]
-  whitelists: [false, true, true, true]
+Slots:
+  - markets:
+      - !FixedPrice
+        token: sui::sui::SUI
+        price: 100
+        is_whitelisted: true
+
+      - !FixedPrice
+        token: sui::sui::SUI
+        price: 200
+        is_whitelisted: false
 ```
 
 ### 2. Run Gutenberg
@@ -100,15 +122,15 @@ Launchpad:
 Once your YAML configuration file is ready, it’s then time to run the Gutenberg executable.
 
 ```shell
-gutenberg
+gutenberg ./examples/suimarines.yaml
 ```
 
-This will use a configuration file, `./config.yaml`, and write the Move contract to `../examples/<MODULE_NAME>.move` by default.
+This will use a configuration file, `suimarines.yaml`, and write a Move package to `./build` by default.
 
 To define a custom configuration and output path one can run the following command:
 
 ```shell
-gutenberg <CONFIGURATION_PATH>/<CONFIG>.yaml
+gutenberg ./examples/suimarines.yaml --output suimarines.yaml
 ```
 
 You can obtain a `gutenberg` executable by building it using [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and running the following commands, or using `cargo run` directly:
@@ -116,10 +138,15 @@ You can obtain a `gutenberg` executable by building it using [cargo](https://doc
 ```shell
 cd gutenberg
 cargo build --release
+cargo run ./examples/suimarines.yaml
 ```
 
 Alternatively, you can [download a pre-built executable](https://github.com/Origin-Byte/nft-protocol/tags) once these become available.
 
 ### 3. Deploy the Contract
 
-To deploy your newly created smart contract follow the deploy instructions found in [docs/deploy](../docs/deploy.md).
+To deploy your newly created smart contract you can run the publish command:
+
+```sh
+./bin/publish.sh
+```
