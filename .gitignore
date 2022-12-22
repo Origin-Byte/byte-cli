@@ -3,6 +3,7 @@ sui.log.*
 
 debug/
 target/
+build/
 examples/packages/build/
 
 Cargo.lock

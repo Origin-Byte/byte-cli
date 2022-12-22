@@ -108,7 +108,7 @@ This will use a configuration file, `./config.yaml`, and write the Move contract
 To define a custom configuration and output path one can run the following command:
 
 ```shell
-gutenberg --config <CONFIGURATION_PATH>/<CONFIG>.yaml <CUSTOM_PATH>/<FILENAME>.move
+gutenberg <CONFIGURATION_PATH>/<CONFIG>.yaml
 ```
 
 You can obtain a `gutenberg` executable by building it using [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and running the following commands, or using `cargo run` directly:

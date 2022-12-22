@@ -7,12 +7,12 @@ use std::path::PathBuf;
 
 #[derive(Debug, Options)]
 struct Opt {
+    #[options(free)]
+    config: PathBuf,
+    #[options(help = "output file path")]
+    output: Option<PathBuf>,
     #[options(help = "print help message")]
     help: bool,
-    #[options(free, help = "output file path, stdout if not present")]
-    path: Option<PathBuf>,
-    #[options(help = "configuration file", default = "config.yaml")]
-    config: PathBuf,
 }
 
 fn main() -> Result<(), GutenError> {
@@ -29,18 +29,27 @@ fn main() -> Result<(), GutenError> {
         }
     };
 
-    let output = opt.path.unwrap_or_else(|| {
+    // If output file was not specified we prepare build directory for user to
+    // publish directly after invoking gutenberg
+    if opt.output.is_none() {
+        fs::create_dir_all("./build")?;
+        fs::File::create("./build/Move.toml")?;
+        fs::copy("./examples/packages/Move.toml", "./build/Move.toml")?;
+    }
+
+    // Identify final output path and create intermediate directories
+    let output_file = opt.output.unwrap_or_else(|| {
         PathBuf::from(&format!(
-            "../examples/{}.move",
+            "./build/{}.move",
             &schema.module_name().to_string()
         ))
     });
 
-    if let Some(p) = output.parent() {
+    if let Some(p) = output_file.parent() {
         fs::create_dir_all(p)?;
     }
 
-    let mut f = fs::File::create(output)?;
+    let mut f = fs::File::create(output_file)?;
     if let Err(err) = schema.write_move(&mut f) {
         eprintln!("{err}");
     }
