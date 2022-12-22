@@ -1,12 +1,10 @@
-name: sui-test
-run-name: Testing Sui packages
+name: cargo-test
+run-name: Testing Rust packages
 
 on:
   pull_request:
     types: [ opened, synchronize ]
     branches: [ main, develop ]
-
-  workflow_call:
 
 jobs:
   test:
