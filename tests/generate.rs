@@ -9,6 +9,8 @@ fn example_schema() {
     fs::read_dir("./examples")
         .unwrap()
         .map(Result::unwrap)
+        // Filter out packages directory
+        .filter(|f| f.file_type().unwrap().is_file())
         .map(|dir| {
             let config = File::open(dir.path()).unwrap();
             assert_schema(config);
@@ -17,28 +19,23 @@ fn example_schema() {
 }
 
 #[test]
-fn classic() {
-    let config = File::open("./examples/suimarines.yaml").unwrap();
-    let expected = fs::read_to_string("../examples/suimarines.move").unwrap();
-
-    assert_equal(config, expected);
+fn suimarines() {
+    assert_equal("suimarines.yaml", "suimarines.move");
 }
 
-// #[test]
-// fn collectible() {
-//     let config = File::open("./examples/collectibles.yaml").unwrap();
-//     let expected = fs::read_to_string("../examples/collectibles.move").unwrap();
+#[test]
+fn launchpad() {
+    assert_equal("suitraders.yaml", "suitraders.move");
+}
 
-//     assert_equal(config, expected);
-// }
+fn setup(config: &str, expected: &str) -> (File, String) {
+    let config = File::open(format!("./examples/{config}")).unwrap();
+    let expected =
+        fs::read_to_string(format!("./examples/packages/sources/{expected}"))
+            .unwrap();
 
-// #[test]
-// fn auction() {
-//     let config = File::open("./examples/auction.yaml").unwrap();
-//     let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
-
-//     assert_equal(config, expected);
-// }
+    (config, expected)
+}
 
 /// Asserts that the config file has correct schema
 fn assert_schema(config: File) -> Schema {
@@ -46,7 +43,9 @@ fn assert_schema(config: File) -> Schema {
 }
 
 /// Asserts that the generated file matches the expected output
-fn assert_equal(config: File, expected: String) {
+fn assert_equal(config: &str, expected: &str) {
+    let (config, expected) = setup(config, expected);
+
     let mut output = Vec::new();
     assert_schema(config).write_move(&mut output).unwrap();
     let output = String::from_utf8(output).unwrap();

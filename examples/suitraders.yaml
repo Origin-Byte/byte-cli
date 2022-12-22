@@ -1,0 +1,29 @@
+NftType: "Classic"
+
+Collection:
+  name: "Suitraders"
+  description: "A unique NFT collection of Suitraders on Sui"
+  symbol: "SUITR"
+  tags:
+    - "Art"
+  royalty_fee_bps: "100"
+  url: "https://originbyte.io/"
+
+Launchpad:
+  admin: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+  receiver: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+
+Slots:
+  - !Slot
+    admin: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+    receiver: "0xfb6f8982534d9ec059764346a67de63e01ecbf80"
+    markets:
+      - !FixedPrice
+        token: "sui::sui::SUI"
+        price: 500
+        is_whitelisted: false
+
+      - !DutchAuction
+        token: "sui::sui::SUI"
+        reserve_price: 100
+        is_whitelisted: true

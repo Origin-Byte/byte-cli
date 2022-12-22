@@ -1,4 +1,4 @@
-module nft_collection::suigods {
+module gutenberg::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
@@ -15,22 +15,16 @@ module nft_collection::suigods {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
-    use sui::sui::SUI;
-    use nft_protocol::slot;
-    use nft_protocol::launchpad;
-    use nft_protocol::flat_fee;
-    use nft_protocol::fixed_price;
-    use nft_protocol::dutch_auction;
-
-    struct SUIGODS has drop {}
+    /// One time witness is only instantiated in the init method
+    struct SUIMARINES has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUIGODS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUIGODS>(
+    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
+        let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
             ctx,
         );
@@ -45,8 +39,8 @@ module nft_collection::suigods {
         display::add_collection_display_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUIGODS"),
-            string::utf8(b"A unique NFT collection of SUIGODS on Sui"),
+            string::utf8(b"Suimarines"),
+            string::utf8(b"A unique NFT collection of Suimarines on Sui"),
         );
 
         display::add_collection_url_domain(
@@ -58,53 +52,28 @@ module nft_collection::suigods {
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUITR")
+            string::utf8(b"SUIM")
         );
+
+        let royalty = royalty::new(ctx);
+        royalty::add_proportional_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new(100),
+        );
+        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let launchpad = launchpad::new(
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            false,
-            flat_fee::new(0, ctx),
-            ctx,
-        );
-
-        let slot = slot::new(
-            &launchpad,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            ctx,
-        );
-
-        fixed_price::init_market<SUI>(
-            &mut slot,
-            false,
-            100,
-            ctx,
-        );
-
-        dutch_auction::init_market<SUI>(
-            &mut slot,
-            true,
-            500,
-            ctx,
-        );
-
-        transfer::share_object(launchpad);
-        transfer::share_object(slot);
-
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUIGODS>(collection);
+        collection::share<SUIMARINES>(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<SUIGODS, FT>,
-        collection: &mut Collection<SUIGODS>,
+        payment: &mut TradePayment<SUIMARINES, FT>,
+        collection: &mut Collection<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -123,11 +92,11 @@ module nft_collection::suigods {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUIGODS>,
+        _mint_cap: &MintCap<SUIMARINES>,
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIGODS>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,

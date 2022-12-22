@@ -57,12 +57,12 @@ impl NftType {
     pub fn mint_func(&self, witness: &str) -> Box<str> {
         let func = match self {
             NftType::Classic => format!(
-                "public entry fun mint_nft(\n        \
-                    name: String,\n        \
-                    description: String,\n        \
-                    url: vector<u8>,\n        \
-                    attribute_keys: vector<String>,\n        \
-                    attribute_values: vector<String>,\n        \
+                "public entry fun mint_nft(
+                    name: String,
+                    description: String,
+                    url: vector<u8>,
+                    attribute_keys: vector<String>,
+                    attribute_values: vector<String>,
                     mint_cap: &mut MintCap<{witness}>,
                     slot: &mut Slot,
                     market_id: ID,
@@ -101,68 +101,139 @@ impl NftType {
     }
 }
 
-pub enum SalesType {
-    SingleMarket,
-    MultiMarket,
+/// Contains the market configurations of the launchpad
+#[derive(Debug, Deserialize)]
+pub struct Launchpad {
+    admin: String,
+    receiver: String,
+}
+
+impl Launchpad {
+    pub fn init(&self) -> String {
+        format!(
+            "
+        let launchpad = nft_protocol::launchpad::new(
+            @{admin},
+            @{receiver},
+            false,
+            nft_protocol::flat_fee::new(0, ctx),
+            ctx,
+        );
+",
+            admin = self.admin,
+            receiver = self.receiver,
+        )
+    }
+
+    pub fn share(&self) -> String {
+        "
+        transfer::share_object(launchpad);
+"
+        .to_string()
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Markets {
-    markets: Vec<MarketType>,
+pub struct Slot {
+    admin: String,
+    receiver: String,
+    markets: Vec<Market>,
+}
+
+impl Slot {
+    pub fn init(&self) -> String {
+        let mut string = String::new();
+
+        string.push_str(&format!(
+            "
+        let slot = nft_protocol::slot::new(
+            &launchpad,
+            @{admin},
+            @{receiver},
+            ctx,
+        );
+",
+            admin = self.admin,
+            receiver = self.receiver,
+        ));
+
+        for market in self.markets.iter() {
+            string.push_str(&market.init());
+        }
+
+        string.push_str(self.share());
+
+        string
+    }
+
+    fn share(&self) -> &'static str {
+        "
+        transfer::share_object(slot);
+"
+    }
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(tag = "market_type", rename_all = "snake_case")]
-pub enum MarketType {
-    FixedPrice { price: u64, whitelist: bool },
-    Auction { reserve_price: u64, whitelist: bool },
+pub enum Market {
+    FixedPrice {
+        /// Fully qualified fungible token in which price is denominated
+        token: String,
+        price: u64,
+        is_whitelisted: bool,
+    },
+    DutchAuction {
+        /// Fully qualified fungible token in which price is denominated
+        token: String,
+        reserve_price: u64,
+        is_whitelisted: bool,
+    },
 }
 
-impl MarketType {
-    pub fn market_type(&self) -> Box<str> {
+impl Market {
+    pub fn market_type(&self) -> &'static str {
         match self {
-            MarketType::FixedPrice { .. } => "FixedPriceMarket",
-            MarketType::Auction { .. } => "DutchAuctionMarket",
+            Market::FixedPrice { .. } => "FixedPriceMarket",
+            Market::DutchAuction { .. } => "DutchAuctionMarket",
         }
-        .into()
     }
 
-    pub fn market_module(&self) -> Box<str> {
+    pub fn market_module(&self) -> &'static str {
         match self {
-            MarketType::FixedPrice { .. } => "fixed_price",
-            MarketType::Auction { .. } => "dutch_auction",
+            Market::FixedPrice { .. } => "fixed_price",
+            Market::DutchAuction { .. } => "dutch_auction",
         }
-        .into()
     }
 
-    pub fn init_market(&self) -> Box<str> {
+    pub fn init(&self) -> String {
         match self {
-            MarketType::FixedPrice { price, whitelist } => format!(
-                "fixed_price::init_market<SUI>(
-                        &mut slot,
-                        {whitelist},
-                        {price},
-                        ctx,
-                    );",
-                whitelist = whitelist,
-                price = price,
-            )
-            .into_boxed_str(),
-            MarketType::Auction {
-                reserve_price,
-                whitelist,
+            Market::FixedPrice {
+                token,
+                price,
+                is_whitelisted,
             } => format!(
-                "dutch_auction::init_market<SUI>(
-                        &mut slot,
-                        {whitelist},
-                        {reserve_price},
-                        ctx,
-                    );",
-                whitelist = whitelist,
-                reserve_price = reserve_price,
-            )
-            .into_boxed_str(),
+                "
+        nft_protocol::fixed_price::init_market<{token}>(
+            &mut slot,
+            {is_whitelisted},
+            {price},
+            ctx,
+        );
+",
+            ),
+            Market::DutchAuction {
+                token,
+                reserve_price,
+                is_whitelisted,
+            } => format!(
+                "
+        nft_protocol::dutch_auction::init_market<{token}>(
+            &mut slot,
+            {is_whitelisted},
+            {reserve_price},
+            ctx,
+        );
+",
+            ),
         }
-        .into()
     }
 }

@@ -1,6 +1,6 @@
 [package]
-name = "NftCollection"
-version = "1.0.0"
+name = "Gutenberg"
+version = "0.14.0"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -17,7 +17,7 @@ rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol"
 # version 0.15.0
-rev = "b16206b87e84c1a4b78d55466aa6b42c29c6d8bd"
+rev = "1807cbee487f30462702511eb9e5f78eff3fbffa"
 
 [addresses]
-nft_collection = "0x0"
+gutenberg = "0x0"
