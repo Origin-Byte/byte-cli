@@ -33,7 +33,7 @@ Collection:
   data:
 
 Launchpad:
-  market_type: "fixed_price"
+  market_type: []
   prices: []
   whitelists: []
 ```
@@ -42,9 +42,11 @@ The top-level fields are defined as follows:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ----------- |
-| `NftType`        | `String`      | Name of the NFT type (`Unique`, `Collectible`, `CNft`) |
+| `NftType`        | `String`      | Name of the NFT type (`Classic`*) |
 | `Collection`     | `Dictionary`  | List of fields defining the collection |
 | `Launchpad`      | `Dictionary`  | List of fields defining the launchpad |
+
+* Further types such as `Collectible` and `CNft` will be re-added.
 
 Where the fields for `Collection` are:
 
@@ -53,33 +55,21 @@ Where the fields for `Collection` are:
 | name            | `String`   | The name of the collection |
 | description     | `String`   | The description of the collection |
 | symbol          | `String`   | The symbol/ticker of the collection |
-| max_supply      | `Integer`  | The total supply of the collection |
-| receiver        | `String`   | Address that receives the sale and royalty proceeds |
 | tags            | `List`     | A set of strings that categorize the domain in which the NFT operates |
 | royalty_fee_bps | `Integer`  | The royalty fees creators accumulate on the sale of NFTs |
-| is_mutable      | `Boolean`  | A configuration field that dictates whether NFTs are mutable |
-| data            | `String`   | Field for extra data |
+| url            | `String`    | Url of the Collection Website |
 
 And where the fields for `Launchpad` are:
 
 | Field        | Type               | Description |
 | ------------ | ------------------ | ----------- |
-| market_type  | `String`           | Name of the market type (`fixed_price`, `auction`) |
-| ..           | `MarketParameters` | Each market type defines different parameters |
+| admin          | `String`           | The administrator address of the Launchpad |
+| receiver       | `String`           | The receiver address of the NFT sales |
+| market_type    | `Array<String>`    | Array of markets (`fixed_price`, `dutch_auction`) |
+| prices         | `Array<Integer>`   | Array of prices for sale outlets * |
+| is_whitelisted | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
 
-Each market type can derfne different `MarketParameters` parameters.
-
-| Field          | Type               | Description |
-| -------------- | ------------------ | ----------- |
-| `FixedPrice`   |                    |             |
-| -------------- | ------------------ | ----------- |
-| prices         | `Array<Integer>`   | Array of prices for sale outlets |
-| whitelists     | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
-| -------------- | ------------------ | ----------- |
-| `Auction`      |                    |             |
-| -------------- | ------------------ | ----------- |
-| reserve_prices | `Array<Integer>`   | Array of reserve prices for sale outlets |
-| whitelists     | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
+* Note: For dutch auctions the `prices` refers to the `reserve prices` of the auction.
 
 Some examples of yaml configurations are provided in `/gutenberg/examples`.
 
@@ -91,7 +81,7 @@ Here is an example of a single sale configuration:
 
 ```yaml
 Launchpad:
-  market_type: "fixed_price"
+  market_type: ["fixed_price"]
   prices: [1000]
   whitelists: [false]
 ```
@@ -100,7 +90,7 @@ Whilst a multi sale configuration is:
 
 ```yaml
 Launchpad:
-  market_type: "auction"
+  market_type: ["fixed_price", "fixed_price", "fixed_price", "dutch_auction"]
   reserve_prices: [1000, 2000, 3000, 4000]
   whitelists: [false, true, true, true]
 ```
