@@ -13,11 +13,10 @@ Launchpad:
   receiver: "@0xcf9bcdb25929869053dd4a2c467539f8b792346f"
 
 Slots:
-  - !Slot
-    receiver: "@0xcf9bcdb25929869053dd4a2c467539f8b792346f"
+  - receiver: "@0xcf9bcdb25929869053dd4a2c467539f8b792346f"
     markets:
       - !FixedPrice
-        token: "0x0::sui::SUI"
+        token: "sui::sui::SUI"
         price: 500
         is_whitelisted: false
 

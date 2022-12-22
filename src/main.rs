@@ -40,7 +40,7 @@ fn main() -> Result<(), GutenError> {
     // Identify final output path and create intermediate directories
     let output_file = opt.output.unwrap_or_else(|| {
         PathBuf::from(&format!(
-            "./build/{}.move",
+            "./build/sources/{}.move",
             &schema.module_name().to_string()
         ))
     });
