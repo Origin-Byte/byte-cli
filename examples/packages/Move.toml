@@ -16,8 +16,8 @@ rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
 
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol"
-# version 0.15.0
-rev = "e76d7458893495f837475973a343ca22dfa0e91b"
+# version 0.16.0
+rev = "484ffaca16d561d8123c14138770fa99fe5591af"
 
 [addresses]
 gutenberg = "0x0"

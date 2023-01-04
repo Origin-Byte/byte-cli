@@ -10,7 +10,7 @@ module gutenberg::suitraders {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -32,7 +32,7 @@ module gutenberg::suitraders {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
@@ -66,41 +66,47 @@ module gutenberg::suitraders {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let launchpad = nft_protocol::launchpad::new(
+        let marketplace = nft_protocol::marketplace::new(
             tx_context::sender(ctx),
             @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
-            false,
             nft_protocol::flat_fee::new(0, ctx),
             ctx,
         );
 
-        let slot = nft_protocol::slot::new(
-            &launchpad,
+        let listing = nft_protocol::listing::new(
             tx_context::sender(ctx),
             @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
             ctx,
         );
 
-        nft_protocol::fixed_price::init_market<sui::sui::SUI>(
-            &mut slot,
+        let inventory_id =
+            nft_protocol::listing::create_inventory(&mut listing, ctx);
+
+        nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
             false,
             500,
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_market<sui::sui::SUI>(
-            &mut slot,
+        let inventory_id =
+            nft_protocol::listing::create_inventory(&mut listing, ctx);
+
+        nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
             true,
             100,
             ctx,
         );
 
-        transfer::share_object(slot);
+        transfer::share_object(listing);
 
-        transfer::share_object(launchpad);
+        transfer::share_object(marketplace);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUITRADERS>(collection);
+        transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
@@ -151,6 +157,6 @@ module gutenberg::suitraders {
             ctx,
         );
 
-        inventory::add_nft(inventory, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 }

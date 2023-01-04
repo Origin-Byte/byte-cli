@@ -3,7 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::types::{Launchpad, NftType, Slot, Tag};
+use crate::types::{Listing, Marketplace, NftType, Tag};
 
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -19,11 +19,9 @@ use std::fs;
 pub struct Schema {
     pub collection: Collection,
     pub nft_type: NftType,
-    /// Creates a new launchpad with the collection
-    pub launchpad: Option<Launchpad>,
-    /// Registers slots with a provided launchpad or the launchpad created by
-    /// the collection
-    pub slots: Option<Vec<Slot>>,
+    /// Creates a new marketplace with the collection
+    pub marketplace: Option<Marketplace>,
+    pub listings: Option<Vec<Listing>>,
 }
 
 /// Contains the metadata fields of the collection
@@ -75,31 +73,27 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        if self.slots.is_some() && self.launchpad.is_none() {
-            return Err(GutenError::SlotsMustInitializeLaunchpad);
-        }
-
-        let init_launchpad = self
-            .launchpad
+        let init_marketplace = self
+            .marketplace
             .as_ref()
-            .map(Launchpad::init)
+            .map(Marketplace::init)
             .unwrap_or_else(String::new)
             .into_boxed_str();
 
-        let init_slots = self
-            .slots
+        let init_listings = self
+            .listings
             .iter()
             .flatten()
-            .map(Slot::init)
+            .map(Listing::init)
             .collect::<Vec<_>>();
-        let init_slots = init_slots.join("\n    ").into_boxed_str();
+        let init_listings = init_listings.join("\n    ").into_boxed_str();
 
         // Collate list of objects that need to be shared
-        // TODO: Use Launchpad::init and Slot::init functions to avoid explicit share
-        let share_launchpad = self
-            .launchpad
+        // TODO: Use Marketplace::init and Listing::init functions to avoid explicit share
+        let share_marketplace = self
+            .marketplace
             .as_ref()
-            .map(Launchpad::share)
+            .map(Marketplace::share)
             .unwrap_or_default()
             .into_boxed_str();
 
@@ -114,10 +108,10 @@ impl Schema {
         vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
         vars.insert("tags", &tags);
 
-        // Launchpad and slot objects
-        vars.insert("init_launchpad", &init_launchpad);
-        vars.insert("init_slots", &init_slots);
-        vars.insert("share_launchpad", &share_launchpad);
+        // Marketplace and Listing objects
+        vars.insert("init_marketplace", &init_marketplace);
+        vars.insert("init_listings", &init_listings);
+        vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars
             .into_iter()

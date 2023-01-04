@@ -8,11 +8,11 @@ Collection:
   royalty_fee_bps:
   url:
 
-Launchpad:
-  admin: 
+Marketplace:
+  admin:
   receiver:
 
-Slots:
+Listings:
   - admin:
     receiver:
     markets:

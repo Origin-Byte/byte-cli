@@ -15,7 +15,8 @@ We describe the process for configuring NFT collections and running Gutenberg in
 To configure an NFT collection, the creator will have to populate a configuration file.
 
 A number of example configuration files are available in [`./examples`](./examples).
-A blank template is available in [`./examples/blank.yaml`](./examples/blank.yaml) which has the following structure:
+
+A blank template is available in [`templates/template.yaml`](templates/template.yaml) which has the following structure:
 
 ```yaml
 NftType:
@@ -28,11 +29,11 @@ Collection:
   royalty_fee_bps:
   url:
 
-Launchpad:
-  admin: 
+Marketplace:
+  admin:
   receiver:
 
-Slots:
+Listings:
   - admin:
     receiver:
     markets:
@@ -53,8 +54,8 @@ The top-level fields are defined as follows:
 | ---------------- | ------------- | ----------- |
 | `NftType`        | `String`      | Name of the NFT type (`Classic`*) |
 | `Collection`     | `Dictionary`  | List of fields defining the properties of the `Collection` |
-| `Launchpad`      | `Dictionary`  | List of fields defining the `Launchpad`, this field is optional, defining `Launchpad` will cause one to be created |
-| `Slots`          | `List`        | List of fields defining the `Slots` to be registered with the `Launchpad` |
+| `Marketplace`    | `Dictionary`  | List of fields defining the `Marketplace`, this field is optional, defining `Marketplace` will cause one to be created |
+| `Listings`       | `List`        | List of fields defining the `Listings` |
 
 * Further types such as collectible and composable NFTs will be supported in the future.
 
@@ -69,20 +70,20 @@ Where the fields for `Collection` are:
 | royalty_fee_bps | `Integer`  | The royalty fees creators accumulate on the sale of NFTs |
 | url             | `String`   | Url of the Collection Website |
 
-And where the fields for `Launchpad` are:
+And where the fields for `Marketplace` are:
 
 | Field          | Type             | Description |
 | -------------- | ---------------- | ----------- |
-| admin          | `Option<String>` | The administrator address of the Launchpad, if not set then the transaction sender will be used |
+| admin          | `Option<String>` | The administrator address of the Marketplace, if not set then the transaction sender will be used |
 | receiver       | `Option<String>` | The receiver address of the NFT sales, if not set then the transaction sender will be used |
 
-For each `Slot` the fields are:
+For each `Listing` the fields are:
 
 | Field    | Type             | Description |
 | -------- | ---------------- | ----------- |
-| admin    | `Option<String>` | The administrator address of the Launchpad, if not set then the transaction sender will be used |
+| admin    | `Option<String>` | The administrator address of the Marketplace, if not set then the transaction sender will be used |
 | receiver | `Option<String>` | The receiver address of the NFT sales, if not set then the transaction sender will be used |
-| markets  | `Vec<Market>`    | List of markets that will be associated with the `Slot`
+| markets  | `Vec<Market>`    | List of markets that will be associated with the `Listing`
 
 Example configurations are provided in `./examples`.
 
@@ -93,7 +94,7 @@ OriginByte's launchpad configurations allow creators to segregate their NFT sale
 Here is an example of a single sale configuration:
 
 ```yaml
-Slots:
+Listings:
   - markets:
       - !FixedPrice
         token: sui::sui::SUI
@@ -104,7 +105,7 @@ Slots:
 Whilst a multi fixed price sale configuration is defined like so:
 
 ```yaml
-Slots:
+Listings:
   - markets:
       - !FixedPrice
         token: sui::sui::SUI
@@ -130,7 +131,7 @@ This will use a configuration file, `suimarines.yaml`, and write a Move package 
 To define a custom configuration and output path one can run the following command:
 
 ```shell
-gutenberg ./examples/suimarines.yaml --output suimarines.yaml
+gutenberg ./examples/suimarines.yaml --output suimarines.move
 ```
 
 You can obtain a `gutenberg` executable by building it using [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and running the following commands, or using `cargo run` directly:

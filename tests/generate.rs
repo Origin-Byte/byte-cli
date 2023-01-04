@@ -24,7 +24,7 @@ fn suimarines() {
 }
 
 #[test]
-fn launchpad() {
+fn suitraders() {
     assert_equal("suitraders.yaml", "suitraders.move");
 }
 
