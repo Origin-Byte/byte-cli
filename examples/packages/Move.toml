@@ -8,16 +8,15 @@ subdir = "crates/sui-framework"
 # devnet-0.19.0
 rev = "a8af20d94e951ecfb6d0cd47c23cf6393013d8a8"
 
-[dependencies.Movemate]
-git = "https://github.com/Origin-Byte/movemate.git"
-subdir = "sui"
+[dependencies.Originmate]
+git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.19.0
-rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
+rev = "fe601741259a530a188b2b9481c16eb6ccc917f4"
 
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol"
 # version 0.15.0
-rev = "e76d7458893495f837475973a343ca22dfa0e91b"
+rev = "1f640c0c9172f11a264e07534fefbfb381ca8b73"
 
 [addresses]
 gutenberg = "0x0"
