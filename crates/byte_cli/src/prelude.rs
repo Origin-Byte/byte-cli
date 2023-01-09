@@ -1,2 +1,2 @@
-pub use crate::cli::Cli;
+pub use crate::cli::{Cli, Commands};
 pub use crate::consts;

@@ -43,5 +43,9 @@ pub enum Commands {
     DeployContract {},
 
     /// Mints NFTs by calling the deployed contract
-    MintNfts {},
+    MintNfts {
+        /// Path to the directory with the assets
+        #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
+        assets_dir: String,
+    },
 }
