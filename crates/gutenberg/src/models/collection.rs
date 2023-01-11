@@ -26,19 +26,48 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub fn add_name(&mut self, name: String) {
+    pub fn new() -> Collection {
+        Collection {
+            name: String::new(),
+            description: String::new(),
+            symbol: String::new(),
+            tags: Vec::new(),
+            royalty_fee_bps: String::new(),
+            url: String::new(),
+        }
+    }
+
+    pub fn new_from(
+        name: String,
+        description: String,
+        symbol: String,
+        tags: Vec<Tag>,
+        royalty_fee_bps: String,
+        url: String,
+    ) -> Collection {
+        Collection {
+            name,
+            description,
+            symbol,
+            tags,
+            royalty_fee_bps,
+            url,
+        }
+    }
+
+    pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
 
-    pub fn add_description(&mut self, description: String) {
+    pub fn set_description(&mut self, description: String) {
         self.description = description;
     }
 
-    pub fn add_symbol(&mut self, symbol: String) {
+    pub fn set_symbol(&mut self, symbol: String) {
         self.symbol = symbol;
     }
 
-    pub fn add_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
+    pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
         let tag = Tag::from_str(tag_string.as_str())
             .map_err(|_| GutenError::UnsupportedTag)?;
 
@@ -47,11 +76,14 @@ impl Collection {
         Ok(())
     }
 
-    pub fn add_royalty_fee_bps(&mut self, royalty_bps: String) {
+    // TODO
+    pub fn pop_tag(&mut self, _tag_string: String) {}
+
+    pub fn set_royalty_fee_bps(&mut self, royalty_bps: String) {
         self.royalty_fee_bps = royalty_bps;
     }
 
-    pub fn add_url(&mut self, royalty_bps: String) {
+    pub fn set_url(&mut self, royalty_bps: String) {
         self.royalty_fee_bps = royalty_bps;
     }
 }
