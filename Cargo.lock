@@ -159,6 +159,7 @@ dependencies = [
  "gumdrop",
  "pretty_assertions",
  "serde",
+ "serde_json",
  "serde_yaml",
  "strfmt",
  "thiserror",
@@ -370,6 +371,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]

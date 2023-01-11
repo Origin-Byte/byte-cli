@@ -3,7 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::models::{collection::Collection, nft::NftType};
+use crate::models::{collection::Collection, nft::Nft};
 use crate::types::{Listing, Marketplace};
 
 use serde::Deserialize;

@@ -8,4 +8,6 @@ pub enum GutenError {
     IoError(#[from] std::io::Error),
     #[error("A tag provided is not supported")]
     UnsupportedTag,
+    #[error("The NFT Type provided is not supported")]
+    UnsupportedNFftype,
 }
