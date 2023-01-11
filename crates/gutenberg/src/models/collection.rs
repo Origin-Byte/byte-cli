@@ -12,30 +12,30 @@ use std::str::FromStr;
 #[derive(Debug, Deserialize)]
 pub struct Collection {
     /// The name of the collection
-    pub name: Box<str>,
+    pub name: String,
     /// The description of the collection
-    pub description: Box<str>,
+    pub description: String,
     /// The symbol/ticker of the collection
-    pub symbol: Box<str>,
+    pub symbol: String,
     /// A set of strings that categorize the domain in which the NFT operates
     pub tags: Vec<Tag>,
     /// The royalty fees creators accumulate on the sale of NFTs
-    pub royalty_fee_bps: Box<str>,
+    pub royalty_fee_bps: String,
     /// Field for extra data
-    pub url: Box<str>,
+    pub url: String,
 }
 
 impl Collection {
     pub fn add_name(&mut self, name: String) {
-        self.name = name.into_boxed_str();
+        self.name = name;
     }
 
     pub fn add_description(&mut self, description: String) {
-        self.description = description.into_boxed_str();
+        self.description = description;
     }
 
     pub fn add_symbol(&mut self, symbol: String) {
-        self.symbol = symbol.into_boxed_str();
+        self.symbol = symbol;
     }
 
     pub fn add_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
@@ -48,10 +48,10 @@ impl Collection {
     }
 
     pub fn add_royalty_fee_bps(&mut self, royalty_bps: String) {
-        self.royalty_fee_bps = royalty_bps.into_boxed_str();
+        self.royalty_fee_bps = royalty_bps;
     }
 
     pub fn add_url(&mut self, royalty_bps: String) {
-        self.royalty_fee_bps = royalty_bps.into_boxed_str();
+        self.royalty_fee_bps = royalty_bps;
     }
 }
