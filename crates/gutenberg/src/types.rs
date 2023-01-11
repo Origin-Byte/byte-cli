@@ -4,6 +4,7 @@
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
 use serde::Deserialize;
+use std::str::FromStr;
 
 fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
@@ -51,6 +52,27 @@ impl Tag {
         };
 
         tag.to_string()
+    }
+}
+
+impl FromStr for Tag {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Tag, Self::Err> {
+        match input {
+            "Art" => Ok(Tag::Art),
+            "ProfilePicture" => Ok(Tag::ProfilePicture),
+            "Collectible" => Ok(Tag::Collectible),
+            "GameAsset" => Ok(Tag::GameAsset),
+            "TokenisedAsset" => Ok(Tag::TokenisedAsset),
+            "Ticker" => Ok(Tag::Ticker),
+            "DomainName" => Ok(Tag::DomainName),
+            "Music" => Ok(Tag::Music),
+            "Video" => Ok(Tag::Video),
+            "Ticket" => Ok(Tag::Ticket),
+            "License" => Ok(Tag::License),
+            _ => Err(()),
+        }
     }
 }
 

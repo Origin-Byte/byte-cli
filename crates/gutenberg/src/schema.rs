@@ -3,7 +3,8 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::types::{Listing, Marketplace, NftType, Tag};
+use crate::models::collection::Collection;
+use crate::types::{Listing, Marketplace, NftType};
 
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -22,23 +23,6 @@ pub struct Schema {
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Vec<Listing>>,
-}
-
-/// Contains the metadata fields of the collection
-#[derive(Debug, Deserialize)]
-pub struct Collection {
-    /// The name of the collection
-    pub name: Box<str>,
-    /// The description of the collection
-    pub description: Box<str>,
-    /// The symbol/ticker of the collection
-    pub symbol: Box<str>,
-    /// A set of strings that categorize the domain in which the NFT operates
-    pub tags: Vec<Tag>,
-    /// The royalty fees creators accumulate on the sale of NFTs
-    pub royalty_fee_bps: Box<str>,
-    /// Field for extra data
-    pub url: Box<str>,
 }
 
 impl Schema {

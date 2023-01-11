@@ -6,4 +6,6 @@ pub enum GutenError {
     SerdeYaml(#[from] serde_yaml::Error),
     #[error("An IO error has occured")]
     IoError(#[from] std::io::Error),
+    #[error("A tag provided is not supported")]
+    UnsupportedTag,
 }
