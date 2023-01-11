@@ -3,8 +3,8 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::models::collection::Collection;
-use crate::types::{Listing, Marketplace, NftType};
+use crate::models::{collection::Collection, nft::NftType};
+use crate::types::{Listing, Marketplace};
 
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -26,12 +26,8 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn module_name(&self) -> Box<str> {
-        self.collection
-            .name
-            .to_lowercase()
-            .replace(' ', "_")
-            .into_boxed_str()
+    pub fn module_name(&self) -> String {
+        self.collection.name.to_lowercase().replace(' ', "_")
     }
 
     /// Higher level method responsible for generating Move code from the
@@ -48,12 +44,7 @@ impl Schema {
 
         let module_name = self.module_name();
 
-        let witness = self
-            .collection
-            .name
-            .to_uppercase()
-            .replace(' ', "")
-            .into_boxed_str();
+        let witness = self.collection.name.to_uppercase().replace(' ', "");
 
         let tags = self.write_tags();
 
@@ -61,8 +52,7 @@ impl Schema {
             .marketplace
             .as_ref()
             .map(Marketplace::init)
-            .unwrap_or_else(String::new)
-            .into_boxed_str();
+            .unwrap_or_else(String::new);
 
         let init_listings = self
             .listings
@@ -70,7 +60,7 @@ impl Schema {
             .flatten()
             .map(Listing::init)
             .collect::<Vec<_>>();
-        let init_listings = init_listings.join("\n    ").into_boxed_str();
+        let init_listings = init_listings.join("\n    ");
 
         // Collate list of objects that need to be shared
         // TODO: Use Marketplace::init and Listing::init functions to avoid explicit share
@@ -78,8 +68,7 @@ impl Schema {
             .marketplace
             .as_ref()
             .map(Marketplace::share)
-            .unwrap_or_default()
-            .into_boxed_str();
+            .unwrap_or_default();
 
         let mut vars = HashMap::new();
 
@@ -119,7 +108,7 @@ impl Schema {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write_tags(&self) -> Box<str> {
+    pub fn write_tags(&self) -> String {
         let mut out = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.collection.tags.iter() {
@@ -134,6 +123,6 @@ impl Schema {
             "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
         );
 
-        out.into_boxed_str()
+        out
     }
 }
