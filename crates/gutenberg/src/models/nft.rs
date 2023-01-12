@@ -5,10 +5,16 @@ use std::str::FromStr;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Nft {
-    nft_type: NftType,
-    supply_policy: bool,
     fields: Fields,
+    behaviours: Behaviours,
+    supply_policy: bool,
     mint_strategy: MintStrategy,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Behaviours {
+    composable: bool,
+    loose: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -16,6 +22,7 @@ pub struct Fields {
     display: bool,
     url: bool,
     attributes: bool,
+    tags: bool,
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MintStrategy {

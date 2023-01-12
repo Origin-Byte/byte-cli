@@ -10,6 +10,16 @@ fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
 }
 
+pub enum Royalties {
+    Proportional { bps: u64 },
+    Constant { fee: u64 },
+}
+
+pub enum SupplyPolicy {
+    Unlimited,
+    Limited { max: u64 },
+}
+
 #[derive(Debug, Deserialize)]
 pub enum Tag {
     Art,
