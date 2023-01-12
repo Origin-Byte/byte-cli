@@ -19,7 +19,7 @@ use std::fs;
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
     pub collection: Collection,
-    pub nft_type: NftType,
+    pub nft: Nft,
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Vec<Listing>>,
