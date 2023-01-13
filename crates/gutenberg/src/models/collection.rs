@@ -19,8 +19,6 @@ pub struct Collection {
     pub symbol: String,
     /// A set of strings that categorize the domain in which the NFT operates
     pub tags: Vec<Tag>,
-    /// The royalty fees creators accumulate on the sale of NFTs
-    pub royalty_fee_bps: String,
     /// Field for extra data
     pub url: String,
 }
@@ -32,7 +30,6 @@ impl Collection {
             description: String::new(),
             symbol: String::new(),
             tags: Vec::new(),
-            royalty_fee_bps: String::new(),
             url: String::new(),
         }
     }
@@ -42,7 +39,6 @@ impl Collection {
         description: String,
         symbol: String,
         tags: Vec<Tag>,
-        royalty_fee_bps: String,
         url: String,
     ) -> Collection {
         Collection {
@@ -50,7 +46,6 @@ impl Collection {
             description,
             symbol,
             tags,
-            royalty_fee_bps,
             url,
         }
     }
@@ -79,11 +74,11 @@ impl Collection {
     // TODO
     pub fn pop_tag(&mut self, _tag_string: String) {}
 
-    pub fn set_royalty_fee_bps(&mut self, royalty_bps: String) {
-        self.royalty_fee_bps = royalty_bps;
-    }
+    // pub fn set_royalty_fee_bps(&mut self, royalty_bps: String) {
+    //     self.royalty_fee_bps = royalty_bps;
+    // }
 
-    pub fn set_url(&mut self, royalty_bps: String) {
-        self.royalty_fee_bps = royalty_bps;
-    }
+    // pub fn set_url(&mut self, royalty_bps: String) {
+    //     self.royalty_fee_bps = royalty_bps;
+    // }
 }

@@ -10,14 +10,35 @@ fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
 }
 
+#[derive(Debug, Deserialize)]
 pub enum Royalties {
     Proportional { bps: u64 },
     Constant { fee: u64 },
 }
 
-pub enum SupplyPolicy {
-    Unlimited,
-    Limited { max: u64 },
+impl Royalties {
+    pub fn write(&self) -> String {
+        match self {
+            Royalties::Proportional { bps } => {
+                format!(
+                    "royalty::add_proportional_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new({bps}),
+        );",
+                    bps = bps
+                )
+            }
+            Royalties::Constant { fee } => {
+                format!(
+                    "royalty::add_constant_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new({fee}),
+        );",
+                    fee = fee
+                )
+            }
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

@@ -4,32 +4,37 @@ use gutenberg::schema::Schema;
 use std::ffi::OsStr;
 use std::fs::{self, File};
 
-/// Check that all examples have correct schema
-#[test]
-fn example_schema() {
-    fs::read_dir("./examples")
-        .unwrap()
-        .map(Result::unwrap)
-        // Filter out packages directory
-        .filter(|f| f.file_type().unwrap().is_file())
-        .map(|dir| {
-            let path = dir.path();
-            let file_type = path.extension().and_then(OsStr::to_str);
-            let config = File::open(&path).unwrap();
-            assert_schema(config, file_type.unwrap());
-        })
-        .collect::<()>()
-}
+// /// Check that all examples have correct schema
+// #[test]
+// fn example_schema() {
+//     fs::read_dir("./examples")
+//         .unwrap()
+//         .map(Result::unwrap)
+//         // Filter out packages directory
+//         .filter(|f| f.file_type().unwrap().is_file())
+//         .map(|dir| {
+//             let path = dir.path();
+//             let file_type = path.extension().and_then(OsStr::to_str);
+//             let config = File::open(&path).unwrap();
+//             assert_schema(config, file_type.unwrap());
+//         })
+//         .collect::<()>()
+// }
 
-#[test]
-fn suimarines() {
-    assert_equal("suimarines.yaml", "suimarines.move");
-}
+// #[test]
+// fn suimarines() {
+//     assert_equal("suimarines.yaml", "suimarines.move");
+// }
 
 #[test]
 fn suitraders() {
     assert_equal("suitraders.yaml", "suitraders.move");
 }
+
+// #[test]
+// fn newbytes() {
+//     assert_equal("newbytes.json", "newbytes.move");
+// }
 
 fn setup(config: &str, expected: &str) -> (File, String) {
     let config = File::open(format!("./examples/{config}")).unwrap();

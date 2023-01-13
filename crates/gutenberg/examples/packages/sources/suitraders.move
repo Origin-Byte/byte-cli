@@ -125,7 +125,7 @@ module gutenberg::suitraders {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft(
+    public entry fun mint_to_warehouse(
         name: String,
         description: String,
         url: vector<u8>,
