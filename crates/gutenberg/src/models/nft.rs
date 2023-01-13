@@ -1,10 +1,6 @@
-use crate::err::GutenError;
-use bevy_reflect::std_traits::ReflectDefault;
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,26 +58,6 @@ pub enum Mint {
     Launchpad,
 }
 
-/// Enum representing the NFT types currently available in the protocol
-#[derive(Debug, Deserialize, Serialize)]
-pub enum NftType {
-    // TODO: Need to add support for Soulbound
-    Classic,
-    // Composable,
-}
-
-impl FromStr for NftType {
-    type Err = ();
-
-    fn from_str(input: &str) -> Result<NftType, Self::Err> {
-        match input {
-            "Classic" => Ok(NftType::Classic),
-            // "Composable" => Ok(NftType::Composable),
-            _ => Err(()),
-        }
-    }
-}
-
 impl Nft {
     pub fn write_domains(&self) -> String {
         let code = self
@@ -119,11 +95,12 @@ impl Nft {
 "
                 }
                 "tags" => {
-                    "tags::add_tag_domain(
-                        &mut nft,
-                        tags,
-                        ctx,
-                    );"
+                    "
+        tags::add_tag_domain(
+            &mut nft,
+            tags,
+            ctx,
+        );"
                 }
                 _ => {
                     eprintln!("File has no extension");
@@ -144,26 +121,27 @@ impl Nft {
             .to_map()
             .iter()
             .filter(|(_, v)| *v == true)
-            .map(|(k, _)| {
-                match k.as_str() {
-                    "display" => {
-                        "        name: String,
+            .map(|(k, _)| match k.as_str() {
+                "display" => {
+                    "        name: String,
         description: String,"
-                    }
-                    "url" => {
-                        "
+                }
+                "url" => {
+                    "
         url: vector<u8>,"
-                    }
-                    "attributes" => {
-                        "
+                }
+                "attributes" => {
+                    "
         attribute_keys: vector<String>,
         attribute_values: vector<String>,"
-                    }
-                    // TODO: Missing tags
-                    _ => {
-                        eprintln!("File has no extension");
-                        std::process::exit(2);
-                    }
+                }
+                "tags" => {
+                    "
+        tags: Tags,"
+                }
+                _ => {
+                    eprintln!("Field not recognized");
+                    std::process::exit(2);
                 }
             })
             .collect();
@@ -179,17 +157,21 @@ impl Nft {
         match mint_strategy {
             Mint::Direct => {
                 fun_name = "direct_mint".to_string();
-                to_whom = "receiver: address,".to_string();
-                transfer = "transfer::transfer(nft, receiver);".to_string();
+                to_whom = "        receiver: address,".to_string();
+                transfer = "
+            transfer::transfer(nft, receiver);"
+                    .to_string();
             }
             Mint::Airdrop => {
                 fun_name = "airdrop_mint".to_string();
                 to_whom = format!(
-                    "_mint_cap: &MintCap<{witness}>,
-            receiver: address,",
+                    "        _mint_cap: &MintCap<{witness}>,
+        receiver: address,",
                     witness = witness,
                 );
-                transfer = "transfer::transfer(nft, receiver);".to_string();
+                transfer = "
+        transfer::transfer(nft, receiver);"
+                    .to_string();
             }
             Mint::Launchpad => {
                 fun_name = "mint_to_warehouse".to_string();
@@ -214,13 +196,20 @@ impl Nft {
         );
 
         [
-            format!("public entry fun {fun_name}(", fun_name = fun_name),
+            format!(
+                "
+    public entry fun {fun_name}(",
+                fun_name = fun_name
+            ),
             fields,
             to_whom,
             end_of_signature,
             domains,
             transfer,
-            "    }".to_string(),
+            "    }
+
+            "
+            .to_string(),
         ]
         .join("\n")
     }
@@ -246,60 +235,4 @@ impl Nft {
 
         code
     }
-}
-
-impl NftType {
-    pub fn new(nft_type: &str) -> Result<NftType, GutenError> {
-        let nft = NftType::from_str(nft_type)
-            .map_err(|_| GutenError::UnsupportedNFftype)?;
-        Ok(nft)
-    }
-
-    // /// Writes Move code for an entry function meant to be called by
-    // /// the Creators to mint NFTs. Depending on the NFTtype the function
-    // /// parameters change, therefore pattern match the NFT type.
-    // pub fn mint_func(&self, witness: &str) -> String {
-    //     let func = match self {
-    //         NftType::Classic => format!(
-    //             "public entry fun mint_nft(
-    //                 name: String,
-    //                 description: String,
-    //                 url: vector<u8>,
-    //                 attribute_keys: vector<String>,
-    //                 attribute_values: vector<String>,
-    //                 mint_cap: &mut MintCap<{witness}>,
-    //                 inventory: &mut Inventory,
-    //                 ctx: &mut TxContext,
-    //             ) {{
-    //                 let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);
-
-    //                 collection::increment_supply(mint_cap, 1);
-
-    //                 display::add_display_domain(
-    //                     &mut nft,
-    //                     name,
-    //                     description,
-    //                     ctx,
-    //                 );
-
-    //                 display::add_url_domain(
-    //                     &mut nft,
-    //                     url::new_unsafe_from_bytes(url),
-    //                     ctx,
-    //                 );
-
-    //                 display::add_attributes_domain_from_vec(
-    //                     &mut nft,
-    //                     attribute_keys,
-    //                     attribute_values,
-    //                     ctx,
-    //                 );
-
-    //                 inventory::deposit_nft(inventory, nft);
-    //             }}",
-    //             witness = witness,
-    //         ),
-    //     };
-    //     func
-    // }
 }
