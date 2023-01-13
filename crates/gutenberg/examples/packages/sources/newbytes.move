@@ -1,4 +1,4 @@
-module gutenberg::suimarines {
+module gutenberg::newbytes {
     use std::string::{Self, String};
 
     use sui::url;
@@ -16,15 +16,15 @@ module gutenberg::suimarines {
     use nft_protocol::collection::{Self, Collection, MintCap};
 
     /// One time witness is only instantiated in the init method
-    struct SUIMARINES has drop {}
+    struct NEWBYTES has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUIMARINES>(
+    fun init(witness: NEWBYTES, ctx: &mut TxContext) {
+        let (mint_cap, collection) = collection::create<NEWBYTES>(
             &witness,
             ctx,
         );
@@ -39,8 +39,8 @@ module gutenberg::suimarines {
         display::add_collection_display_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"Suimarines"),
-            string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            string::utf8(b"Newbytes"),
+            string::utf8(b"A unique NFT collection of Bytes on Sui"),
         );
 
         display::add_collection_url_domain(
@@ -72,8 +72,8 @@ module gutenberg::suimarines {
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<SUIMARINES, FT>,
-        collection: &mut Collection<SUIMARINES>,
+        payment: &mut TradePayment<NEWBYTES, FT>,
+        collection: &mut Collection<NEWBYTES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -86,17 +86,17 @@ module gutenberg::suimarines {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_to_warehouse(
+    public entry fun mint_nft(
         name: String,
         description: String,
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUIMARINES>,
+        _mint_cap: &MintCap<NEWBYTES>,
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<NEWBYTES>(tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,

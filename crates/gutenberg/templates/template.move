@@ -56,10 +56,7 @@ module gutenberg::{module_name} {{
         );
 
         let royalty = royalty::new(ctx);
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new({royalty_fee_bps}),
-        );
+        {royalty_strategy}
         royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         {tags}
@@ -84,38 +81,5 @@ module gutenberg::{module_name} {{
         royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
     }}
 
-    public entry fun mint_nft(
-        name: String,
-        description: String,
-        url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
-        _mint_cap: &MintCap<{witness}>,
-        inventory: &mut Inventory,
-        ctx: &mut TxContext,
-    ) {{
-        let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);
-
-        display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
-        );
-
-        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
-        );
-
-        display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
-        );
-
-        inventory::deposit_nft(inventory, nft);
-    }}
+    {mint_functions}
 }}

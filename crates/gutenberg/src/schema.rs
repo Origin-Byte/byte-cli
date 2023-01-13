@@ -4,14 +4,16 @@
 //! by the caller.
 use crate::err::GutenError;
 use crate::models::{collection::Collection, nft::Nft};
-use crate::types::{Listing, Marketplace};
+use crate::types::{Listing, Marketplace, Royalties};
 
 use serde::Deserialize;
 use strfmt::strfmt;
 
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs;
+use std::path::PathBuf;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -20,6 +22,7 @@ use std::fs;
 pub struct Schema {
     pub collection: Collection,
     pub nft: Nft,
+    pub royalties: Royalties,
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Vec<Listing>>,
@@ -28,6 +31,75 @@ pub struct Schema {
 impl Schema {
     pub fn module_name(&self) -> String {
         self.collection.name.to_lowercase().replace(' ', "_")
+    }
+
+    pub fn write_from_file(
+        config: PathBuf,
+        output: Option<PathBuf>,
+    ) -> Result<(), GutenError> {
+        let extension = config.extension().and_then(OsStr::to_str);
+
+        let f = fs::File::open(&config)?;
+
+        let schema: Schema = match extension {
+            Some("yaml") => {
+                match serde_yaml::from_reader(f) {
+                    Ok(schema) => schema,
+                    Err(err) => {
+                        eprintln!("Gutenberg could not generate smart contract due to");
+                        eprintln!("{}", err);
+                        std::process::exit(2);
+                    }
+                }
+            }
+            Some("json") => {
+                match serde_json::from_reader(f) {
+                    Ok(schema) => schema,
+                    Err(err) => {
+                        eprintln!("Gutenberg could not generate smart contract due to");
+                        eprintln!("{}", err);
+                        std::process::exit(2);
+                    }
+                }
+            }
+            Some(_) => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("File extension not supported");
+                std::process::exit(2);
+            }
+            None => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("File has no extension");
+                std::process::exit(2);
+            }
+        };
+
+        // If output file was not specified we prepare build directory for user to
+        // publish directly after invoking gutenberg
+        if output.is_none() {
+            fs::create_dir_all("./build")?;
+            fs::File::create("./build/Move.toml")?;
+            fs::copy("./examples/packages/Move.toml", "./build/Move.toml")?;
+        }
+
+        // Identify final output path and create intermediate directories
+        let output_file = output.unwrap_or_else(|| {
+            PathBuf::from(&format!(
+                "./build/sources/{}.move",
+                &schema.module_name().to_string()
+            ))
+        });
+
+        if let Some(p) = output_file.parent() {
+            fs::create_dir_all(p)?;
+        }
+
+        let mut f = fs::File::create(output_file)?;
+        if let Err(err) = schema.write_move(&mut f) {
+            eprintln!("{err}");
+        }
+
+        Ok(())
     }
 
     /// Higher level method responsible for generating Move code from the
@@ -72,13 +144,17 @@ impl Schema {
 
         let mut vars = HashMap::new();
 
+        let royalty_strategy = self.royalties.write();
+        let mint_functions = self.nft.mint_fns(&witness);
+
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("name", &self.collection.name);
         vars.insert("description", &self.collection.description);
         vars.insert("url", &self.collection.url);
         vars.insert("symbol", &self.collection.symbol);
-        vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
+        vars.insert("royalty_strategy", &royalty_strategy);
+        vars.insert("mint_functions", &mint_functions);
         vars.insert("tags", &tags);
 
         // Marketplace and Listing objects

@@ -1,0 +1,52 @@
+{
+    "Collection": {
+        "name": "Newbytes",
+        "description": "A unique NFT collection of Bytes on Sui",
+        "symbol": "BYTE",
+        "tags": ["Art", "ProfilePicture"],
+        "url": "https://originbyte.io/"
+    },
+    "Nft": {
+        "fields": {
+            "display": true,
+            "url": true,
+            "attributes": true,
+            "tags": true
+        },
+        "behaviours": {
+            "composable": true,
+            "loose": false
+        },
+        "supplyPolicy": "unlimited",
+        "mintStrategy": {
+            "direct": true,
+            "airdrop": true,
+            "launchpad": true
+        }
+    },
+    "Royalties": {
+        "Proportional": {"bps": 100}
+    },
+    "Listings": [
+        {
+            "receiver": "@0xcf9bcdb25929869053dd4a2c467539f8b792346f",
+            "markets": [
+                {
+                    "FixedPrice": {
+                        "token": "sui::sui::SUI",
+                        "price": 500,
+                        "is_whitelisted": false
+                    }
+                },
+                {
+                    "DutchAuction":
+                        {
+                            "token": "sui::sui::SUI",
+                            "reserve_price": 100,
+                            "is_whitelisted": true
+                        }
+                }
+            ]
+        }
+    ]
+}
