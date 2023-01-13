@@ -139,7 +139,7 @@ You can obtain a `gutenberg` executable by building it using [cargo](https://doc
 ```shell
 cd gutenberg
 cargo build --release
-cargo run ./examples/suimarines.yaml
+cargo run --bin gutenberg ./examples/suimarines.yaml
 ```
 
 Alternatively, you can [download a pre-built executable](https://github.com/Origin-Byte/nft-protocol/tags) once these become available.
