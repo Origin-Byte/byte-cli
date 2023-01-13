@@ -29,11 +29,11 @@ async fn run() -> Result<()> {
 
     match cli.command {
         Commands::InitCollectionConfig {} => {}
-        Commands::InitUploadConfig { assets_dir } => {}
-        Commands::InitConfig { assets_dir } => {}
-        Commands::DeployAssets { assets_dir } => {}
+        Commands::InitUploadConfig { assets_dir: _ } => {}
+        Commands::InitConfig { assets_dir: _ } => {}
+        Commands::DeployAssets { assets_dir: _ } => {}
         Commands::DeployContract {} => {}
-        Commands::MintNfts { assets_dir } => {}
+        Commands::MintNfts { assets_dir: _ } => {}
     }
 
     Ok(())
