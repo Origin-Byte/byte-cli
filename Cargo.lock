@@ -121,6 +121,7 @@ dependencies = [
  "anyhow",
  "clap",
  "console",
+ "gutenberg",
  "pretty_assertions",
  "serde",
  "serde_yaml",
