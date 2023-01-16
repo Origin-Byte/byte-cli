@@ -25,6 +25,7 @@ const BEHAVIOUR_OPTIONS: [&str; 2] = ["composable", "loose"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 const MINTING_OPTIONS: [&str; 3] = ["Launchpad", "Direct", "Airdrop"];
 const ROYALTY_OPTIONS: [&str; 3] = ["Proportional", "Constant", "None"];
+const MARKET_OPTIONS: [&str; 2] = ["FixedPrice", "DutchAuction"];
 
 pub fn get_dialoguer_theme() -> ColorfulTheme {
     ColorfulTheme {
@@ -55,6 +56,17 @@ pub fn init_collection_config() {
         if !input.is_empty() && input.parse::<f64>().is_err() {
             Err(format!(
                 "Couldn't parse price input of '{}' to a float.",
+                input
+            ))
+        } else {
+            Ok(())
+        }
+    };
+
+    let address_validator = |input: &String| -> Result<(), String> {
+        if input.as_bytes().len() != 20 {
+            Err(format!(
+                "Couldn't parse input of '{}' to an address.",
                 input
             ))
         } else {
@@ -236,14 +248,28 @@ pub fn init_collection_config() {
         .parse::<u64>()
         .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
 
-    for i in [..listings] {}
+    let admin_address = Input::with_theme(&theme)
+        .with_prompt("What is the address of the Listing administrator?")
+        .validate_with(address_validator)
+        .interact()
+        .unwrap();
 
-    // // Listings
-    // pub struct Listing {
-    //     #[serde(default = "default_admin")]
-    //     admin: String,
-    //     #[serde(default = "default_admin")]
-    //     receiver: String,
-    //     markets: Vec<Market>,
-    // }
+    let receiver_address = Input::with_theme(&theme)
+        .with_prompt("What is the address that receives the sale proceeds?")
+        .validate_with(address_validator)
+        .interact()
+        .unwrap();
+
+    for i in 0..listings {
+        let s = format!(
+            "What is the market primitive to use for the sale nº {}",
+            i + 1
+        );
+
+        let market_type = Select::with_theme(&theme)
+            .with_prompt(s)
+            .items(&MARKET_OPTIONS)
+            .interact()
+            .unwrap();
+    }
 }
