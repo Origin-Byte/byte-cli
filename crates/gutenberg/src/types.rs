@@ -6,6 +6,8 @@
 use serde::Deserialize;
 use std::str::FromStr;
 
+use crate::prelude::GutenError;
+
 fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
 }
@@ -14,9 +16,28 @@ fn default_admin() -> String {
 pub enum Royalties {
     Proportional { bps: u64 },
     Constant { fee: u64 },
+    None,
 }
 
 impl Royalties {
+    pub fn new_from(
+        input: &str,
+        fee: Option<u64>,
+    ) -> Result<Royalties, GutenError> {
+        match input {
+            "Proportional" => {
+                let fee = fee.unwrap();
+                Ok(Royalties::Proportional { bps: fee })
+            }
+            "Constant" => {
+                let fee = fee.unwrap();
+                Ok(Royalties::Constant { fee: fee })
+            }
+            "None" => Ok(Royalties::None),
+            _ => Err(GutenError::UnsupportedRoyalty),
+        }
+    }
+
     pub fn write(&self) -> String {
         match self {
             Royalties::Proportional { bps } => {
@@ -37,6 +58,7 @@ impl Royalties {
                     fee = fee
                 )
             }
+            Royalties::None => "".to_string(),
         }
     }
 }

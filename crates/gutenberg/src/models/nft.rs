@@ -1,14 +1,18 @@
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::collections::HashSet;
+use std::str::FromStr;
+
+use crate::prelude::GutenError;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Nft {
-    fields: Fields,
-    behaviours: Behaviours,
-    supply_policy: SupplyPolicy,
-    mint_strategy: MintStrategy,
+    pub fields: Fields,
+    pub behaviours: Behaviours,
+    pub supply_policy: SupplyPolicy,
+    pub mint_strategy: MintStrategy,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -16,12 +20,90 @@ pub struct Nft {
 pub enum SupplyPolicy {
     Unlimited,
     Limited { max: u64 },
+    Undefined,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl SupplyPolicy {
+    pub fn new_from(
+        input: &str,
+        supply: Option<u64>,
+    ) -> Result<SupplyPolicy, GutenError> {
+        match input {
+            "Unlimited" => Ok(SupplyPolicy::Unlimited),
+            "Limited" => {
+                let supply = supply.unwrap();
+                Ok(SupplyPolicy::Limited { max: supply })
+            }
+            _ => Err(GutenError::UnsupportedSupply),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Reflect)]
 pub struct Behaviours {
     composable: bool,
     loose: bool,
+}
+
+impl Behaviours {
+    pub fn new() -> Behaviours {
+        Behaviours {
+            composable: false,
+            loose: false,
+        }
+    }
+
+    pub fn new_from(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
+        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
+
+        let behaviours = Behaviours::fields();
+
+        let field_struct = behaviours
+            .iter()
+            .map(|f| {
+                let v = if fields_to_add.contains(f) {
+                    true
+                } else {
+                    false
+                };
+                (f.clone(), v)
+            })
+            .collect::<Vec<(String, bool)>>();
+
+        Behaviours::from_map(&field_struct)
+    }
+
+    fn from_map(map: &Vec<(String, bool)>) -> Result<Behaviours, GutenError> {
+        let mut field_struct = Behaviours::new();
+
+        for (f, v) in map {
+            match f.as_str() {
+                "composable" => {
+                    field_struct.composable = *v;
+                    Ok(())
+                }
+                "loose" => {
+                    field_struct.loose = *v;
+                    Ok(())
+                }
+                _ => Err(GutenError::UnsupportedNftBehaviour),
+            }?;
+        }
+
+        Ok(field_struct)
+    }
+
+    pub fn fields() -> Vec<String> {
+        let field_struct = Behaviours::new();
+        let mut fields: Vec<String> = Vec::new();
+
+        for (i, _) in field_struct.iter_fields().enumerate() {
+            let field_name = field_struct.name_at(i).unwrap();
+
+            fields.push(field_name.to_string());
+        }
+        fields
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Reflect)]
@@ -33,6 +115,75 @@ pub struct Fields {
 }
 
 impl Fields {
+    pub fn new() -> Fields {
+        Fields {
+            display: false,
+            url: false,
+            attributes: false,
+            tags: false,
+        }
+    }
+
+    pub fn new_from(fields_vec: Vec<String>) -> Result<Fields, GutenError> {
+        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
+
+        let fields = Fields::fields();
+
+        let field_struct = fields
+            .iter()
+            .map(|f| {
+                let v = if fields_to_add.contains(f) {
+                    true
+                } else {
+                    false
+                };
+                (f.clone(), v)
+            })
+            .collect::<Vec<(String, bool)>>();
+
+        Fields::from_map(&field_struct)
+    }
+
+    fn from_map(map: &Vec<(String, bool)>) -> Result<Fields, GutenError> {
+        let mut field_struct = Fields::new();
+
+        for (f, v) in map {
+            match f.as_str() {
+                "display" => {
+                    field_struct.display = *v;
+                    Ok(())
+                }
+                "url" => {
+                    field_struct.url = *v;
+                    Ok(())
+                }
+                "attributes" => {
+                    field_struct.attributes = *v;
+                    Ok(())
+                }
+                "tags" => {
+                    field_struct.tags = *v;
+                    Ok(())
+                }
+                _ => Err(GutenError::UnsupportedNftField),
+            }?;
+        }
+
+        Ok(field_struct)
+    }
+
+    pub fn fields() -> Vec<String> {
+        let field_struct = Fields::new();
+        let mut fields: Vec<String> = Vec::new();
+
+        for (i, _) in field_struct.iter_fields().enumerate() {
+            let field_name = field_struct.name_at(i).unwrap();
+
+            fields.push(field_name.to_string());
+        }
+        fields
+    }
+
     pub fn to_map(&self) -> Vec<(String, bool)> {
         let mut map: Vec<(String, bool)> = Vec::new();
 
@@ -45,11 +196,90 @@ impl Fields {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Reflect)]
 pub struct MintStrategy {
-    direct: bool,
-    airdrop: bool,
     launchpad: bool,
+    airdrop: bool,
+    direct: bool,
+}
+
+impl MintStrategy {
+    pub fn new() -> MintStrategy {
+        MintStrategy {
+            launchpad: false,
+            airdrop: false,
+            direct: false,
+        }
+    }
+
+    pub fn new_from(
+        fields_vec: Vec<String>,
+    ) -> Result<MintStrategy, GutenError> {
+        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
+
+        let fields = MintStrategy::fields();
+
+        let field_struct = fields
+            .iter()
+            .map(|f| {
+                let v = if fields_to_add.contains(f) {
+                    true
+                } else {
+                    false
+                };
+                (f.clone(), v)
+            })
+            .collect::<Vec<(String, bool)>>();
+
+        MintStrategy::from_map(&field_struct)
+    }
+
+    fn from_map(map: &Vec<(String, bool)>) -> Result<MintStrategy, GutenError> {
+        let mut field_struct = MintStrategy::new();
+
+        for (f, v) in map {
+            match f.as_str() {
+                "launchpad" => {
+                    field_struct.launchpad = *v;
+                    Ok(())
+                }
+                "airdrop" => {
+                    field_struct.airdrop = *v;
+                    Ok(())
+                }
+                "direct" => {
+                    field_struct.direct = *v;
+                    Ok(())
+                }
+                _ => Err(GutenError::UnsupportedNftField),
+            }?;
+        }
+
+        Ok(field_struct)
+    }
+
+    pub fn fields() -> Vec<String> {
+        let field_struct = MintStrategy::new();
+        let mut fields: Vec<String> = Vec::new();
+
+        for (i, _) in field_struct.iter_fields().enumerate() {
+            let field_name = field_struct.name_at(i).unwrap();
+
+            fields.push(field_name.to_string());
+        }
+        fields
+    }
+
+    pub fn to_map(&self) -> Vec<(String, bool)> {
+        let mut map: Vec<(String, bool)> = Vec::new();
+
+        for (i, value) in self.iter_fields().enumerate() {
+            let field_name = self.name_at(i).unwrap();
+            let value_ = value.downcast_ref::<bool>().unwrap();
+            map.push((field_name.to_string(), *value_));
+        }
+        map
+    }
 }
 
 pub enum Mint {
@@ -59,6 +289,15 @@ pub enum Mint {
 }
 
 impl Nft {
+    pub fn new() -> Nft {
+        Nft {
+            fields: Fields::new(),
+            behaviours: Behaviours::new(),
+            supply_policy: SupplyPolicy::Undefined,
+            mint_strategy: MintStrategy::new(),
+        }
+    }
+
     pub fn write_domains(&self) -> String {
         let code = self
             .fields
