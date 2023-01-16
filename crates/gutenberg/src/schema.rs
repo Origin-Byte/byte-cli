@@ -29,6 +29,15 @@ pub struct Schema {
 }
 
 impl Schema {
+    pub fn new() -> Schema {
+        Schema {
+            collection: Collection::new(),
+            nft: Nft::new(),
+            royalties: Royalties::None,
+            marketplace: Option::None,
+            listings: Option::None,
+        }
+    }
     pub fn module_name(&self) -> String {
         self.collection.name.to_lowercase().replace(' ', "_")
     }
@@ -146,16 +155,17 @@ impl Schema {
 
         let royalty_strategy = self.royalties.write();
         let mint_functions = self.nft.mint_fns(&witness);
+        let url = &self.collection.url.as_ref().unwrap();
 
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("name", &self.collection.name);
         vars.insert("description", &self.collection.description);
-        vars.insert("url", &self.collection.url);
         vars.insert("symbol", &self.collection.symbol);
         vars.insert("royalty_strategy", &royalty_strategy);
         vars.insert("mint_functions", &mint_functions);
         vars.insert("tags", &tags);
+        vars.insert("url", &url);
 
         // Marketplace and Listing objects
         vars.insert("init_marketplace", &init_marketplace);

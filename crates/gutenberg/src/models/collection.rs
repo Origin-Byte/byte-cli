@@ -20,7 +20,7 @@ pub struct Collection {
     /// A set of strings that categorize the domain in which the NFT operates
     pub tags: Vec<Tag>,
     /// Field for extra data
-    pub url: String,
+    pub url: Option<String>,
 }
 
 impl Collection {
@@ -30,7 +30,7 @@ impl Collection {
             description: String::new(),
             symbol: String::new(),
             tags: Vec::new(),
-            url: String::new(),
+            url: Option::None,
         }
     }
 
@@ -46,7 +46,7 @@ impl Collection {
             description,
             symbol,
             tags,
-            url,
+            url: Option::Some(url),
         }
     }
 
@@ -60,6 +60,21 @@ impl Collection {
 
     pub fn set_symbol(&mut self, symbol: String) {
         self.symbol = symbol;
+    }
+
+    pub fn set_url(&mut self, symbol: String) {
+        self.symbol = symbol;
+    }
+
+    pub fn set_tags(&mut self, tags: &Vec<String>) -> Result<(), GutenError> {
+        self.tags = tags
+            .iter()
+            .map(|string| {
+                Tag::from_str(string).map_err(|_| GutenError::UnsupportedTag)
+            })
+            .collect::<Result<Vec<Tag>, GutenError>>()?;
+
+        Ok(())
     }
 
     pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {

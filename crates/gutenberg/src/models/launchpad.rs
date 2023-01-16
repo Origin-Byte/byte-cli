@@ -11,10 +11,10 @@ pub struct Launchpad {
 
 pub struct CandyMachine {
     markets: Vec<Market>,
-    mint_style: MintSyle,
+    mint_style: MintStyle,
 }
 
-pub enum MintSyle {
+pub enum MintStyle {
     AheadOfTime,
     JustInTime,
 }
