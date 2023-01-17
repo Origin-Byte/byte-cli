@@ -162,6 +162,14 @@ pub struct Listing {
 }
 
 impl Listing {
+    pub fn new(admin: &str, receiver: &str, market: Market) -> Listing {
+        Listing {
+            admin: admin.to_string(),
+            receiver: receiver.to_string(),
+            markets: Vec::from([market]),
+        }
+    }
+
     pub fn init(&self) -> String {
         let mut string = String::new();
 

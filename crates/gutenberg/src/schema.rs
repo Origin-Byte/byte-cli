@@ -38,6 +38,13 @@ impl Schema {
             listings: Option::None,
         }
     }
+
+    pub fn add_listing(&mut self, listing: Listing) {
+        if let Some(listings) = self.listings.as_mut() {
+            listings.push(listing)
+        }
+    }
+
     pub fn module_name(&self) -> String {
         self.collection.name.to_lowercase().replace(' ', "_")
     }
