@@ -1,10 +1,14 @@
 use crate::prelude::*;
 use anyhow::Result;
-use clap::Parser;
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, Input, MultiSelect, Select};
-use gutenberg::{models::nft, schema, types::Royalties};
+use gutenberg::{
+    models::nft,
+    schema,
+    types::{Listing, Market, Royalties},
+};
+use hex;
 
 const TAG_OPTIONS: [&str; 11] = [
     "Art",
@@ -52,23 +56,18 @@ pub fn init_collection_config() {
 
     let string_validator = |_input: &String| -> Result<(), String> { Ok(()) };
 
-    let _float_validator = |input: &String| -> Result<(), String> {
-        if !input.is_empty() && input.parse::<f64>().is_err() {
-            Err(format!(
-                "Couldn't parse price input of '{}' to a float.",
-                input
-            ))
+    let address_validator = |input: &String| -> Result<(), CliError> {
+        let hexa_str = if &input[..2] == "0x" {
+            &input[2..]
         } else {
-            Ok(())
-        }
-    };
+            &input
+        };
 
-    let address_validator = |input: &String| -> Result<(), String> {
-        if input.as_bytes().len() != 20 {
-            Err(format!(
-                "Couldn't parse input of '{}' to an address.",
-                input
-            ))
+        let hexa =
+            hex::decode(hexa_str).map_err(|_| CliError::InvalidAddress)?;
+
+        if hexa.len() != 20 {
+            Err(CliError::InvalidAddress)
         } else {
             Ok(())
         }
@@ -188,17 +187,6 @@ pub fn init_collection_config() {
     schema.nft.supply_policy =
         nft::SupplyPolicy::new_from(supply_policy, limit).unwrap();
 
-    let mint_strategy_indices = MultiSelect::with_theme(&theme)
-        .with_prompt("Which minting strategies do you plan using? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
-        .items(&MINTING_OPTIONS)
-        .interact()
-        .unwrap();
-
-    let mint_strategies = map_indices(mint_strategy_indices, &MINTING_OPTIONS);
-
-    schema.nft.mint_strategy =
-        nft::MintStrategy::new_from(mint_strategies).unwrap();
-
     let royalty_index = Select::with_theme(&theme)
         .with_prompt(
             "Which Royalty Policy do you want your Collection to have?",
@@ -236,40 +224,109 @@ pub fn init_collection_config() {
 
     schema.royalties = Royalties::new_from(royalty_policy, fee).unwrap();
 
-    let listings: u64 = Input::with_theme(&theme)
-        .with_prompt(
-            // TODO: The meaning of this questions may be ambiguous
-            // from the perspective of the creator
-            "How many Primary Market Listings do you plan on having?",
-        )
-        .validate_with(number_validator)
-        .interact()
-        .unwrap()
-        .parse::<u64>()
-        .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
-
-    let admin_address = Input::with_theme(&theme)
-        .with_prompt("What is the address of the Listing administrator?")
-        .validate_with(address_validator)
+    let mint_strategy_indices = MultiSelect::with_theme(&theme)
+        .with_prompt("Which minting strategies do you plan using? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
+        .items(&MINTING_OPTIONS)
         .interact()
         .unwrap();
 
-    let receiver_address = Input::with_theme(&theme)
-        .with_prompt("What is the address that receives the sale proceeds?")
-        .validate_with(address_validator)
-        .interact()
-        .unwrap();
+    let mint_strategies = map_indices(mint_strategy_indices, &MINTING_OPTIONS);
 
-    for i in 0..listings {
-        let s = format!(
-            "What is the market primitive to use for the sale nº {}",
-            i + 1
-        );
+    let contains_launchpad = mint_strategies.contains(&"Launchpad".to_owned());
 
-        let market_type = Select::with_theme(&theme)
-            .with_prompt(s)
-            .items(&MARKET_OPTIONS)
+    schema.nft.mint_strategy =
+        nft::MintStrategy::new_from(mint_strategies).unwrap();
+
+    if contains_launchpad {
+        let admin_address = Input::with_theme(&theme)
+            .with_prompt("What is the address of the Listing administrator?")
+            .validate_with(address_validator)
             .interact()
             .unwrap();
+
+        let receiver_address = Input::with_theme(&theme)
+            .with_prompt("What is the address that receives the sale proceeds?")
+            .validate_with(address_validator)
+            .interact()
+            .unwrap();
+
+        let listings: u64 = Input::with_theme(&theme)
+            .with_prompt(
+                // TODO: The meaning of this questions may be ambiguous
+                // from the perspective of the creator
+                "How many Primary Market Listings do you plan on having?",
+            )
+            .validate_with(number_validator)
+            .interact()
+            .unwrap()
+            .parse::<u64>()
+            .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
+
+        for i in 0..listings {
+            let prompt = format!(
+                "What is the market primitive to use for the sale nº {}",
+                i + 1
+            );
+
+            let market_index = Select::with_theme(&theme)
+                .with_prompt(prompt)
+                .items(&MARKET_OPTIONS)
+                .interact()
+                .unwrap();
+
+            let is_whitelisted = Confirm::with_theme(&theme)
+                .with_prompt("What is it a whitelisted sale?")
+                .interact()
+                .unwrap();
+
+            let market: Market;
+
+            match MARKET_OPTIONS[market_index] {
+                "FixedPrice" => {
+                    let price = Input::with_theme(&theme)
+                        .with_prompt("What is the fixed price of the sale?")
+                        .validate_with(number_validator)
+                        .interact()
+                        .unwrap()
+                        .parse::<u64>()
+                        .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
+
+                    market = Market::FixedPrice {
+                        token: "sui::sui::SUI".to_string(),
+                        price,
+                        is_whitelisted,
+                    };
+                }
+                "DutchAuction" => {
+                    let reserve_price = Input::with_theme(&theme)
+                        .with_prompt(
+                            "What is the reserve price of the auction?",
+                        )
+                        .validate_with(number_validator)
+                        .interact()
+                        .unwrap()
+                        .parse::<u64>()
+                        .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
+
+                    market = Market::DutchAuction {
+                        token: "sui::sui::SUI".to_string(),
+                        reserve_price,
+                        is_whitelisted,
+                    };
+                }
+                _ => {
+                    eprintln!("TODO: This error handling");
+                    std::process::exit(2);
+                }
+            }
+
+            let listing = Listing::new(
+                admin_address.as_str(),
+                receiver_address.as_str(),
+                market,
+            );
+
+            schema.add_listing(listing);
+        }
     }
 }
