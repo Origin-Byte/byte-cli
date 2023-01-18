@@ -2,7 +2,6 @@ use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::collections::HashSet;
-use std::str::FromStr;
 
 use crate::prelude::GutenError;
 

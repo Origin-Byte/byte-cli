@@ -1,10 +1,11 @@
+pub mod aws;
 pub mod cli;
 pub mod consts;
 pub mod endpoints;
 pub mod err;
 pub mod prelude;
 
-use crate::endpoints::init_config;
+use crate::endpoints::{deploy_assets, init_config};
 use crate::prelude::*;
 use anyhow::Result;
 use clap::Parser;
@@ -36,7 +37,9 @@ async fn run() -> Result<()> {
         }
         Commands::InitUploadConfig { assets_dir: _ } => {}
         Commands::InitConfig { assets_dir: _ } => {}
-        Commands::DeployAssets { assets_dir: _ } => {}
+        Commands::DeployAssets { assets_dir } => {
+            deploy_assets::deploy_assets(assets_dir.as_str()).await?
+        }
         Commands::DeployContract {} => {}
         Commands::MintNfts { assets_dir: _ } => {}
     }
