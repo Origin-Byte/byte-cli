@@ -1,11 +1,11 @@
 use crate::prelude::*;
 use anyhow::{anyhow, Result};
 use dialoguer::{Confirm, Input, MultiSelect, Select};
-use gutenberg::{
-    models::nft,
-    schema::Schema,
-    types::{Listing, Market, Royalties, Tags},
-};
+use gutenberg::models::marketplace::{Listing, Market};
+use gutenberg::models::nft;
+use gutenberg::models::royalties::Royalties;
+use gutenberg::models::shared::Tags;
+use gutenberg::Schema;
 use hex;
 use serde::Serialize;
 use std::fs::File;

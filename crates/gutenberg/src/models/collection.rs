@@ -2,7 +2,7 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::types::Tags;
+use crate::models::shared::Tags;
 
 use serde::{Deserialize, Serialize};
 

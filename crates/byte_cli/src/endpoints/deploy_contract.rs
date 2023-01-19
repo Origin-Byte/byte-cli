@@ -1,14 +1,12 @@
+use anyhow::{anyhow, Result};
+use gutenberg::{package, Schema};
+use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
 use std::{
     fs::{self, File},
     process::{Command, Stdio},
 };
-
-use anyhow::{anyhow, Result};
-use gutenberg::package::{self, Dependency};
-use gutenberg::prelude::*;
-use serde::Serialize;
 
 pub fn parse_config(config_file: &Path) -> Result<Schema> {
     let file = File::open(config_file).map_err(|err| {
@@ -46,36 +44,39 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 
     let module_name = schema.module_name();
 
-    // Address will be overwritten after publish
-    let mut addresses = toml::value::Table::new();
-    addresses
-        .insert(module_name.clone(), toml::Value::String("0x0".to_string()));
-
     let package = package::Move {
         package: package::Package {
             name: module_name.clone(),
             version: "0.0.1".to_string(),
         },
-        dependencies: package::Dependencies {
-            sui: Dependency {
-                git: "https://github.com/MystenLabs/sui.git".to_string(),
-                subdir: Some("crates/sui-framework".to_string()),
-                // devnet-0.21.1
-                rev: "2d709054a08d904b9229a2472af679f210af3827".to_string(),
-            },
-            originmate: Dependency {
-                git: "https://github.com/Origin-Byte/originmate.git"
-                    .to_string(),
-                subdir: None,
-                rev: "fe192e74e25ed71449996fcb30337ed7232f41e3".to_string(),
-            },
-            nft_protocol: Dependency {
-                git: "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                subdir: None,
-                rev: "c3f1cfc87eae7fe79184005938f559953c804f4b".to_string(),
-            },
-        },
-        addresses,
+        dependencies: package::Dependencies::new([
+            (
+                "Sui".to_string(),
+                package::Dependency::new(
+                    "https://github.com/MystenLabs/sui.git".to_string(),
+                    "2d709054a08d904b9229a2472af679f210af3827".to_string(),
+                )
+                .subdir("crates/sui-framework".to_string()),
+            ),
+            (
+                "Originmate".to_string(),
+                package::Dependency::new(
+                    "https://github.com/Origin-Byte/originmate.git".to_string(),
+                    "fe192e74e25ed71449996fcb30337ed7232f41e3".to_string(),
+                ),
+            ),
+            (
+                "NftProtocol".to_string(),
+                package::Dependency::new(
+                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
+                    "c3f1cfc87eae7fe79184005938f559953c804f4b".to_string(),
+                ),
+            ),
+        ]),
+        addresses: package::Addresses::new([(
+            module_name.clone(),
+            "0x0".to_string(),
+        )]),
     };
 
     let mut buffer = String::new();

@@ -2,9 +2,13 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::err::GutenError;
-use crate::models::{collection::Collection, nft::Nft};
-use crate::types::{Listing, Marketplace, Royalties};
+use crate::models::{
+    collection::Collection,
+    marketplace::{Listing, Marketplace},
+    nft::Nft,
+    royalties::Royalties,
+};
+use crate::GutenError;
 
 use serde::{Deserialize, Serialize};
 use strfmt::strfmt;
@@ -54,7 +58,6 @@ impl Schema {
         mut output: W,
     ) -> Result<(), GutenError> {
         let module_name = self.module_name();
-
         let witness = self.collection.name.to_uppercase().replace(' ', "");
 
         let init_marketplace = self
