@@ -49,17 +49,17 @@ pub struct Listings(pub Vec<Listing>);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
     #[serde(default = "default_admin")]
-    admin: String,
+    pub admin: String,
     #[serde(default = "default_admin")]
-    receiver: String,
-    markets: Vec<Market>,
+    pub receiver: String,
+    pub markets: Vec<Market>,
 }
 
 impl Listing {
-    pub fn new(admin: &str, receiver: &str, market: Market) -> Self {
+    pub fn new(market: Market) -> Self {
         Self {
-            admin: admin.to_string(),
-            receiver: receiver.to_string(),
+            admin: String::new(),
+            receiver: String::new(),
             markets: vec![market],
         }
     }
