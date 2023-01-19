@@ -1,14 +1,15 @@
 use crate::prelude::*;
-use anyhow::Result;
-use console::{style, Style};
-use dialoguer::theme::ColorfulTheme;
+use anyhow::{anyhow, Result};
 use dialoguer::{Confirm, Input, MultiSelect, Select};
 use gutenberg::{
     models::nft,
-    schema,
-    types::{Listing, Market, Royalties},
+    schema::Schema,
+    types::{Listing, Market, Royalties, Tags},
 };
 use hex;
+use serde::Serialize;
+use std::fs::File;
+use std::path::Path;
 
 const TAG_OPTIONS: [&str; 11] = [
     "Art",
@@ -31,18 +32,7 @@ const MINTING_OPTIONS: [&str; 3] = ["Launchpad", "Direct", "Airdrop"];
 const ROYALTY_OPTIONS: [&str; 3] = ["Proportional", "Constant", "None"];
 const MARKET_OPTIONS: [&str; 2] = ["FixedPrice", "DutchAuction"];
 
-pub fn get_dialoguer_theme() -> ColorfulTheme {
-    ColorfulTheme {
-        prompt_style: Style::new(),
-        checked_item_prefix: style("✔".to_string()).green().force_styling(true),
-        unchecked_item_prefix: style("✔".to_string())
-            .black()
-            .force_styling(true),
-        ..Default::default()
-    }
-}
-
-pub fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
+fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
     let vec: Vec<String> = indices
         .iter()
         .map(|index| arr[*index].to_string())
@@ -50,24 +40,15 @@ pub fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
     vec
 }
 
-pub fn init_collection_config() {
-    let mut schema = schema::Schema::new();
+pub fn init_collection_config() -> Result<Schema> {
+    let mut schema = Schema::new();
     let theme = get_dialoguer_theme();
 
-    let string_validator = |_input: &String| -> Result<(), String> { Ok(()) };
-
     let address_validator = |input: &String| -> Result<(), CliError> {
-        let hexa_str = if &input[..2] == "0x" {
-            &input[2..]
-        } else {
-            &input
-        };
-
-        let hexa =
-            hex::decode(hexa_str).map_err(|_| CliError::InvalidAddress)?;
-
+        let hexa_str = input.strip_prefix("0x").unwrap_or(input);
+        let hexa = hex::decode(hexa_str)?;
         if hexa.len() != 20 {
-            Err(CliError::InvalidAddress)
+            Err(CliError::InvalidAddressLength)
         } else {
             Ok(())
         }
@@ -83,7 +64,6 @@ pub fn init_collection_config() {
 
     let name = Input::with_theme(&theme)
         .with_prompt("What is the name of the Collection?")
-        .validate_with(string_validator)
         .interact()
         .unwrap();
 
@@ -91,7 +71,6 @@ pub fn init_collection_config() {
 
     let description = Input::with_theme(&theme)
         .with_prompt("What is the description of the Collection?")
-        .validate_with(string_validator)
         .interact()
         .unwrap();
 
@@ -99,7 +78,6 @@ pub fn init_collection_config() {
 
     let symbol = Input::with_theme(&theme)
         .with_prompt("What is the symbol of the Collection?")
-        .validate_with(string_validator)
         .interact()
         .unwrap();
 
@@ -117,9 +95,8 @@ pub fn init_collection_config() {
         .interact()
         .unwrap();
 
-        let tags = map_indices(tag_indices, &TAG_OPTIONS);
-
-        schema.collection.set_tags(&tags).unwrap();
+        let tags = Tags::new(&map_indices(tag_indices, &TAG_OPTIONS))?;
+        schema.collection.set_tags(tags);
     }
 
     let has_url = Confirm::with_theme(&theme)
@@ -130,7 +107,6 @@ pub fn init_collection_config() {
     if has_url {
         let url = Input::with_theme(&theme)
             .with_prompt("What is the URL of the Collection Website?")
-            .validate_with(string_validator)
             .interact()
             .unwrap();
 
@@ -279,9 +255,7 @@ pub fn init_collection_config() {
                 .interact()
                 .unwrap();
 
-            let market: Market;
-
-            match MARKET_OPTIONS[market_index] {
+            let market = match MARKET_OPTIONS[market_index] {
                 "FixedPrice" => {
                     let price = Input::with_theme(&theme)
                         .with_prompt("What is the fixed price of the sale?")
@@ -291,11 +265,11 @@ pub fn init_collection_config() {
                         .parse::<u64>()
                         .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
 
-                    market = Market::FixedPrice {
+                    Market::FixedPrice {
                         token: "sui::sui::SUI".to_string(),
                         price,
                         is_whitelisted,
-                    };
+                    }
                 }
                 "DutchAuction" => {
                     let reserve_price = Input::with_theme(&theme)
@@ -308,17 +282,16 @@ pub fn init_collection_config() {
                         .parse::<u64>()
                         .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
 
-                    market = Market::DutchAuction {
+                    Market::DutchAuction {
                         token: "sui::sui::SUI".to_string(),
                         reserve_price,
                         is_whitelisted,
-                    };
+                    }
                 }
                 _ => {
-                    eprintln!("TODO: This error handling");
-                    std::process::exit(2);
+                    return Err(anyhow!("TODO: This error handling"));
                 }
-            }
+            };
 
             let listing = Listing::new(
                 admin_address.as_str(),
@@ -329,4 +302,23 @@ pub fn init_collection_config() {
             schema.add_listing(listing);
         }
     }
+
+    Ok(schema)
+}
+
+pub fn write_config(schema: &Schema, output_file: &Path) -> Result<()> {
+    let file = File::create(output_file).map_err(|err| {
+        anyhow!(
+            r#"Could not create configuration file "{}": {err}"#,
+            output_file.display()
+        )
+    })?;
+
+    let ser = &mut serde_json::Serializer::new(file);
+    schema.serialize(ser).map_err(|err| {
+        anyhow!(
+            r#"Could not write configuration file "{}": {err}"#,
+            output_file.display()
+        )
+    })
 }

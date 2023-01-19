@@ -17,6 +17,8 @@ hex = "0.4"
 mime_guess = "2.0"
 dotenv = "0.15"
 glob = "0.3"
+serde_json = "1.0"
+toml = "0.5.10"
 
 # Amazon
 aws-config = "0.53"
