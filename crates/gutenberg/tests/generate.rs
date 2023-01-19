@@ -1,6 +1,7 @@
 //! Integration tests directly check the generated examples in the parent directory
 
 use gutenberg::schema::Schema;
+use std::ffi::OsStr;
 use std::fs::{self, File};
 
 /// Check that all examples have correct schema
@@ -12,8 +13,10 @@ fn example_schema() {
         // Filter out packages directory
         .filter(|f| f.file_type().unwrap().is_file())
         .map(|dir| {
-            let config = File::open(dir.path()).unwrap();
-            assert_schema(config);
+            let path = dir.path();
+            let file_type = path.extension().and_then(OsStr::to_str);
+            let config = File::open(&path).unwrap();
+            assert_schema(config, file_type.unwrap());
         })
         .collect::<()>()
 }
@@ -38,16 +41,28 @@ fn setup(config: &str, expected: &str) -> (File, String) {
 }
 
 /// Asserts that the config file has correct schema
-fn assert_schema(config: File) -> Schema {
-    serde_yaml::from_reader::<_, Schema>(config).unwrap()
+fn assert_schema(config: File, file_type: &str) -> Schema {
+    match file_type {
+        "yaml" => serde_yaml::from_reader::<_, Schema>(config).unwrap(),
+        "json" => serde_json::from_reader::<_, Schema>(config).unwrap(),
+        _ => {
+            eprintln!("Extension not supported");
+            std::process::exit(2);
+        }
+    }
 }
 
 /// Asserts that the generated file matches the expected output
 fn assert_equal(config: &str, expected: &str) {
+    let len = config.len();
+    let extension = &config[len - 4..len];
+
     let (config, expected) = setup(config, expected);
 
     let mut output = Vec::new();
-    assert_schema(config).write_move(&mut output).unwrap();
+    assert_schema(config, extension)
+        .write_move(&mut output)
+        .unwrap();
     let output = String::from_utf8(output).unwrap();
 
     pretty_assertions::assert_eq!(output, expected);

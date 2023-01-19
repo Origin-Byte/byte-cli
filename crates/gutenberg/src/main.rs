@@ -2,6 +2,7 @@ use gutenberg::prelude::*;
 
 use gumdrop::Options;
 
+use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 
@@ -18,13 +19,35 @@ struct Opt {
 fn main() -> Result<(), GutenError> {
     let opt = Opt::parse_args_default_or_exit();
 
-    let f = fs::File::open(opt.config)?;
+    let extension = opt.config.extension().and_then(OsStr::to_str);
 
-    let schema: Schema = match serde_yaml::from_reader(f) {
-        Ok(schema) => schema,
-        Err(err) => {
+    let f = fs::File::open(&opt.config)?;
+
+    let schema: Schema = match extension {
+        Some("yaml") => match serde_yaml::from_reader(f) {
+            Ok(schema) => schema,
+            Err(err) => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("{}", err);
+                std::process::exit(2);
+            }
+        },
+        Some("json") => match serde_json::from_reader(f) {
+            Ok(schema) => schema,
+            Err(err) => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("{}", err);
+                std::process::exit(2);
+            }
+        },
+        Some(_) => {
             eprintln!("Gutenberg could not generate smart contract due to");
-            eprintln!("{}", err);
+            eprintln!("File extension not supported");
+            std::process::exit(2);
+        }
+        None => {
+            eprintln!("Gutenberg could not generate smart contract due to");
+            eprintln!("File has no extension");
             std::process::exit(2);
         }
     };
