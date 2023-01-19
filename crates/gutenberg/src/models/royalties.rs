@@ -21,7 +21,7 @@ impl Royalties {
     pub fn write(&self) -> String {
         let shares = &self.shares;
 
-        let mut policy = String::new();
+        let mut policy = format!("let royalty = ");
         match shares.len() {
             0 => {
                 policy.push_str("royalty::new_empty(ctx);\n");
@@ -29,18 +29,18 @@ impl Royalties {
             1 => {
                 let address = &shares[0].address;
                 policy.push_str(&format!(
-                    "royalty::from_address({address}, ctx);\n"
+                    "royalty::from_address(@{address}, ctx);\n"
                 ));
             }
             _ => panic!("Arbitrary royalty share allocations not supported"),
         };
 
         if let Some(proportional) = self.proportional {
-            policy.push_str(&format!("       royalty::add_proportional_royalty(&mut royalty, {proportional});\n"));
+            policy.push_str(&format!("        royalty::add_proportional_royalty(&mut royalty, {proportional});\n"));
         }
 
         if let Some(constant) = self.constant {
-            policy.push_str(&format!("       royalty::add_constant_royalty(&mut royalty, {constant});\n"));
+            policy.push_str(&format!("        royalty::add_constant_royalty(&mut royalty, {constant});\n"));
         }
 
         policy

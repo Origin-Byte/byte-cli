@@ -70,8 +70,8 @@ impl Listing {
         string.push_str(&format!(
             "
         let listing = nft_protocol::listing::new(
-            {admin},
-            {receiver},
+            @{admin},
+            @{receiver},
             ctx,
         );
 

@@ -71,7 +71,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
                     // feature/object-bag-nft
-                    "640eb68f53bcbd3664b03d33f92f67d9bef74e27".to_string(),
+                    "c18b63e8d723a36d4a7ec39df3e040dca7c4ddc6".to_string(),
                 ),
             ),
         ]),
