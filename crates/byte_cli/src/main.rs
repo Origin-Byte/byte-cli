@@ -3,6 +3,7 @@ pub mod cli;
 pub mod consts;
 pub mod endpoints;
 pub mod err;
+pub mod models;
 pub mod prelude;
 
 use crate::prelude::*;

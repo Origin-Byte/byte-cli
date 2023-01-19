@@ -1,12 +1,12 @@
+use crate::models::FromPrompt;
 use crate::prelude::*;
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use dialoguer::{Confirm, Input, MultiSelect, Select};
-use gutenberg::{
-    models::nft,
-    schema::Schema,
-    types::{Listing, Market, Royalties, Tags},
-};
-use hex;
+use gutenberg::models::marketplace::{Listings, Marketplace};
+use gutenberg::models::nft;
+use gutenberg::models::royalties::Royalties;
+use gutenberg::models::shared::Tags;
+use gutenberg::Schema;
 use serde::Serialize;
 use std::fs::File;
 use std::path::Path;
@@ -29,8 +29,6 @@ const FIELD_OPTIONS: [&str; 3] = ["display", "url", "attributes"];
 const BEHAVIOUR_OPTIONS: [&str; 2] = ["composable", "loose"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 const MINTING_OPTIONS: [&str; 3] = ["Launchpad", "Direct", "Airdrop"];
-const ROYALTY_OPTIONS: [&str; 3] = ["Proportional", "Constant", "None"];
-const MARKET_OPTIONS: [&str; 2] = ["FixedPrice", "DutchAuction"];
 
 fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
     let vec: Vec<String> = indices
@@ -40,19 +38,9 @@ fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
     vec
 }
 
-pub fn init_collection_config() -> Result<Schema> {
+pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
     let mut schema = Schema::new();
     let theme = get_dialoguer_theme();
-
-    let address_validator = |input: &String| -> Result<(), CliError> {
-        let hexa_str = input.strip_prefix("0x").unwrap_or(input);
-        let hexa = hex::decode(hexa_str)?;
-        if hexa.len() != 20 {
-            Err(CliError::InvalidAddressLength)
-        } else {
-            Ok(())
-        }
-    };
 
     let number_validator = |input: &String| -> Result<(), String> {
         if input.parse::<u64>().is_err() {
@@ -163,42 +151,7 @@ pub fn init_collection_config() -> Result<Schema> {
     schema.nft.supply_policy =
         nft::SupplyPolicy::new_from(supply_policy, limit).unwrap();
 
-    let royalty_index = Select::with_theme(&theme)
-        .with_prompt(
-            "Which Royalty Policy do you want your Collection to have?",
-        )
-        .items(&ROYALTY_OPTIONS)
-        .interact()
-        .unwrap();
-
-    let royalty_policy = ROYALTY_OPTIONS[royalty_index];
-
-    let mut fee = Option::None;
-
-    if royalty_policy == "Proportional" {
-        fee = Some(
-            Input::with_theme(&theme)
-                .with_prompt("What is the royalty fee in Basis Points?")
-                .validate_with(number_validator)
-                .interact()
-                .unwrap()
-                .parse::<u64>()
-                .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.")
-        );
-    }
-    if royalty_policy == "Constant" {
-        fee = Some(
-            Input::with_theme(&theme)
-                .with_prompt("What is the constant royalty commission?")
-                .validate_with(number_validator)
-                .interact()
-                .unwrap()
-                .parse::<u64>()
-                .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.")
-        );
-    }
-
-    schema.royalties = Royalties::new_from(royalty_policy, fee).unwrap();
+    schema.royalties = Royalties::from_prompt()?;
 
     let mint_strategy_indices = MultiSelect::with_theme(&theme)
         .with_prompt("Which minting strategies do you plan using? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
@@ -214,99 +167,23 @@ pub fn init_collection_config() -> Result<Schema> {
         nft::MintStrategy::new_from(mint_strategies).unwrap();
 
     if contains_launchpad {
-        let admin_address = Input::with_theme(&theme)
-            .with_prompt("What is the address of the Listing administrator?")
-            .validate_with(address_validator)
-            .interact()
-            .unwrap();
-
-        let receiver_address = Input::with_theme(&theme)
-            .with_prompt("What is the address that receives the sale proceeds?")
-            .validate_with(address_validator)
-            .interact()
-            .unwrap();
-
-        let listings: u64 = Input::with_theme(&theme)
-            .with_prompt(
-                // TODO: The meaning of this questions may be ambiguous
-                // from the perspective of the creator
-                "How many Primary Market Listings do you plan on having?",
-            )
-            .validate_with(number_validator)
-            .interact()
-            .unwrap()
-            .parse::<u64>()
-            .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
-
-        for i in 0..listings {
-            let prompt = format!(
-                "What is the market primitive to use for the sale nº {}",
-                i + 1
-            );
-
-            let market_index = Select::with_theme(&theme)
-                .with_prompt(prompt)
-                .items(&MARKET_OPTIONS)
-                .interact()
-                .unwrap();
-
-            let is_whitelisted = Confirm::with_theme(&theme)
-                .with_prompt("What is it a whitelisted sale?")
-                .interact()
-                .unwrap();
-
-            let market = match MARKET_OPTIONS[market_index] {
-                "FixedPrice" => {
-                    let price = Input::with_theme(&theme)
-                        .with_prompt("What is the fixed price of the sale?")
-                        .validate_with(number_validator)
-                        .interact()
-                        .unwrap()
-                        .parse::<u64>()
-                        .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
-
-                    Market::FixedPrice {
-                        token: "sui::sui::SUI".to_string(),
-                        price,
-                        is_whitelisted,
-                    }
-                }
-                "DutchAuction" => {
-                    let reserve_price = Input::with_theme(&theme)
-                        .with_prompt(
-                            "What is the reserve price of the auction?",
-                        )
-                        .validate_with(number_validator)
-                        .interact()
-                        .unwrap()
-                        .parse::<u64>()
-                        .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
-
-                    Market::DutchAuction {
-                        token: "sui::sui::SUI".to_string(),
-                        reserve_price,
-                        is_whitelisted,
-                    }
-                }
-                _ => {
-                    return Err(anyhow!("TODO: This error handling"));
-                }
-            };
-
-            let listing = Listing::new(
-                admin_address.as_str(),
-                receiver_address.as_str(),
-                market,
-            );
-
-            schema.add_listing(listing);
+        let marketplace = Marketplace::from_prompt()?;
+        let mut listings = Listings::from_prompt()?;
+        for listing in listings.0.iter_mut() {
+            listing.admin = marketplace.admin.clone();
+            listing.receiver = marketplace.receiver.clone();
         }
+
+        schema.listings = Some(listings);
     }
 
     Ok(schema)
 }
 
-pub fn write_config(schema: &Schema, output_file: &Path) -> Result<()> {
+pub fn write_config(
+    schema: &Schema,
+    output_file: &Path,
+) -> Result<(), anyhow::Error> {
     let file = File::create(output_file).map_err(|err| {
         anyhow!(
             r#"Could not create configuration file "{}": {err}"#,

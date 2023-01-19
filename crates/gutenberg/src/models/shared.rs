@@ -1,0 +1,101 @@
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+
+use crate::GutenError;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Tag {
+    Art,
+    ProfilePicture,
+    Collectible,
+    GameAsset,
+    TokenisedAsset,
+    Ticker,
+    DomainName,
+    Music,
+    Video,
+    Ticket,
+    License,
+}
+
+impl Tag {
+    pub fn to_string(&self) -> String {
+        let tag = match self {
+            Tag::Art => "art",
+            Tag::ProfilePicture => "profile_picture",
+            Tag::Collectible => "collectible",
+            Tag::GameAsset => "game_asset",
+            Tag::TokenisedAsset => "tokenised_asset",
+            Tag::Ticker => "ticker",
+            Tag::DomainName => "domain_name",
+            Tag::Music => "music",
+            Tag::Video => "video",
+            Tag::Ticket => "ticket",
+            Tag::License => "license",
+        };
+
+        tag.to_string()
+    }
+}
+
+impl FromStr for Tag {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Tag, Self::Err> {
+        match input {
+            "Art" => Ok(Tag::Art),
+            "ProfilePicture" => Ok(Tag::ProfilePicture),
+            "Collectible" => Ok(Tag::Collectible),
+            "GameAsset" => Ok(Tag::GameAsset),
+            "TokenisedAsset" => Ok(Tag::TokenisedAsset),
+            "Ticker" => Ok(Tag::Ticker),
+            "DomainName" => Ok(Tag::DomainName),
+            "Music" => Ok(Tag::Music),
+            "Video" => Ok(Tag::Video),
+            "Ticket" => Ok(Tag::Ticket),
+            "License" => Ok(Tag::License),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Tags(Vec<Tag>);
+
+impl Tags {
+    pub fn new(tags: &Vec<String>) -> Result<Self, GutenError> {
+        let tags = tags
+            .iter()
+            .map(|string| {
+                Tag::from_str(string).map_err(|_| GutenError::UnsupportedTag)
+            })
+            .collect::<Result<Vec<Tag>, GutenError>>()?;
+
+        Ok(Tags(tags))
+    }
+
+    /// Generates Move code to push tags to a Move `vector` structure
+    pub fn init(&self) -> String {
+        let mut out = String::from("let tags = tags::empty(ctx);\n");
+
+        for tag in self.0.iter().map(Tag::to_string) {
+            out.push_str(&format!(
+                "        tags::add_tag(&mut tags, tags::{tag}());\n",
+            ));
+        }
+
+        out.push_str(
+            "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
+        );
+
+        out
+    }
+
+    pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
+        let tag = Tag::from_str(tag_string.as_str())
+            .map_err(|_| GutenError::UnsupportedTag)?;
+
+        Ok(self.0.push(tag))
+    }
+}

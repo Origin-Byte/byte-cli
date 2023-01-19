@@ -1,4 +1,4 @@
-use crate::err::GutenError;
+use crate::GutenError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;

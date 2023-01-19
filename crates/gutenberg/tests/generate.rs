@@ -1,7 +1,7 @@
-//! Integration tests directly check the generated examples in the parent directory
+//! Integration tests directly check the generated examples in the parent
+//! directory
 
-use gutenberg::schema::Schema;
-use std::ffi::OsStr;
+use gutenberg::Schema;
 use std::fs::{self, File};
 
 // /// Check that all examples have correct schema
@@ -65,7 +65,7 @@ fn assert_equal(config: &str, expected: &str) {
     let extension = &config[len - 4..len];
     println!("1");
 
-    let (config, expected) = setup(config, expected);
+    let (config, _expected) = setup(config, expected);
     println!("2");
     let mut output = Vec::new();
     assert_schema(config, extension)

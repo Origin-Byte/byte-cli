@@ -3681,11 +3681,9 @@ dependencies = [
  "bevy_reflect",
  "pretty_assertions",
  "serde 1.0.152",
- "serde_json",
  "serde_yaml 0.9.16",
  "strfmt",
  "thiserror",
- "toml",
 ]
 
 [[package]]
