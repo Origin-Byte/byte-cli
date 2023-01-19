@@ -43,6 +43,8 @@ impl Royalties {
             policy.push_str(&format!("        royalty::add_constant_royalty(&mut royalty, {constant});\n"));
         }
 
+        policy.push_str("        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);\n");
+
         policy
     }
 }
