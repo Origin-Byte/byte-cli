@@ -1,3 +1,4 @@
+pub mod aws;
 pub mod cli;
 pub mod consts;
 pub mod endpoints;
@@ -49,7 +50,9 @@ async fn run() -> Result<()> {
         }
         Commands::InitUploadConfig { assets_dir: _ } => {}
         Commands::InitConfig { assets_dir: _ } => {}
-        Commands::DeployAssets { assets_dir: _ } => {}
+        Commands::DeployAssets { assets_dir } => {
+            deploy_assets::deploy_assets(assets_dir.as_str()).await?
+        }
         Commands::DeployContract {
             config,
             output_dir,
