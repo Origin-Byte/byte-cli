@@ -55,10 +55,7 @@ module {module_name}::{module_name} {{
             string::utf8(b"{symbol}")
         );
 
-        let royalty = royalty::new(ctx);
         {royalty_strategy}
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
-
         {tags}
 {init_marketplace}{init_listings}{share_marketplace}
         transfer::transfer(mint_cap, tx_context::sender(ctx));

@@ -74,6 +74,9 @@ impl Listing {
             {receiver},
             ctx,
         );
+
+        let venue_id =
+            nft_protocol::listing::create_venue(&mut listing, ctx);
 ",
             admin = self.admin,
             receiver = self.receiver,
@@ -134,12 +137,9 @@ impl Market {
                 is_whitelisted,
             } => format!(
                 "
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
         nft_protocol::fixed_price::create_market_on_listing<{token}>(
             &mut listing,
-            inventory_id,
+            venue_id,
             {is_whitelisted},
             {price},
             ctx,
@@ -152,12 +152,9 @@ impl Market {
                 is_whitelisted,
             } => format!(
                 "
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
         nft_protocol::dutch_auction::create_market_on_listing<{token}>(
             &mut listing,
-            inventory_id,
+            venue_id,
             {is_whitelisted},
             {reserve_price},
             ctx,

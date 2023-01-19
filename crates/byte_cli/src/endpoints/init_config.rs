@@ -173,6 +173,8 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
             listing.admin = marketplace.admin.clone();
             listing.receiver = marketplace.receiver.clone();
         }
+
+        schema.listings = Some(listings);
     }
 
     Ok(schema)
