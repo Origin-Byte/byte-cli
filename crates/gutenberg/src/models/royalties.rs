@@ -1,54 +1,48 @@
 use serde::{Deserialize, Serialize};
 
-use crate::GutenError;
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Royalties {
+    pub shares: Vec<Share>,
+    pub proportional: Option<u64>,
+    pub constant: Option<u64>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Royalties {
-    Proportional { bps: u64 },
-    Constant { fee: u64 },
-    None,
+pub struct Share {
+    pub address: String,
+    pub share: u64,
 }
 
 impl Royalties {
-    pub fn new_from(
-        input: &str,
-        fee: Option<u64>,
-    ) -> Result<Royalties, GutenError> {
-        match input {
-            "Proportional" => {
-                let fee = fee.unwrap();
-                Ok(Royalties::Proportional { bps: fee })
-            }
-            "Constant" => {
-                let fee = fee.unwrap();
-                Ok(Royalties::Constant { fee: fee })
-            }
-            "None" => Ok(Royalties::None),
-            _ => Err(GutenError::UnsupportedRoyalty),
-        }
+    pub fn has_royalties(&self) -> bool {
+        self.proportional.is_some() | self.constant.is_some()
     }
 
     pub fn write(&self) -> String {
-        match self {
-            Royalties::Proportional { bps } => {
-                format!(
-                    "royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new({bps}),
-        );",
-                    bps = bps
-                )
+        let shares = &self.shares;
+
+        let mut policy = String::new();
+        match shares.len() {
+            0 => {
+                policy.push_str("royalty::new_empty(ctx);\n");
             }
-            Royalties::Constant { fee } => {
-                format!(
-                    "royalty::add_constant_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new({fee}),
-        );",
-                    fee = fee
-                )
+            1 => {
+                let address = &shares[0].address;
+                policy.push_str(&format!(
+                    "royalty::from_address({address}, ctx);\n"
+                ));
             }
-            Royalties::None => "".to_string(),
+            _ => panic!("Arbitrary royalty share allocations not supported"),
+        };
+
+        if let Some(proportional) = self.proportional {
+            policy.push_str(&format!("       royalty::add_proportional_royalty(&mut royalty, {proportional});\n"));
         }
+
+        if let Some(constant) = self.constant {
+            policy.push_str(&format!("       royalty::add_constant_royalty(&mut royalty, {constant});\n"));
+        }
+
+        policy
     }
 }

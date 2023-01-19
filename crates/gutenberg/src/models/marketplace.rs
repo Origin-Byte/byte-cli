@@ -13,9 +13,9 @@ fn default_admin() -> String {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Marketplace {
     #[serde(default = "default_admin")]
-    admin: String,
+    pub admin: String,
     #[serde(default = "default_admin")]
-    receiver: String,
+    pub receiver: String,
 }
 
 impl Marketplace {
@@ -42,6 +42,10 @@ impl Marketplace {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Listings(pub Vec<Listing>);
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
     #[serde(default = "default_admin")]
@@ -52,11 +56,11 @@ pub struct Listing {
 }
 
 impl Listing {
-    pub fn new(admin: &str, receiver: &str, market: Market) -> Listing {
-        Listing {
+    pub fn new(admin: &str, receiver: &str, market: Market) -> Self {
+        Self {
             admin: admin.to_string(),
             receiver: receiver.to_string(),
-            markets: Vec::from([market]),
+            markets: vec![market],
         }
     }
 

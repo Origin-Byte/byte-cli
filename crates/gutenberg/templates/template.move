@@ -1,4 +1,4 @@
-module gutenberg::{module_name} {{
+module {module_name}::{module_name} {{
     use std::string::{{Self, String}};
 
     use sui::url;

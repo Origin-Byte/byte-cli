@@ -25,6 +25,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
     println!("Generating contract");
 
     let sources_dir = &contract_dir.join("sources");
+    let _ = fs::remove_dir_all(sources_dir);
     fs::create_dir_all(sources_dir).map_err(|err| {
         anyhow!(
             r#"Could not create directory "{}": {err}"#,
@@ -69,7 +70,8 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 "NftProtocol".to_string(),
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    "c3f1cfc87eae7fe79184005938f559953c804f4b".to_string(),
+                    // feature/object-bag-nft
+                    "640eb68f53bcbd3664b03d33f92f67d9bef74e27".to_string(),
                 ),
             ),
         ]),

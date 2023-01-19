@@ -26,7 +26,7 @@ impl Dependency {
         Self {
             git,
             subdir: None,
-            rev,
+            rev: rev.trim_start_matches("0x").to_string(),
         }
     }
 

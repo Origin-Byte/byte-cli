@@ -4,7 +4,7 @@
 //! by the caller.
 use crate::models::{
     collection::Collection,
-    marketplace::{Listing, Marketplace},
+    marketplace::{Listing, Listings, Marketplace},
     nft::Nft,
     royalties::Royalties,
 };
@@ -25,7 +25,7 @@ pub struct Schema {
     pub royalties: Royalties,
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
-    pub listings: Option<Vec<Listing>>,
+    pub listings: Option<Listings>,
 }
 
 impl Schema {
@@ -33,16 +33,17 @@ impl Schema {
         Schema {
             collection: Collection::new(),
             nft: Nft::new(),
-            royalties: Royalties::None,
+            royalties: Royalties::default(),
             marketplace: Option::None,
             listings: Option::None,
         }
     }
 
     pub fn add_listing(&mut self, listing: Listing) {
-        if let Some(listings) = self.listings.as_mut() {
-            listings.push(listing)
-        }
+        self.listings
+            .get_or_insert_with(Default::default)
+            .0
+            .push(listing);
     }
 
     pub fn module_name(&self) -> String {
@@ -69,7 +70,7 @@ impl Schema {
         let init_listings = self
             .listings
             .iter()
-            .flatten()
+            .flat_map(|listings| listings.0.iter())
             .map(Listing::init)
             .collect::<Vec<_>>();
         let init_listings = init_listings.join("\n    ");
