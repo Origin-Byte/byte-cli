@@ -1,13 +1,16 @@
+use hex::FromHexError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    #[error("An IO error has occured")]
+    #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    Hex(#[from] FromHexError),
     // #[error("The tag provided is not supported")]
     // UnsupportedTag,
-    #[error("The address provided is invalid")]
-    InvalidAddress,
+    #[error("Address length must be 20 bytes")]
+    InvalidAddressLength,
     #[error("The market type provided is invalid")]
     InvalidMarket,
 }

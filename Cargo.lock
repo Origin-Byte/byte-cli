@@ -126,9 +126,10 @@ dependencies = [
  "hex",
  "pretty_assertions",
  "serde",
- "serde_yaml",
+ "serde_json",
  "thiserror",
  "tokio",
+ "toml",
 ]
 
 [[package]]
@@ -286,37 +287,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "gumdrop"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc700f989d2f6f0248546222d9b4258f5b02a171a431f8285a81c08142629e3"
-dependencies = [
- "gumdrop_derive",
-]
-
-[[package]]
-name = "gumdrop_derive"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "729f9bd3449d77e7831a18abfb7ba2f99ee813dfd15b8c2167c9a54ba20aa99d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "gutenberg"
 version = "0.2.0"
 dependencies = [
  "bevy_reflect",
- "gumdrop",
  "pretty_assertions",
  "serde",
  "serde_json",
  "serde_yaml",
  "strfmt",
  "thiserror",
+ "toml",
 ]
 
 [[package]]
@@ -630,7 +611,6 @@ version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
 dependencies = [
- "indexmap",
  "itoa",
  "ryu",
  "serde",
