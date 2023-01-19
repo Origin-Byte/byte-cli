@@ -1,12 +1,14 @@
 pub mod cli;
 pub mod consts;
+pub mod endpoints;
+pub mod err;
 pub mod prelude;
 
+use crate::endpoints::init_config;
 use crate::prelude::*;
 use anyhow::Result;
 use clap::Parser;
 use console::style;
-use gutenberg;
 
 #[tokio::main]
 async fn main() {
@@ -29,7 +31,9 @@ async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::InitCollectionConfig {} => {}
+        Commands::InitCollectionConfig {} => {
+            init_config::init_collection_config()
+        }
         Commands::InitUploadConfig { assets_dir: _ } => {}
         Commands::InitConfig { assets_dir: _ } => {}
         Commands::DeployAssets { assets_dir: _ } => {}
