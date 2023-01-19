@@ -3,8 +3,8 @@
 //! String but should match to a value in a given Enum. Such Enums represent
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
-use serde::Deserialize;
-use std::str::FromStr;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Write, str::FromStr};
 
 use crate::prelude::GutenError;
 
@@ -12,7 +12,7 @@ fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Royalties {
     Proportional { bps: u64 },
     Constant { fee: u64 },
@@ -63,7 +63,7 @@ impl Royalties {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Tag {
     Art,
     ProfilePicture,
@@ -119,8 +119,51 @@ impl FromStr for Tag {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Tags(Vec<Tag>);
+
+impl Tags {
+    pub fn new(tags: &Vec<String>) -> Result<Self, GutenError> {
+        let tags = tags
+            .iter()
+            .map(|string| {
+                Tag::from_str(string).map_err(|_| GutenError::UnsupportedTag)
+            })
+            .collect::<Result<Vec<Tag>, GutenError>>()?;
+
+        Ok(Tags(tags))
+    }
+
+    /// Generates Move code to push tags to a Move `vector` structure
+    pub fn init(&self) -> String {
+        let mut out = String::from("let tags = tags::empty(ctx);\n");
+
+        for tag in self.0.iter() {
+            out.write_fmt(format_args!(
+                "        tags::add_tag(&mut tags, tags::{}());\n",
+                tag.to_string()
+            ))
+            .unwrap();
+        }
+
+        out.push_str(
+            "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
+        );
+
+        out
+    }
+
+    pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
+        let tag = Tag::from_str(tag_string.as_str())
+            .map_err(|_| GutenError::UnsupportedTag)?;
+
+        Ok(self.0.push(tag))
+    }
+}
+
 /// Contains the market configurations of the marketplace
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Marketplace {
     #[serde(default = "default_admin")]
     admin: String,
@@ -152,7 +195,7 @@ impl Marketplace {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
     #[serde(default = "default_admin")]
     admin: String,
@@ -201,7 +244,7 @@ impl Listing {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Market {
     FixedPrice {
         /// Fully qualified fungible token in which price is denominated

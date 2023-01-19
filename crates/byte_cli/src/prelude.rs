@@ -1,4 +1,3 @@
-pub use crate::cli::{Cli, Commands};
+pub use crate::cli::{get_dialoguer_theme, Cli, Commands};
 pub use crate::consts;
-pub use crate::endpoints::init_config;
 pub use crate::err::{self, CliError};

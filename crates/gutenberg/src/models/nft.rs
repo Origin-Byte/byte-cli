@@ -1,8 +1,6 @@
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::collections::HashSet;
-use std::str::FromStr;
 
 use crate::prelude::GutenError;
 
@@ -353,7 +351,8 @@ impl Nft {
 
     pub fn write_fields(&self) -> String {
         // let s = serde_json::to_string(&self.fields).unwrap();
-        // let domains: BTreeMap<String, bool> = serde_json::from_str(&s).unwrap();
+        // let domains: BTreeMap<String, bool> =
+        // serde_json::from_str(&s).unwrap();
 
         let code = self
             .fields
@@ -454,24 +453,21 @@ impl Nft {
     }
 
     pub fn mint_fns(&self, witness: &str) -> String {
-        let s = serde_json::to_string(&self.mint_strategy).unwrap();
-        let strategies: BTreeMap<String, bool> =
-            serde_json::from_str(&s).unwrap();
+        let strategies = &self.mint_strategy;
+        let mut mint_fns = String::new();
 
-        let code: String = strategies
-            .iter()
-            .filter(|(_, v)| **v == true)
-            .map(|(k, _)| match k.as_str() {
-                "direct" => self.mint_fn(witness, Mint::Direct),
-                "airdrop" => self.mint_fn(witness, Mint::Airdrop),
-                "launchpad" => self.mint_fn(witness, Mint::Launchpad),
-                _ => {
-                    eprintln!("Mint strategy not supported");
-                    std::process::exit(2);
-                }
-            })
-            .collect();
+        if strategies.launchpad {
+            mint_fns.push_str(&self.mint_fn(witness, Mint::Launchpad));
+        }
 
-        code
+        if strategies.airdrop {
+            mint_fns.push_str(&self.mint_fn(witness, Mint::Airdrop));
+        }
+
+        if strategies.direct {
+            mint_fns.push_str(&self.mint_fn(witness, Mint::Direct));
+        }
+
+        mint_fns
     }
 }
