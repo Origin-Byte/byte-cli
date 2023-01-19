@@ -11,7 +11,6 @@ module {module_name}::{module_name} {{
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::inventory::{{Self, Inventory}};
     use nft_protocol::royalties::{{Self, TradePayment}};
     use nft_protocol::collection::{{Self, Collection, MintCap}};
 
@@ -32,7 +31,7 @@ module {module_name}::{module_name} {{
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -41,18 +40,21 @@ module {module_name}::{module_name} {{
             &mut mint_cap,
             string::utf8(b"{name}"),
             string::utf8(b"{description}"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"{url}"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"{symbol}")
+            string::utf8(b"{symbol}"),
+            ctx,
         );
 
         {royalty_strategy}
