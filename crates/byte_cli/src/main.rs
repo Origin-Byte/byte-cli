@@ -78,7 +78,7 @@ async fn run() -> Result<()> {
                 contract_dir.as_path(),
             )?;
         }
-        Commands::MintNfts { assets_dir: _ } => {}
+        Commands::MintNfts { assets_dir: _ } => mint_nfts::mint_nfts().await,
     }
 
     Ok(())
