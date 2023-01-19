@@ -4,19 +4,63 @@
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
 use serde::Deserialize;
+use std::str::FromStr;
+
+use crate::prelude::GutenError;
 
 fn default_admin() -> String {
     "tx_context::sender(ctx)".to_string()
 }
 
-/// Enum representing the NFT types currently available in the protocol
 #[derive(Debug, Deserialize)]
-pub enum NftType {
-    // TODO: Need to add support for Soulbound
-    Classic,
-    // TODO: To be added back
-    // Collectible,
-    // CNft,
+pub enum Royalties {
+    Proportional { bps: u64 },
+    Constant { fee: u64 },
+    None,
+}
+
+impl Royalties {
+    pub fn new_from(
+        input: &str,
+        fee: Option<u64>,
+    ) -> Result<Royalties, GutenError> {
+        match input {
+            "Proportional" => {
+                let fee = fee.unwrap();
+                Ok(Royalties::Proportional { bps: fee })
+            }
+            "Constant" => {
+                let fee = fee.unwrap();
+                Ok(Royalties::Constant { fee: fee })
+            }
+            "None" => Ok(Royalties::None),
+            _ => Err(GutenError::UnsupportedRoyalty),
+        }
+    }
+
+    pub fn write(&self) -> String {
+        match self {
+            Royalties::Proportional { bps } => {
+                format!(
+                    "royalty::add_proportional_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new({bps}),
+        );",
+                    bps = bps
+                )
+            }
+            Royalties::Constant { fee } => {
+                format!(
+                    "royalty::add_constant_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new({fee}),
+        );",
+                    fee = fee
+                )
+            }
+            Royalties::None => "".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,53 +98,24 @@ impl Tag {
     }
 }
 
-impl NftType {
-    /// Writes Move code for an entry function meant to be called by
-    /// the Creators to mint NFTs. Depending on the NFTtype the function
-    /// parameters change, therefore pattern match the NFT type.
-    pub fn mint_func(&self, witness: &str) -> Box<str> {
-        let func = match self {
-            NftType::Classic => format!(
-                "public entry fun mint_nft(
-                    name: String,
-                    description: String,
-                    url: vector<u8>,
-                    attribute_keys: vector<String>,
-                    attribute_values: vector<String>,
-                    mint_cap: &mut MintCap<{witness}>,
-                    inventory: &mut Inventory,
-                    ctx: &mut TxContext,
-                ) {{
-                    let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);
+impl FromStr for Tag {
+    type Err = ();
 
-                    collection::increment_supply(mint_cap, 1);
-
-                    display::add_display_domain(
-                        &mut nft,
-                        name,
-                        description,
-                        ctx,
-                    );
-
-                    display::add_url_domain(
-                        &mut nft,
-                        url::new_unsafe_from_bytes(url),
-                        ctx,
-                    );
-
-                    display::add_attributes_domain_from_vec(
-                        &mut nft,
-                        attribute_keys,
-                        attribute_values,
-                        ctx,
-                    );
-
-                    inventory::deposit_nft(inventory, nft);
-                }}",
-                witness = witness,
-            ),
-        };
-        func.into_boxed_str()
+    fn from_str(input: &str) -> Result<Tag, Self::Err> {
+        match input {
+            "Art" => Ok(Tag::Art),
+            "ProfilePicture" => Ok(Tag::ProfilePicture),
+            "Collectible" => Ok(Tag::Collectible),
+            "GameAsset" => Ok(Tag::GameAsset),
+            "TokenisedAsset" => Ok(Tag::TokenisedAsset),
+            "Ticker" => Ok(Tag::Ticker),
+            "DomainName" => Ok(Tag::DomainName),
+            "Music" => Ok(Tag::Music),
+            "Video" => Ok(Tag::Video),
+            "Ticket" => Ok(Tag::Ticket),
+            "License" => Ok(Tag::License),
+            _ => Err(()),
+        }
     }
 }
 
@@ -147,6 +162,14 @@ pub struct Listing {
 }
 
 impl Listing {
+    pub fn new(admin: &str, receiver: &str, market: Market) -> Listing {
+        Listing {
+            admin: admin.to_string(),
+            receiver: receiver.to_string(),
+            markets: Vec::from([market]),
+        }
+    }
+
     pub fn init(&self) -> String {
         let mut string = String::new();
 

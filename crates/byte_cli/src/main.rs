@@ -6,6 +6,7 @@ use crate::prelude::*;
 use anyhow::Result;
 use clap::Parser;
 use console::style;
+use gutenberg;
 
 #[tokio::main]
 async fn main() {

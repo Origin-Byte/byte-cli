@@ -1,4 +1,4 @@
-module gutenberg::suitraders {
+module gutenberg::newbytes {
     use std::string::{Self, String};
 
     use sui::url;
@@ -16,15 +16,15 @@ module gutenberg::suitraders {
     use nft_protocol::collection::{Self, Collection, MintCap};
 
     /// One time witness is only instantiated in the init method
-    struct SUITRADERS has drop {}
+    struct NEWBYTES has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUITRADERS>(
+    fun init(witness: NEWBYTES, ctx: &mut TxContext) {
+        let (mint_cap, collection) = collection::create<NEWBYTES>(
             &witness,
             ctx,
         );
@@ -39,8 +39,8 @@ module gutenberg::suitraders {
         display::add_collection_display_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"Suitraders"),
-            string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+            string::utf8(b"Newbytes"),
+            string::utf8(b"A unique NFT collection of Bytes on Sui"),
         );
 
         display::add_collection_url_domain(
@@ -52,7 +52,7 @@ module gutenberg::suitraders {
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUITR")
+            string::utf8(b"SUIM")
         );
 
         let royalty = royalty::new(ctx);
@@ -66,53 +66,14 @@ module gutenberg::suitraders {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let marketplace = nft_protocol::marketplace::new(
-            tx_context::sender(ctx),
-            @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
-            nft_protocol::flat_fee::new(0, ctx),
-            ctx,
-        );
-
-        let listing = nft_protocol::listing::new(
-            tx_context::sender(ctx),
-            @0xcf9bcdb25929869053dd4a2c467539f8b792346f,
-            ctx,
-        );
-
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
-        nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
-            &mut listing,
-            inventory_id,
-            false,
-            500,
-            ctx,
-        );
-
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
-        nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
-            &mut listing,
-            inventory_id,
-            true,
-            100,
-            ctx,
-        );
-
-        transfer::share_object(listing);
-
-        transfer::share_object(marketplace);
-
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<SUITRADERS, FT>,
-        collection: &mut Collection<SUITRADERS>,
+        payment: &mut TradePayment<NEWBYTES, FT>,
+        collection: &mut Collection<NEWBYTES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -131,11 +92,11 @@ module gutenberg::suitraders {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUITRADERS>,
+        _mint_cap: &MintCap<NEWBYTES>,
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUITRADERS>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<NEWBYTES>(tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,

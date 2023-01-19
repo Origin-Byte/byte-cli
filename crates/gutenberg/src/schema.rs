@@ -3,14 +3,17 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::types::{Listing, Marketplace, NftType, Tag};
+use crate::models::{collection::Collection, nft::Nft};
+use crate::types::{Listing, Marketplace, Royalties};
 
 use serde::Deserialize;
 use strfmt::strfmt;
 
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs;
+use std::path::PathBuf;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -18,36 +21,101 @@ use std::fs;
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
     pub collection: Collection,
-    pub nft_type: NftType,
+    pub nft: Nft,
+    pub royalties: Royalties,
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Vec<Listing>>,
 }
 
-/// Contains the metadata fields of the collection
-#[derive(Debug, Deserialize)]
-pub struct Collection {
-    /// The name of the collection
-    pub name: Box<str>,
-    /// The description of the collection
-    pub description: Box<str>,
-    /// The symbol/ticker of the collection
-    pub symbol: Box<str>,
-    /// A set of strings that categorize the domain in which the NFT operates
-    pub tags: Vec<Tag>,
-    /// The royalty fees creators accumulate on the sale of NFTs
-    pub royalty_fee_bps: Box<str>,
-    /// Field for extra data
-    pub url: Box<str>,
-}
-
 impl Schema {
-    pub fn module_name(&self) -> Box<str> {
-        self.collection
-            .name
-            .to_lowercase()
-            .replace(' ', "_")
-            .into_boxed_str()
+    pub fn new() -> Schema {
+        Schema {
+            collection: Collection::new(),
+            nft: Nft::new(),
+            royalties: Royalties::None,
+            marketplace: Option::None,
+            listings: Option::None,
+        }
+    }
+
+    pub fn add_listing(&mut self, listing: Listing) {
+        if let Some(listings) = self.listings.as_mut() {
+            listings.push(listing)
+        }
+    }
+
+    pub fn module_name(&self) -> String {
+        self.collection.name.to_lowercase().replace(' ', "_")
+    }
+
+    pub fn write_from_file(
+        config: PathBuf,
+        output: Option<PathBuf>,
+    ) -> Result<(), GutenError> {
+        let extension = config.extension().and_then(OsStr::to_str);
+
+        let f = fs::File::open(&config)?;
+
+        let schema: Schema = match extension {
+            Some("yaml") => {
+                match serde_yaml::from_reader(f) {
+                    Ok(schema) => schema,
+                    Err(err) => {
+                        eprintln!("Gutenberg could not generate smart contract due to");
+                        eprintln!("{}", err);
+                        std::process::exit(2);
+                    }
+                }
+            }
+            Some("json") => {
+                match serde_json::from_reader(f) {
+                    Ok(schema) => schema,
+                    Err(err) => {
+                        eprintln!("Gutenberg could not generate smart contract due to");
+                        eprintln!("{}", err);
+                        std::process::exit(2);
+                    }
+                }
+            }
+            Some(_) => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("File extension not supported");
+                std::process::exit(2);
+            }
+            None => {
+                eprintln!("Gutenberg could not generate smart contract due to");
+                eprintln!("File has no extension");
+                std::process::exit(2);
+            }
+        };
+
+        // If output file was not specified we prepare build directory for user to
+        // publish directly after invoking gutenberg
+        if output.is_none() {
+            fs::create_dir_all("./build")?;
+            fs::File::create("./build/Move.toml")?;
+            fs::copy("./examples/packages/Move.toml", "./build/Move.toml")?;
+        }
+
+        // Identify final output path and create intermediate directories
+        let output_file = output.unwrap_or_else(|| {
+            PathBuf::from(&format!(
+                "./build/sources/{}.move",
+                &schema.module_name().to_string()
+            ))
+        });
+
+        if let Some(p) = output_file.parent() {
+            fs::create_dir_all(p)?;
+        }
+
+        let mut f = fs::File::create(output_file)?;
+        if let Err(err) = schema.write_move(&mut f) {
+            eprintln!("{err}");
+        }
+
+        Ok(())
     }
 
     /// Higher level method responsible for generating Move code from the
@@ -64,12 +132,7 @@ impl Schema {
 
         let module_name = self.module_name();
 
-        let witness = self
-            .collection
-            .name
-            .to_uppercase()
-            .replace(' ', "")
-            .into_boxed_str();
+        let witness = self.collection.name.to_uppercase().replace(' ', "");
 
         let tags = self.write_tags();
 
@@ -77,8 +140,7 @@ impl Schema {
             .marketplace
             .as_ref()
             .map(Marketplace::init)
-            .unwrap_or_else(String::new)
-            .into_boxed_str();
+            .unwrap_or_else(String::new);
 
         let init_listings = self
             .listings
@@ -86,7 +148,7 @@ impl Schema {
             .flatten()
             .map(Listing::init)
             .collect::<Vec<_>>();
-        let init_listings = init_listings.join("\n    ").into_boxed_str();
+        let init_listings = init_listings.join("\n    ");
 
         // Collate list of objects that need to be shared
         // TODO: Use Marketplace::init and Listing::init functions to avoid explicit share
@@ -94,19 +156,23 @@ impl Schema {
             .marketplace
             .as_ref()
             .map(Marketplace::share)
-            .unwrap_or_default()
-            .into_boxed_str();
+            .unwrap_or_default();
 
         let mut vars = HashMap::new();
+
+        let royalty_strategy = self.royalties.write();
+        let mint_functions = self.nft.mint_fns(&witness);
+        let url = &self.collection.url.as_ref().unwrap();
 
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("name", &self.collection.name);
         vars.insert("description", &self.collection.description);
-        vars.insert("url", &self.collection.url);
         vars.insert("symbol", &self.collection.symbol);
-        vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
+        vars.insert("royalty_strategy", &royalty_strategy);
+        vars.insert("mint_functions", &mint_functions);
         vars.insert("tags", &tags);
+        vars.insert("url", &url);
 
         // Marketplace and Listing objects
         vars.insert("init_marketplace", &init_marketplace);
@@ -135,7 +201,7 @@ impl Schema {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write_tags(&self) -> Box<str> {
+    pub fn write_tags(&self) -> String {
         let mut out = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.collection.tags.iter() {
@@ -150,6 +216,6 @@ impl Schema {
             "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
         );
 
-        out.into_boxed_str()
+        out
     }
 }
