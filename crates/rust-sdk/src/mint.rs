@@ -46,7 +46,8 @@ pub async fn create_inventory(
     let response = sui
         .quorum_driver()
         .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signature).verify()?,
+            Transaction::from_data(call, Intent::default(), signature)
+                .verify()?,
             Some(ExecuteTransactionRequestType::WaitForLocalExecution),
         )
         .await?;
@@ -70,7 +71,9 @@ pub async fn create_inventory(
 }
 
 pub async fn get_client() -> Result<SuiClient, anyhow::Error> {
-    let client = SuiClient::new("https://fullnode.devnet.sui.io:443", None, None).await?;
+    let client =
+        SuiClient::new("https://fullnode.devnet.sui.io:443", None, None)
+            .await?;
 
     Ok(client)
 }
@@ -93,10 +96,11 @@ pub async fn mint_nft(
     name: &str,
     description: &str,
     url: &str,
-    inventory_id: ObjectID,
+    inventory_id: &str,
 ) -> Result<ObjectID, anyhow::Error> {
     let address = SuiAddress::from_str(MY_ADDRESS)?;
-    let package_id = ObjectID::from_str(NFT_PROTOCOL)?;
+    let package_id = ObjectID::from_str(SUI_MARINES)?;
+    let inventory_id = ObjectID::from_str(inventory_id)?;
 
     let call = sui
         .transaction_builder()
@@ -112,8 +116,8 @@ pub async fn mint_nft(
                 SuiJsonValue::from_str(&url)?, // TODO: This should be Url
                 SuiJsonValue::from_object_id(inventory_id),
             ], // Should have tx context?
-            None, // Gas object, Node can pick on itself
-            1000, // Gas budget
+            None,   // Gas object, Node can pick on itself
+            100000, // Gas budget
         )
         .await?;
 
@@ -125,12 +129,15 @@ pub async fn mint_nft(
     let response = sui
         .quorum_driver()
         .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signature).verify()?,
+            Transaction::from_data(call, Intent::default(), signature)
+                .verify()?,
             Some(ExecuteTransactionRequestType::WaitForLocalExecution),
         )
         .await?;
 
     assert!(response.confirmed_local_execution);
+
+    println!("{:?}", response);
 
     // We know `mint_nft` move function will create 1 object.
     let nft_id = response

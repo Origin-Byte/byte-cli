@@ -5,7 +5,7 @@ pub mod endpoints;
 pub mod err;
 pub mod prelude;
 
-use crate::endpoints::{deploy_assets, init_config};
+use crate::endpoints::{deploy_assets, init_config, mint_nfts};
 use crate::prelude::*;
 use anyhow::Result;
 use clap::Parser;
@@ -41,7 +41,7 @@ async fn run() -> Result<()> {
             deploy_assets::deploy_assets(assets_dir.as_str()).await?
         }
         Commands::DeployContract {} => {}
-        Commands::MintNfts { assets_dir: _ } => {}
+        Commands::MintNfts { assets_dir: _ } => mint_nfts::mint_nfts().await,
     }
 
     Ok(())

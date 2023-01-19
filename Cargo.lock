@@ -1516,6 +1516,7 @@ dependencies = [
  "hex",
  "mime_guess",
  "pretty_assertions",
+ "rust-sdk",
  "serde 1.0.152",
  "serde_yaml 0.9.16",
  "thiserror",
