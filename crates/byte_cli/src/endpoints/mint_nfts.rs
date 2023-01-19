@@ -1,6 +1,4 @@
 // TODO: Harcode the data here!
-use crate::prelude::*;
-use anyhow::Result;
 use rust_sdk::mint;
 
 pub async fn mint_nfts() {
@@ -10,7 +8,7 @@ pub async fn mint_nfts() {
     let inventory_id =
         mint::create_inventory(&client, &keystore).await.unwrap();
 
-    let nft_id_1 = mint::mint_nft(
+    let _nft_id_1 = mint::mint_nft(
         &client,
         &keystore,
         "suimarines-1",
@@ -21,7 +19,7 @@ pub async fn mint_nfts() {
     .await
     .unwrap();
 
-    let nft_id_2 = mint::mint_nft(
+    let _nft_id_2 = mint::mint_nft(
         &client,
         &keystore,
         "suimarines-2",
@@ -32,7 +30,7 @@ pub async fn mint_nfts() {
     .await
     .unwrap();
 
-    let nft_id_3 = mint::mint_nft(
+    let _nft_id_3 = mint::mint_nft(
         &client,
         &keystore,
         "suimarines-3",
@@ -43,7 +41,7 @@ pub async fn mint_nfts() {
     .await
     .unwrap();
 
-    let nft_id_4 = mint::mint_nft(
+    let _nft_id_4 = mint::mint_nft(
         &client,
         &keystore,
         "suimarines-4",
