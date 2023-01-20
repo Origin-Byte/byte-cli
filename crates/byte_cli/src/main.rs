@@ -79,7 +79,13 @@ async fn run() -> Result<()> {
                 contract_dir.as_path(),
             )?;
         }
-        Commands::MintNfts { assets_dir: _ } => mint_nfts::mint_nfts().await,
+        Commands::MintNfts { config, gas_budget } => {
+            let schema = deploy_contract::parse_config(config.as_path())?;
+
+            if let Some(contract) = schema.contract {
+                mint_nfts::mint_nfts(contract, gas_budget).await
+            }
+        }
     }
 
     Ok(())

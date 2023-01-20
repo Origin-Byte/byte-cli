@@ -59,7 +59,10 @@ pub enum Commands {
     MintNfts {
         /// Path to the directory with the assets
         #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
-        assets_dir: String,
+        config: PathBuf,
+        /// Gas budget for running module initializers
+        #[clap(default_value_t = 60000)]
+        gas_budget: usize,
     },
 }
 

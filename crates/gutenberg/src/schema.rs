@@ -26,6 +26,7 @@ pub struct Schema {
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Listings>,
+    pub contract: Option<String>,
 }
 
 impl Schema {
@@ -36,6 +37,7 @@ impl Schema {
             royalties: Royalties::default(),
             marketplace: Option::None,
             listings: Option::None,
+            contract: Option::None,
         }
     }
 

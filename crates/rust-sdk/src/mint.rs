@@ -11,13 +11,13 @@ use sui_sdk::{
 use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
 
-pub const NFT_PROTOCOL: &str = "0xc3f1cfc87eae7fe79184005938f559953c804f4b";
-// TODO: NEEDs to be updated
-pub const SUI_MARINES: &str = "0xd797d3c7b587ec75e576426629d1d5e277bca088";
-pub const GAS_OBJECT: &str = "0x871661956548f4ccc2e0531c8d46bc9f07d636f9";
+pub const NFT_PROTOCOL: &str = "0x31cea8513aa6d078d92823ea42d42600208be721";
+pub const SUI_MARINES: &str = "0x8c4d633c3834265522d3410571da19f3b0920054";
+
+pub const GAS_OBJECT: &str = "0x0c22130a404e235a29c6892d1dfb3915527f3208";
 pub const MY_ADDRESS: &str = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143";
 
-pub async fn create_inventory(
+pub async fn create_warehouse(
     sui: &SuiClient,
     keystore: &Keystore,
 ) -> Result<String, anyhow::Error> {
@@ -26,23 +26,29 @@ pub async fn create_inventory(
 
     let call = sui
         .transaction_builder()
-        .move_call::<sui_adapter::execution_mode::Normal>(
+        .move_call(
             address,
             package_id,
-            "inventory",
-            "init_inventory",
+            "warehouse",
+            "init_warehouse",
             vec![],
             vec![], // Should have tx context?
             None,   // Gas object, Node can pick on itself
-            1000,   // Gas budget
+            10000,  // Gas budget
         )
         .await?;
 
     // Sign transaction.
     let signature = keystore.sign_secure(&address, &call, Intent::default())?;
 
-    // Execute the transaction.
+    let data_chato = Transaction::from_data(
+        call.clone(),
+        Intent::default(),
+        signature.clone(),
+    )
+    .verify()?;
 
+    // Execute the transaction.
     let response = sui
         .quorum_driver()
         .execute_transaction(
@@ -54,8 +60,8 @@ pub async fn create_inventory(
 
     assert!(response.confirmed_local_execution);
 
-    // We know `init_inventory` move function will create 1 object.
-    let inventory_id = response
+    // We know `init_warehouse` move function will create 1 object.
+    let warehouse_id = response
         .effects
         .unwrap()
         .created
@@ -64,10 +70,10 @@ pub async fn create_inventory(
         .reference
         .object_id;
 
-    println!("Created new inventory, with the id : [{}]", inventory_id);
-    println!("Inventory owner: {}", address);
+    println!("Created new warehouse, with the id : [{}]", warehouse_id);
+    println!("Warehouse owner: {}", address);
 
-    Ok(inventory_id.to_string())
+    Ok(warehouse_id.to_string())
 }
 
 pub async fn get_client() -> Result<SuiClient, anyhow::Error> {
@@ -96,15 +102,18 @@ pub async fn mint_nft(
     name: &str,
     description: &str,
     url: &str,
-    inventory_id: &str,
+    warehouse_id: &str,
+    package_id: &str,
 ) -> Result<ObjectID, anyhow::Error> {
     let address = SuiAddress::from_str(MY_ADDRESS)?;
-    let package_id = ObjectID::from_str(SUI_MARINES)?;
-    let inventory_id = ObjectID::from_str(inventory_id)?;
+    let package_id = ObjectID::from_str(package_id)?;
+    let warehouse_id = ObjectID::from_str(warehouse_id)?;
+
+    println!("Package ID: {}", package_id);
 
     let call = sui
         .transaction_builder()
-        .move_call::<sui_adapter::execution_mode::Normal>(
+        .move_call(
             address,
             package_id,
             "suimarines",
@@ -114,7 +123,7 @@ pub async fn mint_nft(
                 SuiJsonValue::from_str(&name)?,
                 SuiJsonValue::from_str(&description)?,
                 SuiJsonValue::from_str(&url)?, // TODO: This should be Url
-                SuiJsonValue::from_object_id(inventory_id),
+                SuiJsonValue::from_object_id(warehouse_id),
             ], // Should have tx context?
             None,   // Gas object, Node can pick on itself
             100000, // Gas budget
@@ -151,10 +160,12 @@ pub async fn mint_nft(
 
     println!("Created new NFT, with the id : [{}]", nft_id);
     println!(
-        "The NFT has been send to the following Inventory: [{}]",
-        inventory_id.to_string()
+        "The NFT has been send to the following Warehouse: [{}]",
+        warehouse_id.to_string()
     );
-    println!("Inventory owner: {}", address);
+    println!("Warehouse owner: {}", address);
 
     Ok(nft_id)
 }
+
+// pub async fn collect_royalties() {}
