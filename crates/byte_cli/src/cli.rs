@@ -63,6 +63,7 @@ pub enum Commands {
         /// Gas budget for running module initializers
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
+        warehouse_id: Option<String>,
     },
 }
 

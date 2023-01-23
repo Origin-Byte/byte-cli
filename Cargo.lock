@@ -1553,6 +1553,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml",
+ "walkdir",
 ]
 
 [[package]]
@@ -7971,6 +7972,7 @@ dependencies = [
  "hex",
  "mime_guess",
  "pretty_assertions",
+ "serde 1.0.152",
  "strfmt",
  "sui-adapter",
  "sui-json-rpc-types",

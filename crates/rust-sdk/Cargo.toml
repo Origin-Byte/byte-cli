@@ -26,6 +26,7 @@ mime_guess = "2.0"
 dotenv = "0.15"
 glob = "0.3"
 dirs = "4.0"
+serde = { version = "1.0", features = ["derive"] }
 
 aws-config = "0.53"
 aws-sdk-s3 = "0.23"
