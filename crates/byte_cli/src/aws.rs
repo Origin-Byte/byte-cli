@@ -1,8 +1,10 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::anyhow;
 use aws_sdk_s3::{config, types::ByteStream, Client, Credentials, Region};
 use std::{env, path::Path};
 
-pub fn get_aws_client(region: &str) -> Result<Client> {
+use crate::err::{self, CliError};
+
+pub fn get_aws_client(region: &str) -> Result<Client, CliError> {
     let access_key_id = env::var("ACCESS_KEY_ID")?;
     let secret_key_id = env::var("SECRET_ACCESS_KEY")?;
 
@@ -31,18 +33,23 @@ pub async fn upload_file(
     client: &Client,
     bucket_name: &str,
     path: &Path,
-) -> Result<()> {
+) -> Result<(), CliError> {
     // Validate
+
     if !path.exists() {
-        bail!("Path {} does not exist", path.display());
+        err::no_path();
     }
 
-    let key = path
-        .to_str()
-        .ok_or_else(|| anyhow!("Invalid path {path:?}"))?;
+    let key = path.to_str().ok_or_else(|| err::invalid_path(path))?;
 
     // Prepare
-    let body = ByteStream::from_path(&path).await?;
+    let body = ByteStream::from_path(&path).await.map_err(|err| {
+        anyhow!(
+            r#"Could not generate bytestream from path "{}": {err}"#,
+            path.display()
+        )
+    })?;
+
     let content_type = mime_guess::from_path(path)
         .first_or_octet_stream()
         .to_string();

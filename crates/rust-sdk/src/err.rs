@@ -8,7 +8,7 @@ pub enum RustSdkError {
     SomeError,
     #[error(transparent)]
     SuiSdkError(#[from] sui_sdk::error::Error),
-    // Occurs in Sui ...
+    // Occurs in Sui
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
     #[error(transparent)]
