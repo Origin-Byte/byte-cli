@@ -3,4 +3,4 @@ pub mod collection;
 pub mod marketplace;
 pub mod nft;
 pub mod royalties;
-pub mod shared;
+pub mod tags;

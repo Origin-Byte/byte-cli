@@ -13,6 +13,12 @@ pub struct Nft {
     pub mint_strategy: MintStrategy,
 }
 
+pub enum MintType {
+    Direct,
+    Airdrop,
+    Launchpad,
+}
+
 impl Default for Nft {
     fn default() -> Self {
         Self {
@@ -44,7 +50,8 @@ impl Nft {
             .fields
             .to_map()
             .iter()
-            .filter(|(_, v)| *v == true)
+            // Filter by domain fields set to true
+            .filter(|(_, v)| *v)
             .map(|(k, _)| match k.as_str() {
                 "display" => {
                     "        display::add_display_domain(
@@ -97,7 +104,8 @@ impl Nft {
             .fields
             .to_map()
             .iter()
-            .filter(|(_, v)| *v == true)
+            // Filter by domain fields set to true
+            .filter(|(_, v)| *v)
             .map(|(k, _)| match k.as_str() {
                 "display" => {
                     "        name: String,
@@ -126,20 +134,24 @@ impl Nft {
         code
     }
 
-    pub fn write_mint_fn(&self, witness: &str, mint_strategy: Mint) -> String {
+    pub fn write_mint_fn(
+        &self,
+        witness: &str,
+        mint_strategy: MintType,
+    ) -> String {
         let fun_name: String;
         let to_whom: String;
         let transfer: String;
 
         match mint_strategy {
-            Mint::Direct => {
+            MintType::Direct => {
                 fun_name = "direct_mint".to_string();
                 to_whom = "        receiver: address,".to_string();
                 transfer = "
             transfer::transfer(nft, receiver);"
                     .to_string();
             }
-            Mint::Airdrop => {
+            MintType::Airdrop => {
                 fun_name = "airdrop_mint".to_string();
                 to_whom = format!(
                     "        _mint_cap: &MintCap<{witness}>,
@@ -150,7 +162,7 @@ impl Nft {
         transfer::transfer(nft, receiver);"
                     .to_string();
             }
-            Mint::Launchpad => {
+            MintType::Launchpad => {
                 fun_name = "mint_to_warehouse".to_string();
                 to_whom = format!(
                     "        _mint_cap: &MintCap<{witness}>,
@@ -196,15 +208,16 @@ impl Nft {
         let mut mint_fns = String::new();
 
         if strategies.launchpad {
-            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Launchpad));
+            mint_fns
+                .push_str(&self.write_mint_fn(witness, MintType::Launchpad));
         }
 
         if strategies.airdrop {
-            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Airdrop));
+            mint_fns.push_str(&self.write_mint_fn(witness, MintType::Airdrop));
         }
 
         if strategies.direct {
-            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Direct));
+            mint_fns.push_str(&self.write_mint_fn(witness, MintType::Direct));
         }
 
         mint_fns
@@ -241,19 +254,10 @@ impl SupplyPolicy {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct Behaviours {
     composable: bool,
     loose: bool,
-}
-
-impl Default for Behaviours {
-    fn default() -> Self {
-        Self {
-            composable: false,
-            loose: false,
-        }
-    }
 }
 
 impl Behaviours {
@@ -265,11 +269,7 @@ impl Behaviours {
         let field_struct = behaviours
             .iter()
             .map(|f| {
-                let v = if fields_to_add.contains(f) {
-                    true
-                } else {
-                    false
-                };
+                let v = fields_to_add.contains(f);
                 (f.clone(), v)
             })
             .collect::<Vec<(String, bool)>>();
@@ -310,7 +310,7 @@ impl Behaviours {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct Fields {
     display: bool,
     url: bool,
@@ -318,28 +318,8 @@ pub struct Fields {
     tags: bool,
 }
 
-impl Default for Fields {
-    fn default() -> Self {
-        Self {
-            display: false,
-            url: false,
-            attributes: false,
-            tags: false,
-        }
-    }
-}
-
 impl Fields {
-    pub fn new() -> Fields {
-        Fields {
-            display: false,
-            url: false,
-            attributes: false,
-            tags: false,
-        }
-    }
-
-    pub fn new_from(fields_vec: Vec<String>) -> Result<Fields, GutenError> {
+    pub fn new(fields_vec: Vec<String>) -> Result<Fields, GutenError> {
         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
 
         let fields = Fields::fields();
@@ -347,11 +327,7 @@ impl Fields {
         let field_struct = fields
             .iter()
             .map(|f| {
-                let v = if fields_to_add.contains(f) {
-                    true
-                } else {
-                    false
-                };
+                let v = fields_to_add.contains(f);
                 (f.clone(), v)
             })
             .collect::<Vec<(String, bool)>>();
@@ -411,35 +387,15 @@ impl Fields {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct MintStrategy {
     launchpad: bool,
     airdrop: bool,
     direct: bool,
 }
 
-impl Default for MintStrategy {
-    fn default() -> Self {
-        Self {
-            launchpad: false,
-            airdrop: false,
-            direct: false,
-        }
-    }
-}
-
 impl MintStrategy {
-    pub fn new() -> MintStrategy {
-        MintStrategy {
-            launchpad: false,
-            airdrop: false,
-            direct: false,
-        }
-    }
-
-    pub fn new_from(
-        fields_vec: Vec<String>,
-    ) -> Result<MintStrategy, GutenError> {
+    pub fn new(fields_vec: Vec<String>) -> Result<MintStrategy, GutenError> {
         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
 
         let fields = MintStrategy::fields();
@@ -447,11 +403,7 @@ impl MintStrategy {
         let field_struct = fields
             .iter()
             .map(|f| {
-                let v = if fields_to_add.contains(f) {
-                    true
-                } else {
-                    false
-                };
+                let v = fields_to_add.contains(f);
                 (f.clone(), v)
             })
             .collect::<Vec<(String, bool)>>();
@@ -460,7 +412,7 @@ impl MintStrategy {
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<MintStrategy, GutenError> {
-        let mut field_struct = MintStrategy::new();
+        let mut field_struct = MintStrategy::default();
 
         for (f, v) in map {
             match f.as_str() {
@@ -484,7 +436,7 @@ impl MintStrategy {
     }
 
     pub fn fields() -> Vec<String> {
-        let field_struct = MintStrategy::new();
+        let field_struct = MintStrategy::default();
         let mut fields: Vec<String> = Vec::new();
 
         for (i, _) in field_struct.iter_fields().enumerate() {
@@ -505,10 +457,4 @@ impl MintStrategy {
         }
         map
     }
-}
-
-pub enum Mint {
-    Direct,
-    Airdrop,
-    Launchpad,
 }

@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 use crate::GutenError;
 
@@ -18,8 +21,11 @@ pub enum Tag {
     License,
 }
 
-impl Tag {
-    pub fn to_string(&self) -> String {
+// The ToString trait is automatically implemented for any type which
+// implements the Display trait. As such, ToString shouldn't be
+// implemented directly.
+impl Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let tag = match self {
             Tag::Art => "art",
             Tag::ProfilePicture => "profile_picture",
@@ -34,7 +40,7 @@ impl Tag {
             Tag::License => "license",
         };
 
-        tag.to_string()
+        write!(f, "{}", tag)
     }
 }
 
@@ -64,7 +70,7 @@ impl FromStr for Tag {
 pub struct Tags(Vec<Tag>);
 
 impl Tags {
-    pub fn new(tags: &Vec<String>) -> Result<Self, GutenError> {
+    pub fn new(tags: &[String]) -> Result<Self, GutenError> {
         let tags = tags
             .iter()
             .map(|string| {
@@ -76,7 +82,7 @@ impl Tags {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn init(&self) -> String {
+    pub fn write(&self) -> String {
         let mut out = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.0.iter().map(Tag::to_string) {
@@ -96,6 +102,8 @@ impl Tags {
         let tag = Tag::from_str(tag_string.as_str())
             .map_err(|_| GutenError::UnsupportedTag)?;
 
-        Ok(self.0.push(tag))
+        self.0.push(tag);
+
+        Ok(())
     }
 }

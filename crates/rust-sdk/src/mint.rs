@@ -34,7 +34,7 @@ impl NftData {
         for (_, value) in self.iter_fields().enumerate() {
             if let Some(value_) = value.downcast_ref::<Option<String>>() {
                 let value =
-                    SuiJsonValue::from_str(&value_.as_ref().unwrap()).unwrap();
+                    SuiJsonValue::from_str(value_.as_ref().unwrap()).unwrap();
 
                 map.push(value);
             }

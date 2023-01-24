@@ -74,7 +74,7 @@ async fn run() -> Result<()> {
 
             deploy_contract::publish_contract(
                 gas_budget,
-                client_config.as_ref().map(PathBuf::as_path),
+                client_config.as_deref(),
                 &schema,
                 contract_dir.as_path(),
             )?;

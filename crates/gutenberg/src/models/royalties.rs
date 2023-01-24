@@ -21,7 +21,7 @@ impl Royalties {
     pub fn write(&self) -> String {
         let shares = &self.shares;
 
-        let mut policy = format!("let royalty = ");
+        let mut policy = "let royalty = ".to_string();
         match shares.len() {
             0 => {
                 policy.push_str("royalty::new_empty(ctx);\n");

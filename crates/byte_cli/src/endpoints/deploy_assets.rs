@@ -1,7 +1,7 @@
 use std::env;
 use std::path::Path;
 
-use crate::prelude::*;
+use crate::{aws, prelude::*};
 use anyhow::Result;
 use dotenv::dotenv;
 use glob::glob;
