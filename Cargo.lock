@@ -7973,6 +7973,7 @@ dependencies = [
  "mime_guess",
  "pretty_assertions",
  "serde 1.0.152",
+ "signature",
  "strfmt",
  "sui-adapter",
  "sui-json-rpc-types",

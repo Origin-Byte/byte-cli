@@ -80,14 +80,14 @@ async fn run() -> Result<()> {
             )?;
         }
         Commands::MintNfts {
-            mut config,
+            config,
             gas_budget,
             warehouse_id,
         } => {
-            // TODO: Should not be in the deploy_contract
+            // TODO: This method should not be in the deploy_contract
             let schema = deploy_contract::parse_config(config.as_path())?;
 
-            if let Some(contract) = &schema.contract {
+            if let Some(_contract) = &schema.contract {
                 mint_nfts::mint_nfts(&schema, gas_budget, config, warehouse_id)
                     .await
             }

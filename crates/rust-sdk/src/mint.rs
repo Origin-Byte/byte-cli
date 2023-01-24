@@ -1,7 +1,7 @@
-use crate::RustSdkError;
+use crate::err::{self, RustSdkError};
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, str::FromStr};
+use std::str::FromStr;
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -31,17 +31,13 @@ impl NftData {
     pub fn to_map(&self) -> Vec<SuiJsonValue> {
         let mut map: Vec<SuiJsonValue> = Vec::new();
 
-        for (i, value) in self.iter_fields().enumerate() {
-            let field_name = self.name_at(i).unwrap();
-
-            if let Some(value_) = value.downcast_ref::<String>() {
-                let value = SuiJsonValue::from_str(&value_).unwrap();
+        for (_, value) in self.iter_fields().enumerate() {
+            if let Some(value_) = value.downcast_ref::<Option<String>>() {
+                let value =
+                    SuiJsonValue::from_str(&value_.as_ref().unwrap()).unwrap();
 
                 map.push(value);
             }
-
-            print!("Hey the field name is: {} \n", field_name);
-            print!("Hey the value is: {:?} \n \n", value);
         }
         map
     }
@@ -50,9 +46,10 @@ impl NftData {
 pub async fn create_warehouse(
     sui: &SuiClient,
     keystore: &Keystore,
-) -> Result<String, anyhow::Error> {
+) -> Result<String, RustSdkError> {
     let address = SuiAddress::from_str(MY_ADDRESS)?;
-    let package_id = ObjectID::from_str(NFT_PROTOCOL)?;
+    let package_id = ObjectID::from_str(NFT_PROTOCOL)
+        .map_err(|err| err::object_id(err, NFT_PROTOCOL))?;
 
     let call = sui
         .transaction_builder()
@@ -93,13 +90,12 @@ pub async fn create_warehouse(
         .reference
         .object_id;
 
-    println!("Created new warehouse, with the id : [{}]", warehouse_id);
-    println!("Warehouse owner: {}", address);
+    println!("Created new warehouse, with the id : {}", warehouse_id);
 
     Ok(warehouse_id.to_string())
 }
 
-pub async fn get_client() -> Result<SuiClient, anyhow::Error> {
+pub async fn get_client() -> Result<SuiClient, RustSdkError> {
     let client =
         SuiClient::new("https://fullnode.devnet.sui.io:443", None, None)
             .await?;
@@ -107,7 +103,7 @@ pub async fn get_client() -> Result<SuiClient, anyhow::Error> {
     Ok(client)
 }
 
-pub async fn get_keystore() -> Result<Keystore, anyhow::Error> {
+pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
     // Load keystore from ~/.sui/sui_config/sui.keystore
     let keystore_path = match dirs::home_dir() {
         Some(v) => v.join(".sui").join("sui_config").join("sui.keystore"),
@@ -131,32 +127,17 @@ pub async fn mint_nft(
     package_id: &str,
     warehouse_id: &str,
     _module_name: &str,
-) -> Result<ObjectID, anyhow::Error> {
+) -> Result<ObjectID, RustSdkError> {
     let address = SuiAddress::from_str(MY_ADDRESS)?;
-    let package_id = ObjectID::from_str(package_id)?;
-    let warehouse_id = ObjectID::from_str(warehouse_id)?;
+    let package_id = ObjectID::from_str(package_id)
+        .map_err(|err| err::object_id(err, package_id))?;
+
+    let warehouse_id = ObjectID::from_str(warehouse_id)
+        .map_err(|err| err::object_id(err, warehouse_id))?;
 
     let mut args = nft_data.to_map();
 
     args.push(SuiJsonValue::from_object_id(warehouse_id));
-
-    println!("Package ID: {}", package_id);
-
-    // let args =
-    //     args.iter()
-    //         .map(|(arg_type, arg)| match arg_type {
-    //             SuiArgType::StringSlice => SuiJsonValue::from_str(arg)
-    //                 .map_err(|e| RustSdkError::error(e)),
-    //             SuiArgType::ObjectId => {
-    //                 let object_id = ObjectID::from_str(arg)
-    //                     .map_err(|e| RustSdkError::error(e));
-
-    //                 // Safe to unwrap as we have validated above
-    //                 // that it is an Object ID
-    //                 Ok(SuiJsonValue::from_object_id(object_id.unwrap()))
-    //             }
-    //         })
-    //         .collect::<Result<Vec<SuiJsonValue>, RustSdkError>>()?;
 
     let call = sui
         .transaction_builder()
@@ -188,8 +169,6 @@ pub async fn mint_nft(
 
     assert!(response.confirmed_local_execution);
 
-    println!("{:?}", response);
-
     // We know `mint_nft` move function will create 1 object.
     let nft_id = response
         .effects
@@ -200,9 +179,9 @@ pub async fn mint_nft(
         .reference
         .object_id;
 
-    println!("Created new NFT, with the id : [{}]", nft_id);
-
     Ok(nft_id)
 }
 
-// pub async fn collect_royalties() {}
+pub async fn collect_royalties() {
+    todo!()
+}

@@ -29,17 +29,30 @@ pub struct Schema {
     pub contract: Option<String>,
 }
 
-impl Schema {
-    pub fn new() -> Schema {
-        Schema {
-            collection: Collection::new(),
-            nft: Nft::new(),
+impl Default for Schema {
+    fn default() -> Self {
+        Self {
+            collection: Collection::default(),
+            nft: Nft::default(),
             royalties: Royalties::default(),
             marketplace: Option::None,
             listings: Option::None,
             contract: Option::None,
         }
     }
+}
+
+impl Schema {
+    // pub fn new() -> Schema {
+    //     Schema {
+    //         collection: Collection::default(),
+    //         nft: Nft::default(),
+    //         royalties: Royalties::default(),
+    //         marketplace: Option::None,
+    //         listings: Option::None,
+    //         contract: Option::None,
+    //     }
+    // }
 
     pub fn add_listing(&mut self, listing: Listing) {
         self.listings
@@ -90,7 +103,7 @@ impl Schema {
 
         let tags = self.collection.tags.init();
         let royalty_strategy = self.royalties.write();
-        let mint_functions = self.nft.mint_fns(&witness);
+        let mint_functions = self.nft.write_mint_fns(&witness);
         let url = self
             .collection
             .url

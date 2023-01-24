@@ -21,9 +21,9 @@ pub struct Collection {
     pub url: Option<String>,
 }
 
-impl Collection {
-    pub fn new() -> Collection {
-        Collection {
+impl Default for Collection {
+    fn default() -> Self {
+        Self {
             name: String::new(),
             description: String::new(),
             symbol: String::new(),
@@ -31,8 +31,10 @@ impl Collection {
             url: Option::None,
         }
     }
+}
 
-    pub fn new_from(
+impl Collection {
+    pub fn new(
         name: String,
         description: String,
         symbol: String,

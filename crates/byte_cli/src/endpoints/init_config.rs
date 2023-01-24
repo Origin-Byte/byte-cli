@@ -39,7 +39,7 @@ fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
 }
 
 pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
-    let mut schema = Schema::new();
+    let mut schema = Schema::default();
     let theme = get_dialoguer_theme();
 
     let number_validator = |input: &String| -> Result<(), String> {
@@ -124,7 +124,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
 
     let nft_behaviours = map_indices(nft_behaviour_indices, &BEHAVIOUR_OPTIONS);
 
-    schema.nft.behaviours = nft::Behaviours::new_from(nft_behaviours).unwrap();
+    schema.nft.behaviours = nft::Behaviours::new(nft_behaviours).unwrap();
 
     let supply_index = Select::with_theme(&theme)
         .with_prompt("Which Supply Policy do you want your Collection to have?")
@@ -149,7 +149,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
     }
 
     schema.nft.supply_policy =
-        nft::SupplyPolicy::new_from(supply_policy, limit).unwrap();
+        nft::SupplyPolicy::new(supply_policy, limit).unwrap();
 
     schema.royalties = Royalties::from_prompt()?;
 

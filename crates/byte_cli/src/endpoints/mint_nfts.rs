@@ -1,6 +1,5 @@
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use gutenberg::Schema;
-use serde::{Deserialize, Serialize};
 use std::{fs::File, path::PathBuf};
 use walkdir::WalkDir;
 
@@ -43,15 +42,13 @@ pub async fn mint_nfts(
                 .map_err(|_| anyhow!("Couldn't"))
                 .unwrap();
 
-            println!("{:?}", warehouse_id.as_ref().unwrap());
-
             mint::mint_nft(
-                &client,
-                &keystore,
-                &nft_data,
-                contract_id.as_str(),
-                "suimarines",
-                warehouse_id.as_ref().unwrap().as_str(),
+                &client,                                 // sui
+                &keystore,                               // keystore
+                &nft_data,                               // nft_data
+                contract_id.as_str(),                    // package_id
+                warehouse_id.as_ref().unwrap().as_str(), // module_name
+                "suimarines",                            // warehouse_id
             )
             .await
             .unwrap();
@@ -100,9 +97,4 @@ pub async fn mint_nfts(
     // )
     // .await
     // .unwrap();
-
-    println!("NFT #1 successfully minted.");
-    println!("NFT #2 successfully minted.");
-    println!("NFT #3 successfully minted.");
-    println!("NFT #4 successfully minted.");
 }

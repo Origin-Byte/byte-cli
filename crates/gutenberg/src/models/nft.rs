@@ -13,6 +13,204 @@ pub struct Nft {
     pub mint_strategy: MintStrategy,
 }
 
+impl Default for Nft {
+    fn default() -> Self {
+        Self {
+            fields: Fields::default(),
+            behaviours: Behaviours::default(),
+            supply_policy: SupplyPolicy::Undefined,
+            mint_strategy: MintStrategy::default(),
+        }
+    }
+}
+
+impl Nft {
+    pub fn new(
+        fields: Fields,
+        behaviours: Behaviours,
+        supply_policy: SupplyPolicy,
+        mint_strategy: MintStrategy,
+    ) -> Nft {
+        Nft {
+            fields,
+            behaviours,
+            supply_policy,
+            mint_strategy,
+        }
+    }
+
+    pub fn write_domains(&self) -> String {
+        let code = self
+            .fields
+            .to_map()
+            .iter()
+            .filter(|(_, v)| *v == true)
+            .map(|(k, _)| match k.as_str() {
+                "display" => {
+                    "        display::add_display_domain(
+            &mut nft,
+            name,
+            description,
+            ctx,
+        );
+
+"
+                }
+                "url" => {
+                    "        display::add_url_domain(
+            &mut nft,
+            url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+"
+                }
+                "attributes" => {
+                    "
+        display::add_attributes_domain_from_vec(
+            &mut nft,
+            attribute_keys,
+            attribute_values,
+            ctx,
+        );
+"
+                }
+                "tags" => {
+                    "
+        tags::add_tag_domain(
+            &mut nft,
+            tags,
+            ctx,
+        );"
+                }
+                _ => {
+                    eprintln!("File has no extension");
+                    std::process::exit(2);
+                }
+            })
+            .collect();
+
+        code
+    }
+
+    pub fn write_fields(&self) -> String {
+        let code = self
+            .fields
+            .to_map()
+            .iter()
+            .filter(|(_, v)| *v == true)
+            .map(|(k, _)| match k.as_str() {
+                "display" => {
+                    "        name: String,
+        description: String,"
+                }
+                "url" => {
+                    "
+        url: vector<u8>,"
+                }
+                "attributes" => {
+                    "
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,"
+                }
+                "tags" => {
+                    "
+        tags: Tags,"
+                }
+                _ => {
+                    eprintln!("Field not recognized");
+                    std::process::exit(2);
+                }
+            })
+            .collect();
+
+        code
+    }
+
+    pub fn write_mint_fn(&self, witness: &str, mint_strategy: Mint) -> String {
+        let fun_name: String;
+        let to_whom: String;
+        let transfer: String;
+
+        match mint_strategy {
+            Mint::Direct => {
+                fun_name = "direct_mint".to_string();
+                to_whom = "        receiver: address,".to_string();
+                transfer = "
+            transfer::transfer(nft, receiver);"
+                    .to_string();
+            }
+            Mint::Airdrop => {
+                fun_name = "airdrop_mint".to_string();
+                to_whom = format!(
+                    "        _mint_cap: &MintCap<{witness}>,
+        receiver: address,",
+                    witness = witness,
+                );
+                transfer = "
+        transfer::transfer(nft, receiver);"
+                    .to_string();
+            }
+            Mint::Launchpad => {
+                fun_name = "mint_to_warehouse".to_string();
+                to_whom = format!(
+                    "        _mint_cap: &MintCap<{witness}>,
+        inventory: &mut Inventory,",
+                    witness = witness,
+                );
+                transfer = "        inventory::deposit_nft(inventory, nft);"
+                    .to_string();
+            }
+        };
+
+        let domains = self.write_domains();
+        let fields = self.write_fields();
+
+        let end_of_signature = format!(
+            "        ctx: &mut TxContext,
+    ) {{
+        let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);\n",
+            witness = witness
+        );
+
+        [
+            format!(
+                "
+    public entry fun {fun_name}(",
+                fun_name = fun_name
+            ),
+            fields,
+            to_whom,
+            end_of_signature,
+            domains,
+            transfer,
+            "    }
+
+            "
+            .to_string(),
+        ]
+        .join("\n")
+    }
+
+    pub fn write_mint_fns(&self, witness: &str) -> String {
+        let strategies = &self.mint_strategy;
+        let mut mint_fns = String::new();
+
+        if strategies.launchpad {
+            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Launchpad));
+        }
+
+        if strategies.airdrop {
+            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Airdrop));
+        }
+
+        if strategies.direct {
+            mint_fns.push_str(&self.write_mint_fn(witness, Mint::Direct));
+        }
+
+        mint_fns
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SupplyPolicy {
@@ -21,8 +219,14 @@ pub enum SupplyPolicy {
     Undefined,
 }
 
+impl Default for SupplyPolicy {
+    fn default() -> Self {
+        SupplyPolicy::Undefined
+    }
+}
+
 impl SupplyPolicy {
-    pub fn new_from(
+    pub fn new(
         input: &str,
         supply: Option<u64>,
     ) -> Result<SupplyPolicy, GutenError> {
@@ -43,15 +247,17 @@ pub struct Behaviours {
     loose: bool,
 }
 
-impl Behaviours {
-    pub fn new() -> Behaviours {
-        Behaviours {
+impl Default for Behaviours {
+    fn default() -> Self {
+        Self {
             composable: false,
             loose: false,
         }
     }
+}
 
-    pub fn new_from(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
+impl Behaviours {
+    pub fn new(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
 
         let behaviours = Behaviours::fields();
@@ -72,7 +278,7 @@ impl Behaviours {
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<Behaviours, GutenError> {
-        let mut field_struct = Behaviours::new();
+        let mut field_struct = Behaviours::default();
 
         for (f, v) in map {
             match f.as_str() {
@@ -92,7 +298,7 @@ impl Behaviours {
     }
 
     pub fn fields() -> Vec<String> {
-        let field_struct = Behaviours::new();
+        let field_struct = Behaviours::default();
         let mut fields: Vec<String> = Vec::new();
 
         for (i, _) in field_struct.iter_fields().enumerate() {
@@ -110,6 +316,17 @@ pub struct Fields {
     url: bool,
     attributes: bool,
     tags: bool,
+}
+
+impl Default for Fields {
+    fn default() -> Self {
+        Self {
+            display: false,
+            url: false,
+            attributes: false,
+            tags: false,
+        }
+    }
 }
 
 impl Fields {
@@ -143,7 +360,7 @@ impl Fields {
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<Fields, GutenError> {
-        let mut field_struct = Fields::new();
+        let mut field_struct = Fields::default();
 
         for (f, v) in map {
             match f.as_str() {
@@ -171,7 +388,7 @@ impl Fields {
     }
 
     pub fn fields() -> Vec<String> {
-        let field_struct = Fields::new();
+        let field_struct = Fields::default();
         let mut fields: Vec<String> = Vec::new();
 
         for (i, _) in field_struct.iter_fields().enumerate() {
@@ -199,6 +416,16 @@ pub struct MintStrategy {
     launchpad: bool,
     airdrop: bool,
     direct: bool,
+}
+
+impl Default for MintStrategy {
+    fn default() -> Self {
+        Self {
+            launchpad: false,
+            airdrop: false,
+            direct: false,
+        }
+    }
 }
 
 impl MintStrategy {
@@ -284,190 +511,4 @@ pub enum Mint {
     Direct,
     Airdrop,
     Launchpad,
-}
-
-impl Nft {
-    pub fn new() -> Nft {
-        Nft {
-            fields: Fields::new(),
-            behaviours: Behaviours::new(),
-            supply_policy: SupplyPolicy::Undefined,
-            mint_strategy: MintStrategy::new(),
-        }
-    }
-
-    pub fn write_domains(&self) -> String {
-        let code = self
-            .fields
-            .to_map()
-            .iter()
-            .filter(|(_, v)| *v == true)
-            .map(|(k, _)| match k.as_str() {
-                "display" => {
-                    "        display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
-        );
-
-"
-                }
-                "url" => {
-                    "        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
-        );
-"
-                }
-                "attributes" => {
-                    "
-        display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
-        );
-"
-                }
-                "tags" => {
-                    "
-        tags::add_tag_domain(
-            &mut nft,
-            tags,
-            ctx,
-        );"
-                }
-                _ => {
-                    eprintln!("File has no extension");
-                    std::process::exit(2);
-                }
-            })
-            .collect();
-
-        code
-    }
-
-    pub fn write_fields(&self) -> String {
-        // let s = serde_json::to_string(&self.fields).unwrap();
-        // let domains: BTreeMap<String, bool> =
-        // serde_json::from_str(&s).unwrap();
-
-        let code = self
-            .fields
-            .to_map()
-            .iter()
-            .filter(|(_, v)| *v == true)
-            .map(|(k, _)| match k.as_str() {
-                "display" => {
-                    "        name: String,
-        description: String,"
-                }
-                "url" => {
-                    "
-        url: vector<u8>,"
-                }
-                "attributes" => {
-                    "
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,"
-                }
-                "tags" => {
-                    "
-        tags: Tags,"
-                }
-                _ => {
-                    eprintln!("Field not recognized");
-                    std::process::exit(2);
-                }
-            })
-            .collect();
-
-        code
-    }
-
-    pub fn mint_fn(&self, witness: &str, mint_strategy: Mint) -> String {
-        let fun_name: String;
-        let to_whom: String;
-        let transfer: String;
-
-        match mint_strategy {
-            Mint::Direct => {
-                fun_name = "direct_mint".to_string();
-                to_whom = "        receiver: address,".to_string();
-                transfer = "
-            transfer::transfer(nft, receiver);"
-                    .to_string();
-            }
-            Mint::Airdrop => {
-                fun_name = "airdrop_mint".to_string();
-                to_whom = format!(
-                    "        _mint_cap: &MintCap<{witness}>,
-        receiver: address,",
-                    witness = witness,
-                );
-                transfer = "
-        transfer::transfer(nft, receiver);"
-                    .to_string();
-            }
-            Mint::Launchpad => {
-                fun_name = "mint_to_warehouse".to_string();
-                to_whom = format!(
-                    "        _mint_cap: &MintCap<{witness}>,
-        inventory: &mut Inventory,",
-                    witness = witness,
-                );
-                transfer = "        inventory::deposit_nft(inventory, nft);"
-                    .to_string();
-            }
-        };
-
-        let domains = self.write_domains();
-        let fields = self.write_fields();
-
-        let end_of_signature = format!(
-            "        ctx: &mut TxContext,
-    ) {{
-        let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);\n",
-            witness = witness
-        );
-
-        [
-            format!(
-                "
-    public entry fun {fun_name}(",
-                fun_name = fun_name
-            ),
-            fields,
-            to_whom,
-            end_of_signature,
-            domains,
-            transfer,
-            "    }
-
-            "
-            .to_string(),
-        ]
-        .join("\n")
-    }
-
-    pub fn mint_fns(&self, witness: &str) -> String {
-        let strategies = &self.mint_strategy;
-        let mut mint_fns = String::new();
-
-        if strategies.launchpad {
-            mint_fns.push_str(&self.mint_fn(witness, Mint::Launchpad));
-        }
-
-        if strategies.airdrop {
-            mint_fns.push_str(&self.mint_fn(witness, Mint::Airdrop));
-        }
-
-        if strategies.direct {
-            mint_fns.push_str(&self.mint_fn(witness, Mint::Direct));
-        }
-
-        mint_fns
-    }
 }
