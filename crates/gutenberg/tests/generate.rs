@@ -33,7 +33,6 @@ use std::fs::{self, File};
 
 #[test]
 fn newbytes() {
-    println!("a");
     assert_equal("newbytes.json", "newbytes.move");
 }
 
@@ -60,18 +59,15 @@ fn assert_schema(config: File, file_type: &str) -> Schema {
 
 /// Asserts that the generated file matches the expected output
 fn assert_equal(config: &str, expected: &str) {
-    println!("FUCK");
     let len = config.len();
     let extension = &config[len - 4..len];
-    println!("1");
 
     let (config, _expected) = setup(config, expected);
-    println!("2");
+
     let mut output = Vec::new();
     assert_schema(config, extension)
         .write_move(&mut output)
         .unwrap();
     // let output = String::from_utf8(output).unwrap();
-    // println!("3");
     // pretty_assertions::assert_eq!(output, expected);
 }
