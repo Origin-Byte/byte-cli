@@ -43,6 +43,7 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
 
     match storage_type {
         "AWS" => {
+            // The best would be to fetch all the profiles for you and use this as multiselect
             let profile = Input::with_theme(&theme)
                 .with_prompt("What is the name of your AWS profile?")
                 .default(String::from("default"))
@@ -50,7 +51,16 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
                 .unwrap();
 
             let region = Input::with_theme(&theme)
-                .with_prompt("Which AWS region?")
+                .with_prompt("Which AWS region? (leave blank to default to profile region)")
+                .default(String::from(""))
+                .interact()
+                .unwrap();
+
+            if region == "default" {}
+
+            let directory = Input::with_theme(&theme)
+                .with_prompt("Do you want to upload the assets to a specific directory? If so, what's the directory name? (Leave blank to default to the bucket root)")
+                .default(String::from(""))
                 .interact()
                 .unwrap();
 
