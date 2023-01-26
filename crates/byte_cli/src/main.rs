@@ -36,8 +36,8 @@ async fn run() -> Result<()> {
 
     match cli.command {
         Commands::InitCollectionConfig { output_file } => {
-            let schema = &init_config::init_collection_config()?;
-            init_config::write_config(
+            let schema = &config_collection::init_collection_config()?;
+            config_collection::write_config(
                 schema,
                 output_file
                     .unwrap_or_else(|| {

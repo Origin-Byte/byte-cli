@@ -39,6 +39,7 @@ fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
 }
 
 pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
+    // The schema should be fetched by the config file
     let mut schema = Schema::default();
     let theme = get_dialoguer_theme();
 
