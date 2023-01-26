@@ -37,7 +37,9 @@ impl AWSConfig {
         }
     }
 
-    pub fn new_from_profile() -> Self {}
+    pub fn new_from_profile() -> Self {
+        todo!()
+    }
 
     fn get_region(profile: &str) -> Result<Region> {
         let home_dir = dirs::home_dir()
