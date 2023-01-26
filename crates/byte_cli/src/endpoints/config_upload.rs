@@ -85,10 +85,10 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
                     .parse::<u16>()
                     .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
 
-            let config =
-                pinata::PinataConfig::new(jwt, upload_gateway, parallel_limit);
+            // let config =
+            //     pinata::PinataConfig::new(jwt, upload_gateway, parallel_limit);
 
-            let storage_type = Storage::Pinata(config);
+            // let storage_type = Storage::Pinata(config);
 
             Ok(())
         }
