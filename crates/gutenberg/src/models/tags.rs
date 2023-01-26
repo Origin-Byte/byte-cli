@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::GutenError;
+use crate::err::GutenError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Tag {

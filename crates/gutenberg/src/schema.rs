@@ -2,13 +2,14 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use crate::err::GutenError;
 use crate::models::{
     collection::Collection,
     marketplace::{Listing, Listings, Marketplace},
     nft::Nft,
     royalties::Royalties,
 };
-use crate::GutenError;
+use crate::storage::*;
 
 use serde::{Deserialize, Serialize};
 use strfmt::strfmt;
@@ -27,6 +28,7 @@ pub struct Schema {
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Listings>,
     pub contract: Option<String>,
+    pub storage: Storage,
 }
 
 impl Schema {

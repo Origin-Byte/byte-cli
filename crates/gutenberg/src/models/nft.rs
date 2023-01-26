@@ -2,7 +2,7 @@ use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::GutenError;
+use crate::err::GutenError;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
