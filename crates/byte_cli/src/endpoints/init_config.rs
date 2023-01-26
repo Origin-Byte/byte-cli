@@ -5,7 +5,7 @@ use dialoguer::{Confirm, Input, MultiSelect, Select};
 use gutenberg::models::marketplace::{Listings, Marketplace};
 use gutenberg::models::nft;
 use gutenberg::models::royalties::Royalties;
-use gutenberg::models::shared::Tags;
+use gutenberg::models::tags::Tags;
 use gutenberg::Schema;
 use serde::Serialize;
 use std::fs::File;
@@ -39,7 +39,7 @@ fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
 }
 
 pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
-    let mut schema = Schema::new();
+    let mut schema = Schema::default();
     let theme = get_dialoguer_theme();
 
     let number_validator = |input: &String| -> Result<(), String> {
@@ -114,7 +114,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
         nft_fields.push("tags".to_string());
     };
 
-    schema.nft.fields = nft::Fields::new_from(nft_fields).unwrap();
+    schema.nft.fields = nft::Fields::new(nft_fields).unwrap();
 
     let nft_behaviour_indices = MultiSelect::with_theme(&theme)
         .with_prompt("Which NFT behaviours do you want the NFTs to have? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
@@ -124,7 +124,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
 
     let nft_behaviours = map_indices(nft_behaviour_indices, &BEHAVIOUR_OPTIONS);
 
-    schema.nft.behaviours = nft::Behaviours::new_from(nft_behaviours).unwrap();
+    schema.nft.behaviours = nft::Behaviours::new(nft_behaviours).unwrap();
 
     let supply_index = Select::with_theme(&theme)
         .with_prompt("Which Supply Policy do you want your Collection to have?")
@@ -149,7 +149,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
     }
 
     schema.nft.supply_policy =
-        nft::SupplyPolicy::new_from(supply_policy, limit).unwrap();
+        nft::SupplyPolicy::new(supply_policy, limit).unwrap();
 
     schema.royalties = Royalties::from_prompt()?;
 
@@ -163,8 +163,7 @@ pub fn init_collection_config() -> Result<Schema, anyhow::Error> {
 
     let contains_launchpad = mint_strategies.contains(&"Launchpad".to_owned());
 
-    schema.nft.mint_strategy =
-        nft::MintStrategy::new_from(mint_strategies).unwrap();
+    schema.nft.mint_strategy = nft::MintStrategy::new(mint_strategies).unwrap();
 
     if contains_launchpad {
         let marketplace = Marketplace::from_prompt()?;

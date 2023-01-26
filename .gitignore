@@ -9,3 +9,4 @@ examples/packages/build/
 Cargo.lock
 
 suimarines/
+.vscode/

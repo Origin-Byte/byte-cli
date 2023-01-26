@@ -2,12 +2,12 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::models::shared::Tags;
+use crate::models::tags::Tags;
 
 use serde::{Deserialize, Serialize};
 
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Collection {
     /// The name of the collection
     pub name: String,
@@ -22,17 +22,7 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub fn new() -> Collection {
-        Collection {
-            name: String::new(),
-            description: String::new(),
-            symbol: String::new(),
-            tags: Tags::default(),
-            url: Option::None,
-        }
-    }
-
-    pub fn new_from(
+    pub fn new(
         name: String,
         description: String,
         symbol: String,

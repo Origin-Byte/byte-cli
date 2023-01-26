@@ -74,12 +74,24 @@ async fn run() -> Result<()> {
 
             deploy_contract::publish_contract(
                 gas_budget,
-                client_config.as_ref().map(PathBuf::as_path),
+                client_config.as_deref(),
                 &schema,
                 contract_dir.as_path(),
             )?;
         }
-        Commands::MintNfts { assets_dir: _ } => mint_nfts::mint_nfts().await,
+        Commands::MintNfts {
+            config,
+            gas_budget,
+            warehouse_id,
+        } => {
+            // TODO: This method should not be in the deploy_contract
+            let schema = deploy_contract::parse_config(config.as_path())?;
+
+            if let Some(_contract) = &schema.contract {
+                mint_nfts::mint_nfts(&schema, gas_budget, config, warehouse_id)
+                    .await
+            }
+        }
     }
 
     Ok(())

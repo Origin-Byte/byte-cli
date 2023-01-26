@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
     pub collection: Collection,
@@ -26,18 +26,20 @@ pub struct Schema {
     /// Creates a new marketplace with the collection
     pub marketplace: Option<Marketplace>,
     pub listings: Option<Listings>,
+    pub contract: Option<String>,
 }
 
 impl Schema {
-    pub fn new() -> Schema {
-        Schema {
-            collection: Collection::new(),
-            nft: Nft::new(),
-            royalties: Royalties::default(),
-            marketplace: Option::None,
-            listings: Option::None,
-        }
-    }
+    // pub fn new() -> Schema {
+    //     Schema {
+    //         collection: Collection::default(),
+    //         nft: Nft::default(),
+    //         royalties: Royalties::default(),
+    //         marketplace: Option::None,
+    //         listings: Option::None,
+    //         contract: Option::None,
+    //     }
+    // }
 
     pub fn add_listing(&mut self, listing: Listing) {
         self.listings
@@ -86,15 +88,10 @@ impl Schema {
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
-        let tags = self.collection.tags.init();
+        let tags = self.collection.tags.write();
         let royalty_strategy = self.royalties.write();
-        let mint_functions = self.nft.mint_fns(&witness);
-        let url = self
-            .collection
-            .url
-            .as_ref()
-            .map(String::as_str)
-            .unwrap_or_default();
+        let mint_functions = self.nft.write_mint_fns(&witness);
+        let url = self.collection.url.as_deref().unwrap_or_default();
 
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
@@ -104,7 +101,7 @@ impl Schema {
         vars.insert("royalty_strategy", &royalty_strategy);
         vars.insert("mint_functions", &mint_functions);
         vars.insert("tags", &tags);
-        vars.insert("url", &url);
+        vars.insert("url", url);
 
         // Marketplace and Listing objects
         vars.insert("init_marketplace", &init_marketplace);
