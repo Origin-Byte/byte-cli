@@ -9,7 +9,7 @@ use reqwest::{
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{path::Path, str::FromStr, sync::Arc};
+use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::storage::uploader::Asset;
@@ -139,7 +139,7 @@ impl PinataSetup {
             Err(anyhow!(format!(
                 "Error uploading batch with status ({}): {}",
                 status,
-                body.to_string()
+                body
             )))
         }
     }

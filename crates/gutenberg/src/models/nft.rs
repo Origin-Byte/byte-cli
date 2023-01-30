@@ -256,8 +256,8 @@ impl SupplyPolicy {
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct Behaviours {
-    composable: bool,
-    loose: bool,
+    pub composable: bool,
+    pub loose: bool,
 }
 
 impl Behaviours {
@@ -312,10 +312,10 @@ impl Behaviours {
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct Fields {
-    display: bool,
-    url: bool,
-    attributes: bool,
-    tags: bool,
+    pub display: bool,
+    pub url: bool,
+    pub attributes: bool,
+    pub tags: bool,
 }
 
 impl Fields {
@@ -389,9 +389,9 @@ impl Fields {
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct MintStrategy {
-    launchpad: bool,
-    airdrop: bool,
-    direct: bool,
+    pub launchpad: bool,
+    pub airdrop: bool,
+    pub direct: bool,
 }
 
 impl MintStrategy {

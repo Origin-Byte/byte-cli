@@ -1,30 +1,21 @@
-use crate::models::FromPrompt;
+use std::path::PathBuf;
+
+use crate::io;
 use crate::prelude::*;
+
 use anyhow::anyhow;
 use dialoguer::theme::ColorfulTheme;
-use dialoguer::{Confirm, Input, MultiSelect, Password, Select};
+use dialoguer::{Input, Password, Select};
 
 use gutenberg::{
-    models::{
-        marketplace::{Listings, Marketplace},
-        nft,
-        royalties::Royalties,
-        tags::Tags,
-    },
-    storage::{self, aws, nft_storage, pinata, Storage},
+    storage::{aws, nft_storage, pinata, Storage},
     Schema,
 };
-
-use serde::Serialize;
-use std::fs::File;
-use std::path::{Path, PathBuf};
 
 const STORAGE_OPTIONS: [&str; 5] =
     ["AWS", "Pinata", "NftStorage", "Bundlr", "SHDW"];
 
-pub fn init_upload_config(path: &str) -> Result<Schema, anyhow::Error> {
-    let mut schema = super::try_read_config(path)?;
-
+pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
     let number_validator = |input: &String| -> Result<(), String> {

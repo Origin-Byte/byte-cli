@@ -41,7 +41,7 @@ impl AWSConfig {
         todo!()
     }
 
-    fn get_region(profile: &str) -> Result<Region> {
+    pub fn get_region(profile: &str) -> Result<Region> {
         let home_dir = dirs::home_dir()
             .expect("Unexpected error: Could not find home directory.");
         let config_path = home_dir.join(Path::new(".aws/config"));

@@ -20,7 +20,8 @@ use tokio::time::{sleep, Duration};
 use super::{Asset, Prepare, Uploader};
 
 const NFT_STORAGE_API_URL: &str = "https://api.nft.storage";
-const NFT_STORAGE_GATEWAY_URL: &str = "https://nftstorage.link/ipfs";
+// TODO: Use this link?
+// const NFT_STORAGE_GATEWAY_URL: &str = "https://nftstorage.link/ipfs";
 // Request time window in (ms) to avoid the rate limit
 const REQUEST_WAIT: u64 = 10000;
 // File size limit is 10MB
@@ -137,7 +138,7 @@ impl Uploader for NftStorageSetup {
 
             upload_size += size;
             upload_count += 1;
-            current.push(&asset);
+            current.push(asset);
         }
         // adds the last chunk if there is one
         if !current.is_empty() {
