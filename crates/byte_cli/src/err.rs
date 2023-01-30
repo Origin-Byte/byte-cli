@@ -8,6 +8,8 @@ pub enum CliError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
+    #[error(transparent)]
     Hex(#[from] FromHexError),
     #[error(transparent)]
     VarError(#[from] std::env::VarError),

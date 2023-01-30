@@ -11,20 +11,20 @@ use gutenberg::{
         royalties::Royalties,
         tags::Tags,
     },
-    storage::{self, pinata, Storage},
+    storage::{self, aws, nft_storage, pinata, Storage},
     Schema,
 };
 
 use serde::Serialize;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const STORAGE_OPTIONS: [&str; 5] =
     ["AWS", "Pinata", "NftStorage", "Bundlr", "SHDW"];
 
-pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
-    // The schema should be fetched by the config file
-    let mut schema = Schema::default();
+pub fn init_upload_config(path: &str) -> Result<Schema, anyhow::Error> {
+    let mut schema = super::try_read_config(path)?;
+
     let theme = get_dialoguer_theme();
 
     let number_validator = |input: &String| -> Result<(), String> {
@@ -52,11 +52,17 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
 
             let region = Input::with_theme(&theme)
                 .with_prompt("Which AWS region? (leave blank to default to profile region)")
-                .default(String::from(""))
+                .default(String::from("default"))
                 .interact()
                 .unwrap();
 
-            if region == "default" {}
+            // TODO
+            // if region == "default" {}
+
+            let bucket = Input::with_theme(&theme)
+                .with_prompt("What is the name of the S3 bucket?")
+                .interact()
+                .unwrap();
 
             let directory = Input::with_theme(&theme)
                 .with_prompt("Do you want to upload the assets to a specific directory? If so, what's the directory name? (Leave blank to default to the bucket root)")
@@ -64,7 +70,12 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
                 .interact()
                 .unwrap();
 
-            Ok(())
+            let config =
+                aws::AWSConfig::new(bucket, directory, region, profile);
+
+            schema.storage = Storage::Aws(config);
+
+            Ok(schema)
         }
         "Pinata" => {
             let jwt = Password::with_theme(&theme)
@@ -98,13 +109,24 @@ pub fn init_upload_config() -> Result<Schema, anyhow::Error> {
             let config =
                 pinata::PinataConfig::new(jwt, upload_gateway, parallel_limit);
 
-            let storage_type = Storage::Pinata(config);
+            schema.storage = Storage::Pinata(config);
 
-            Ok(())
+            Ok(schema)
         }
-        "NftStorage" => Ok(()),
-        "Bundlr" => Ok(()),
-        "SHDW" => Ok(()),
+        "NftStorage" => {
+            let auth_token = Input::with_theme(&theme)
+                .with_prompt("What is the authentication token=")
+                .interact()
+                .unwrap();
+
+            let config = nft_storage::NftStorageConfig::new(auth_token);
+
+            schema.storage = Storage::NftStorage(config);
+
+            Ok(schema)
+        }
+        // "Bundlr" => Ok(()),
+        // "SHDW" => Ok(()),
         _ => Err(anyhow!(
             "Unsupported Storage Type. This error should not occur"
         )),

@@ -49,7 +49,9 @@ async fn run() -> Result<()> {
                     .as_path(),
             )?;
         }
-        Commands::InitUploadConfig { assets_dir: _ } => {}
+        Commands::InitUploadConfig { assets_dir } => {
+            let schema = &config_upload::init_upload_config(assets_dir.as_str())?;
+        }
         Commands::InitConfig { assets_dir: _ } => {}
         Commands::DeployAssets { assets_dir } => {
             deploy_assets::deploy_assets(assets_dir.as_str()).await?

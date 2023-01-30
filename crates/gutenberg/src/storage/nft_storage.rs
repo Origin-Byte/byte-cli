@@ -48,12 +48,11 @@ pub struct NftStorageConfig {
     pub auth_token: String,
 }
 
-// pub struct Setup {
-//     pub client: Client,
-//     pub endpoint: url::Url,
-//     pub content_gateway: String,
-//     pub parallel_limit: u16,
-// }
+impl NftStorageConfig {
+    pub fn new(auth_token: String) -> Self {
+        Self { auth_token }
+    }
+}
 
 pub struct NftStorageSetup {
     client: Arc<Client>,
