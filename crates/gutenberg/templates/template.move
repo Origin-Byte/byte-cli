@@ -1,26 +1,15 @@
 module {module_name}::{module_name} {{
-    use std::string::{{Self, String}};
-
-    use sui::url;
-    use sui::balance;
-    use sui::transfer;
-    use sui::tx_context::{{Self, TxContext}};
-
-    use nft_protocol::nft;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
-    use nft_protocol::creators;
-    use nft_protocol::royalties::{{Self, TradePayment}};
-    use nft_protocol::collection::{{Self, Collection, MintCap}};
+    {imports}
 
     /// One time witness is only instantiated in the init method
-    struct {witness} has drop {{}}
+    struct {witness} has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
-    struct Witness has drop {{}}
+    struct Witness has drop {}
+
+    {type_declarations}
 
     fun init(witness: {witness}, ctx: &mut TxContext) {{
         let (mint_cap, collection) = collection::create<{witness}>(
@@ -59,7 +48,7 @@ module {module_name}::{module_name} {{
 
         {royalty_strategy}
         {tags}
-{init_marketplace}{init_listings}{share_marketplace}
+        {init_listings}
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
     }}

@@ -1,15 +1,15 @@
 use super::{get_options, map_indices, number_validator, FromPrompt};
 use crate::prelude::get_dialoguer_theme;
 
-use dialoguer::{Confirm, Input, MultiSelect, Select};
-use gutenberg::{
-    models::nft::{Behaviours, Fields, MintStrategy, Nft, SupplyPolicy},
+use dialoguer::{Input, MultiSelect, Select};
+use gutenberg::models::nft::{
+    Behaviours, Fields, MintStrategy, Nft, SupplyPolicy,
 };
 
 const FIELD_OPTIONS: [&str; 3] = ["display", "url", "attributes"];
 const BEHAVIOUR_OPTIONS: [&str; 2] = ["composable", "loose"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-const MINTING_OPTIONS: [&str; 3] = ["Launchpad", "Direct", "Airdrop"];
+const MINTING_OPTIONS: [&str; 3] = ["launchpad", "direct", "airdrop"];
 
 impl FromPrompt for Nft {
     fn from_prompt() -> Result<Self, anyhow::Error>
@@ -26,7 +26,7 @@ impl FromPrompt for Nft {
             .interact()
             .unwrap();
 
-        let mut nft_fields = map_indices(nft_field_indices, &FIELD_OPTIONS);
+        let nft_fields = map_indices(nft_field_indices, &FIELD_OPTIONS);
 
         nft.fields = Fields::new(nft_fields).unwrap();
 

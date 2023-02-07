@@ -4,7 +4,7 @@ use crate::prelude::get_dialoguer_theme;
 use dialoguer::{Input, MultiSelect};
 use gutenberg::models::royalties::{Royalties, Share};
 
-const ROYALTY_OPTIONS: [&str; 2] = ["Proportional", "Constant"];
+const ROYALTY_OPTIONS: [&str; 2] = ["Proportional", "Constant", "None"];
 
 impl FromPrompt for Share {
     fn from_prompt() -> Result<Self, anyhow::Error>

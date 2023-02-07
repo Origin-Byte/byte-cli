@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Royalties {
-    pub shares: Vec<Share>,
-    pub proportional: Option<u64>,
-    pub constant: Option<u64>,
+    pub policy: Option<RoyaltyPolicy>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum RoyaltyPolicy {
+    Proportional { shares: Vec<Share>, bps: u64 },
+    Constant { shares: Vec<Share>, fee: u64 },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -13,13 +17,32 @@ pub struct Share {
     pub share: u64,
 }
 
+impl Default for Royalties {
+    fn default() -> Self {
+        Royalties { policy: None }
+    }
+}
+
 impl Royalties {
     pub fn has_royalties(&self) -> bool {
-        self.proportional.is_some() | self.constant.is_some()
+        self.policy.is_some()
     }
 
     pub fn write(&self) -> String {
-        let shares = &self.shares;
+        match self.policy {
+            Some(policy) => match policy {
+                RoyaltyPolicy::Proportional { shares, bps } => {
+                    let shares = &policy.shares;
+                    todo!()
+                }
+                RoyaltyPolicy::Constant { shares, fee } => {
+                    todo!()
+                }
+            },
+            None => {
+                todo!()
+            }
+        }
 
         let mut policy = "let royalty = ".to_string();
         match shares.len() {

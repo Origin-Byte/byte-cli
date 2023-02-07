@@ -8,6 +8,7 @@ use crate::err::GutenError;
 #[serde(rename_all = "camelCase")]
 pub struct Nft {
     pub fields: Fields,
+    pub types: Types,
     pub behaviours: Behaviours,
     pub supply_policy: SupplyPolicy,
     pub mint_strategy: MintStrategy,
@@ -23,6 +24,7 @@ impl Default for Nft {
     fn default() -> Self {
         Self {
             fields: Fields::default(),
+            types: Types::default(),
             behaviours: Behaviours::default(),
             supply_policy: SupplyPolicy::Undefined,
             mint_strategy: MintStrategy::default(),
@@ -33,12 +35,14 @@ impl Default for Nft {
 impl Nft {
     pub fn new(
         fields: Fields,
+        types: Types,
         behaviours: Behaviours,
         supply_policy: SupplyPolicy,
         mint_strategy: MintStrategy,
     ) -> Nft {
         Nft {
             fields,
+            types,
             behaviours,
             supply_policy,
             mint_strategy,
@@ -254,6 +258,27 @@ impl SupplyPolicy {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct Types(Vec<String>);
+
+impl Types {
+    pub fn write_types(&self) -> String {
+        let mut types = String::new();
+
+        self.0
+            .iter()
+            .map(|t| {
+                types.push_str(&format!(
+                    "struct {} has copy, drop, store {{}} \n",
+                    t
+                ));
+            })
+            .collect::<()>();
+
+        types
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct Behaviours {
     pub composable: bool,
@@ -384,6 +409,10 @@ impl Fields {
             map.push((field_name.to_string(), *value_));
         }
         map
+    }
+
+    pub fn has_display_domains(&self) -> bool {
+        self.display || self.url || self.attributes
     }
 }
 

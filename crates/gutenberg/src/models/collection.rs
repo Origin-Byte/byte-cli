@@ -17,7 +17,7 @@ pub struct Collection {
     pub symbol: String,
     /// A set of strings that categorize the domain in which the NFT operates
     pub tags: Tags,
-    /// Field for extra data
+    /// The URL of the collection website
     pub url: Option<String>,
 }
 

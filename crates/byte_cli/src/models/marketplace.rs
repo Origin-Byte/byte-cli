@@ -1,8 +1,10 @@
 use crate::prelude::get_dialoguer_theme;
 
 use super::{address_validator, number_validator, sender, FromPrompt};
+use colored::Colorize;
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::models::marketplace::{Listing, Listings, Market, Marketplace};
+use terminal_link::Link;
 
 const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
 
@@ -132,9 +134,11 @@ impl FromPrompt for Listings {
             .interact()
             .unwrap();
 
+        let link = format!("{}", Link::new("documentation", "https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing"));
+
         let number = Input::with_theme(&theme)
             .with_prompt(
-                "How many listings do you plan on having? Click [here](https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing) to learn more about listings.",
+                format!("How many listings do you plan on having? Check our {} to learn more about listings.", link.blue()),
             )
             .default("1".to_string())
             .validate_with(number_validator)
