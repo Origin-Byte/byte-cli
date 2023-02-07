@@ -1,17 +1,12 @@
-use std::path::PathBuf;
-
-use crate::io;
 use crate::models::FromPrompt;
 use crate::prelude::*;
 
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use gutenberg::{
     models::{
         collection::Collection,
         marketplace::{Listings, Marketplace},
         nft::Nft,
         royalties::Royalties,
-        tags::Tags,
     },
     Schema,
 };
@@ -19,8 +14,6 @@ use gutenberg::{
 pub fn init_collection_config(
     mut schema: Schema,
 ) -> Result<Schema, anyhow::Error> {
-    let theme = get_dialoguer_theme();
-
     let number_validator = |input: &String| -> Result<(), String> {
         if input.parse::<u64>().is_err() {
             Err(format!("Couldn't parse input of '{}' to a number.", input))
@@ -43,12 +36,14 @@ pub fn init_collection_config(
     let contains_launchpad = schema.nft.mint_strategy.launchpad;
 
     if contains_launchpad {
-        let marketplace = Marketplace::from_prompt()?;
+        // let marketplace = Marketplace::from_prompt()?;
         let mut listings = Listings::from_prompt()?;
-        for listing in listings.0.iter_mut() {
-            listing.admin = marketplace.admin.clone();
-            listing.receiver = marketplace.receiver.clone();
-        }
+
+        // TODOOOOO
+        // for listing in listings.0.iter_mut() {
+        //     listing.admin = marketplace.admin.clone();
+        //     listing.receiver = marketplace.receiver.clone();
+        // }
 
         schema.listings = Some(listings);
     }

@@ -69,7 +69,8 @@ impl FromPrompt for Collection {
             .interact()
             .unwrap();
 
-            let tags = Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
+            let tags =
+                Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
             collection.set_tags(tags);
         }
 
@@ -90,3 +91,45 @@ impl FromPrompt for Collection {
         Ok(collection)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use dialoguer::Select;
+
+    use super::*;
+
+    #[test]
+    fn prompt_name() {
+        let name = "Suimarines";
+
+        let result: String = Input::new()
+            .with_post_completion_text("Suimarines")
+            .interact()
+            .unwrap();
+
+        assert_eq!(result, name);
+    }
+
+    // #[test]
+    // fn prompt_desc() {
+    //     let selections = &[
+    //         "Ice Cream",
+    //         "Vanilla Cupcake",
+    //         "Chocolate Muffin",
+    //         "A Pile of sweet, sweet mustard",
+    //     ];
+
+    //     let yoh = Select::new().default(0).items(&selections[..]).items;
+
+    //     assert_eq!(yoh, selections);
+    // }
+}
+
+// fn test() -> Result<(), Box<dyn std::error::Error>> {
+// let input : String = Input::new()
+//     .with_prompt("Tea or coffee?")
+//     .with_initial_text("Yes")
+//     .default("No".into())
+//     .interact_text()?;
+// Ok(())
+// }
