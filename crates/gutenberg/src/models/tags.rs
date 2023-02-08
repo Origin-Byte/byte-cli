@@ -82,7 +82,7 @@ impl Tags {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write(&self) -> String {
+    pub fn write_domain(&self, is_collection: bool) -> String {
         let mut out = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.0.iter().map(Tag::to_string) {
@@ -91,9 +91,23 @@ impl Tags {
             ));
         }
 
-        out.push_str(
-            "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
-        );
+        if is_collection {
+            out.push_str(
+                "tags::add_collection_tag_domain(
+                    delegated_witness,
+                    &mut collection,
+                    tags,
+                );",
+            );
+        } else {
+            out.push_str(
+                "tags::add_tag_domain(
+                    delegated_witness,
+                    &mut nft,
+                    tags,
+                );",
+            );
+        }
 
         out
     }

@@ -29,45 +29,57 @@ impl Royalties {
     }
 
     pub fn write(&self) -> String {
-        match self.policy {
-            Some(policy) => match policy {
-                RoyaltyPolicy::Proportional { shares, bps } => {
-                    let shares = &policy.shares;
-                    todo!()
-                }
-                RoyaltyPolicy::Constant { shares, fee } => {
-                    todo!()
-                }
-            },
-            None => {
-                todo!()
-            }
-        }
+        let policy = self.policy.expect("No royalty policy setup found");
 
-        let mut policy = "let royalty = ".to_string();
-        match shares.len() {
-            0 => {
-                policy.push_str("royalty::new_empty(ctx);\n");
-            }
-            1 => {
-                let address = &shares[0].address;
-                policy.push_str(&format!(
-                    "royalty::from_address(@{address}, ctx);\n"
-                ));
-            }
-            _ => panic!("Arbitrary royalty share allocations not supported"),
+        let (royalty_shares, royalty_strategy) = match policy {
+            RoyaltyPolicy::Proportional { shares, bps } => (
+                &shares,
+                format!(
+                    "royalty::add_proportional_royalty(&mut royalty, {});",
+                    bps
+                ),
+            ),
+            RoyaltyPolicy::Constant { shares, fee } => (
+                &shares,
+                format!(
+                    "royalty::add_constant_royalty(&mut royalty, {});",
+                    fee
+                ),
+            ),
         };
 
-        if let Some(proportional) = self.proportional {
-            policy.push_str(&format!("        royalty::add_proportional_royalty(&mut royalty, {proportional});\n"));
-        }
+        let code = if royalty_shares.len() == 1 {
+            format!(
+                "let royalty = royalty::from_address({address}, ctx);\n",
+                address = royalty_shares[0].address,
+            )
+        } else {
+            let vecmap = String::from("let royalty = vec_map::empty();\n");
 
-        if let Some(constant) = self.constant {
-            policy.push_str(&format!("        royalty::add_constant_royalty(&mut royalty, {constant});\n"));
-        }
+            royalty_shares
+                .iter()
+                .map(|share| {
+                    vecmap.push_str(
+                        format!(
+                        "vec_map::insert(&mut royalty, {address}, {share});\n",
+                        address = share.address,
+                        share = share.share
+                    )
+                        .as_str(),
+                    );
+                })
+                .collect::<()>();
 
-        policy.push_str("        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);\n");
+            vecmap.push_str("\n");
 
-        policy
+            vecmap
+        };
+
+        let add_domain = "royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
+
+        code.push_str(royalty_strategy.as_str());
+        code.push_str(add_domain);
+
+        code
     }
 }

@@ -4,10 +4,11 @@
 //! by the caller.
 use crate::contract::modules::{Imports, Modules};
 use crate::err::GutenError;
+use crate::models::settings::Settings;
 use crate::models::{
-    collection::Collection,
+    collection::CollectionData,
     marketplace::{Listing, Listings, Marketplace},
-    nft::Nft,
+    nft::NftData,
     royalties::Royalties,
 };
 use crate::storage::*;
@@ -22,9 +23,9 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
-    pub collection: Collection,
-    pub nft: Nft,
-    pub royalties: Royalties,
+    pub collection: CollectionData,
+    pub nft: NftData,
+    pub settings: Settings,
     /// Creates a new marketplace with the collection
     // pub marketplace: Option<Marketplace>,
     pub listings: Option<Listings>,
@@ -55,7 +56,42 @@ impl Schema {
         self.collection.name.to_lowercase().replace(' ', "_")
     }
 
-    pub fn write_init_fn(&self) {}
+    pub fn witness_name(&self) -> String {
+        self.collection.name.to_uppercase().replace(' ', "")
+    }
+
+    pub fn write_init_fn(&self) {
+        let signature = format!(
+            "fun init(witness: {}, ctx: &mut TxContext)",
+            self.witness_name()
+        );
+
+        let domains = self.collection.write_domains();
+
+        // let feature_domains = self.
+
+        // let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        // royalty::add_proportional_royalty(&mut royalty, 100);
+        // royalty::add_royalty_domain(
+        //     delegated_witness,
+        //     &mut collection,
+        //     royalty,
+        // );
+
+        // let tags = tags::empty(ctx);
+        // tags::add_tag(&mut tags, tags::art());
+        // tags::add_collection_tag_domain(
+        //     delegated_witness,
+        //     &mut collection,
+        //     tags,
+        // );
+
+        // templates::init_templates<FOOTBYTES>(
+        //     delegated_witness,
+        //     &mut collection,
+        //     ctx,
+        // );
+    }
 
     pub fn write_entry_funs() {}
 
@@ -68,11 +104,11 @@ impl Schema {
         mut output: W,
     ) -> Result<(), GutenError> {
         let module_name = self.module_name();
-        let witness = self.collection.name.to_uppercase().replace(' ', "");
+        let witness = self.witness_name();
 
         let imports = Imports::from_schema(self).write_imports();
 
-        let type_declarations = self.nft.types.write_types();
+        let type_declarations = self.settings.write_type_declarations();
 
         let init_function = self.write_init_fn();
 
@@ -101,7 +137,7 @@ impl Schema {
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
-        let tags = self.collection.tags.write();
+        let tags = self.collection.tags.write_domain(true);
         let royalty_strategy = self.royalties.write();
         let mint_functions = self.nft.write_mint_fns(&witness);
         let url = self.collection.url.as_deref().unwrap_or_default();
@@ -110,6 +146,7 @@ impl Schema {
         vars.insert("imports", &imports);
         vars.insert("witness", &witness);
         vars.insert("init_function", &init_function);
+
         vars.insert("name", &self.collection.name);
         vars.insert("description", &self.collection.description);
         vars.insert("symbol", &self.collection.symbol);

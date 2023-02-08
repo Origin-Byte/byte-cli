@@ -2,12 +2,12 @@ module {module_name}::{module_name} {{
     {imports}
 
     /// One time witness is only instantiated in the init method
-    struct {witness} has drop {}
+    struct {witness} has drop {{}}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
-    struct Witness has drop {}
+    struct Witness has drop {{}}
 
     {type_declarations}
 
