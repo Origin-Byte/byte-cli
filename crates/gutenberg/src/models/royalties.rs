@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Royalties {
-    pub policy: Option<RoyaltyPolicy>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub enum RoyaltyPolicy {
     Proportional { shares: Vec<Share>, bps: u64 },
     Constant { shares: Vec<Share>, fee: u64 },
@@ -17,21 +12,9 @@ pub struct Share {
     pub share: u64,
 }
 
-impl Default for Royalties {
-    fn default() -> Self {
-        Royalties { policy: None }
-    }
-}
-
-impl Royalties {
-    pub fn has_royalties(&self) -> bool {
-        self.policy.is_some()
-    }
-
+impl RoyaltyPolicy {
     pub fn write(&self) -> String {
-        let policy = self.policy.expect("No royalty policy setup found");
-
-        let (royalty_shares, royalty_strategy) = match policy {
+        let (royalty_shares, royalty_strategy) = match self {
             RoyaltyPolicy::Proportional { shares, bps } => (
                 &shares,
                 format!(

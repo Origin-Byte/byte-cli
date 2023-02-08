@@ -83,33 +83,33 @@ impl Tags {
 
     /// Generates Move code to push tags to a Move `vector` structure
     pub fn write_domain(&self, is_collection: bool) -> String {
-        let mut out = String::from("let tags = tags::empty(ctx);\n");
+        let mut code = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.0.iter().map(Tag::to_string) {
-            out.push_str(&format!(
+            code.push_str(&format!(
                 "        tags::add_tag(&mut tags, tags::{tag}());\n",
             ));
         }
 
         if is_collection {
-            out.push_str(
+            code.push_str(
                 "tags::add_collection_tag_domain(
                     delegated_witness,
                     &mut collection,
                     tags,
-                );",
+                );\n",
             );
         } else {
-            out.push_str(
+            code.push_str(
                 "tags::add_tag_domain(
                     delegated_witness,
                     &mut nft,
                     tags,
-                );",
+                );\n",
             );
         }
 
-        out
+        code
     }
 
     pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {

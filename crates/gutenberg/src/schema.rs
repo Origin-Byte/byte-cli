@@ -9,7 +9,7 @@ use crate::models::{
     collection::CollectionData,
     marketplace::{Listing, Listings, Marketplace},
     nft::NftData,
-    royalties::Royalties,
+    royalties::RoyaltyPolicy,
 };
 use crate::storage::*;
 
@@ -60,7 +60,7 @@ impl Schema {
         self.collection.name.to_uppercase().replace(' ', "")
     }
 
-    pub fn write_init_fn(&self) {
+    pub fn write_init_fn(&self) -> String {
         let signature = format!(
             "fun init(witness: {}, ctx: &mut TxContext)",
             self.witness_name()
@@ -68,29 +68,24 @@ impl Schema {
 
         let domains = self.collection.write_domains();
 
-        // let feature_domains = self.
+        let feature_domains =
+            self.settings.write_feature_domains(&self.collection);
 
-        // let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
-        // royalty::add_proportional_royalty(&mut royalty, 100);
-        // royalty::add_royalty_domain(
-        //     delegated_witness,
-        //     &mut collection,
-        //     royalty,
-        // );
+        let transfer_fns = self.settings.write_transfer_fns();
 
-        // let tags = tags::empty(ctx);
-        // tags::add_tag(&mut tags, tags::art());
-        // tags::add_collection_tag_domain(
-        //     delegated_witness,
-        //     &mut collection,
-        //     tags,
-        // );
+        // TODO: Missing listings..
 
-        // templates::init_templates<FOOTBYTES>(
-        //     delegated_witness,
-        //     &mut collection,
-        //     ctx,
-        // );
+        format!(
+            "{signature} {{
+                {domains}
+                {feature_domains}
+                {transfer_fns}
+            }}",
+            signature = signature,
+            domains = domains,
+            feature_domains = feature_domains,
+            transfer_fns = transfer_fns,
+        )
     }
 
     pub fn write_entry_funs() {}
@@ -137,10 +132,7 @@ impl Schema {
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
-        let tags = self.collection.tags.write_domain(true);
-        let royalty_strategy = self.royalties.write();
         let mint_functions = self.nft.write_mint_fns(&witness);
-        let url = self.collection.url.as_deref().unwrap_or_default();
 
         vars.insert("module_name", &module_name);
         vars.insert("imports", &imports);
@@ -152,8 +144,6 @@ impl Schema {
         vars.insert("symbol", &self.collection.symbol);
         vars.insert("royalty_strategy", &royalty_strategy);
         vars.insert("mint_functions", &mint_functions);
-        vars.insert("tags", &tags);
-        vars.insert("url", url);
 
         // Marketplace and Listing objects
         // vars.insert("init_marketplace", &init_marketplace);

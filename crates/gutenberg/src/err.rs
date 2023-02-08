@@ -14,4 +14,11 @@ pub enum GutenError {
     UnsupportedSupply,
     #[error("The Royalty Policy provided is not a supported")]
     UnsupportedRoyalty,
+    #[error("This error should not occur and likely results from a bug")]
+    UnreachableError,
+}
+
+pub fn contextualize(msg: String) -> GutenError {
+    print!("{}", msg);
+    GutenError::UnreachableError
 }

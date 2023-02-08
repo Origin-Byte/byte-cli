@@ -1,16 +1,21 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use crate::{err::GutenError, models::tags::Tags};
+use crate::{
+    err::{self, GutenError},
+    models::tags::Tags,
+};
 
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
-use super::{nft::NftData, royalties::Royalties};
+use super::{
+    collection::CollectionData, nft::NftData, royalties::RoyaltyPolicy,
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
-    pub tags: Option<Tags>,   // Done
-    pub royalties: Royalties, // Done
+    pub tags: Option<Tags>,               // Done
+    pub royalties: Option<RoyaltyPolicy>, // Done
     pub mint_strategy: MintStrategy,
     pub composability: Option<Composability>,
     pub loose: bool,
@@ -33,7 +38,7 @@ pub struct Settings {
 impl Settings {
     pub fn new(
         tags: Option<Tags>,
-        royalties: Royalties,
+        royalties: Option<RoyaltyPolicy>,
         mint_strategy: MintStrategy,
         composability: Option<Composability>,
         loose: bool,
@@ -53,8 +58,58 @@ impl Settings {
         self.tags = Option::Some(tags);
     }
 
-    pub fn set_royalties(&mut self, royalties: Royalties) {
-        self.royalties = royalties;
+    pub fn set_royalties(&mut self, royalties: RoyaltyPolicy) {
+        self.royalties = Option::Some(royalties);
+    }
+
+    pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
+        let mut code = String::new();
+
+        if self.tags.is_some() {
+            code.push_str(self.write_tags().as_str());
+        }
+
+        if self.royalties.is_some() {
+            code.push_str(self.write_royalties().as_str());
+        }
+
+        if self.composability.is_some() {
+            code.push_str(self.write_composability().as_str());
+        }
+
+        if self.loose {
+            code.push_str(self.write_loose(collection).as_str());
+        }
+
+        match self.supply_policy {
+            SupplyPolicy::Limited { max, frozen } => code.push_str(
+                self.supply_policy
+                    .write_domain()
+                    // It's safe to unwrap we are checking
+                    // that the policy is Limited
+                    .unwrap()
+                    .as_str(),
+            ),
+            _ => {}
+        }
+
+        code
+    }
+
+    pub fn write_transfer_fns(&self) -> String {
+        let code = String::from(
+            "
+            transfer::transfer(mint_cap, tx_context::sender(ctx));
+            transfer::share_object(collection);\n",
+        );
+
+        if self.loose {
+            code.push_str(
+                "transfer::transfer(templates, tx_context::sender(ctx));",
+            )
+        }
+
+        code
     }
 
     pub fn write_tags(&self) -> String {
@@ -64,7 +119,24 @@ impl Settings {
     }
 
     pub fn write_royalties(&self) -> String {
-        self.royalties.write()
+        self.royalties
+            .expect("No collection royalties setup found")
+            .write()
+    }
+
+    pub fn write_composability(&self) -> String {
+        self.composability
+            .expect("No collection composability setup found")
+            .write_domain()
+    }
+
+    pub fn write_loose(&self, collection: &CollectionData) -> String {
+        format!(
+            "let templates = templates::new_templates<{name}>(
+                ctx,
+            );\n",
+            name = collection.name
+        )
     }
 
     pub fn write_type_declarations(&self) -> String {
@@ -78,11 +150,12 @@ impl Settings {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Composability {
     types: Vec<String>,
-    blueprint: Vec<(String, Link)>,
+    blueprint: HashMap<String, Child>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct Link {
+pub struct Child {
+    pub child_type: String,
     pub order: u64,
     pub limit: u64,
 }
@@ -103,6 +176,35 @@ impl Composability {
 
         types
     }
+
+    pub fn write_domain(&self) -> String {
+        let code = String::from("let blueprint = c_nft::new_blueprint(ctx);\n");
+
+        self.blueprint
+            .iter()
+            .map(|(parent_type, child)| {
+                code.push_str(
+                    format!(
+                        "c_nft::add_relationship<{parent_type}, {child_type}>(
+                    &mut blueprint,
+                    {limit}, // limit
+                    {order}, // order
+                    ctx
+                );\n",
+                        parent_type = parent_type,
+                        child_type = child.child_type,
+                        limit = child.limit,
+                        order = child.order,
+                    )
+                    .as_str(),
+                );
+            })
+            .collect::<()>();
+
+        code.push_str("c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);\n");
+
+        code
+    }
 }
 
 pub enum MintType {
@@ -115,7 +217,7 @@ pub enum MintType {
 #[serde(rename_all = "camelCase")]
 pub enum SupplyPolicy {
     Unlimited,
-    Limited { max: u64 },
+    Limited { max: u64, frozen: bool },
     Undefined,
 }
 
@@ -128,74 +230,97 @@ impl Default for SupplyPolicy {
 impl SupplyPolicy {
     pub fn new(
         input: &str,
-        supply: Option<u64>,
+        max: Option<u64>,
+        frozen: Option<bool>,
     ) -> Result<SupplyPolicy, GutenError> {
         match input {
             "Unlimited" => Ok(SupplyPolicy::Unlimited),
             "Limited" => {
-                let supply = supply.unwrap();
-                Ok(SupplyPolicy::Limited { max: supply })
+                let max = max.unwrap();
+                let frozen = frozen.unwrap();
+                Ok(SupplyPolicy::Limited { max, frozen })
             }
             _ => Err(GutenError::UnsupportedSupply),
         }
     }
-}
 
-#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
-pub struct Behaviours {
-    pub composable: bool,
-    pub loose: bool,
-}
-
-impl Behaviours {
-    pub fn new(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
-        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
-
-        let behaviours = Behaviours::fields();
-
-        let field_struct = behaviours
-            .iter()
-            .map(|f| {
-                let v = fields_to_add.contains(f);
-                (f.clone(), v)
-            })
-            .collect::<Vec<(String, bool)>>();
-
-        Behaviours::from_map(&field_struct)
-    }
-
-    fn from_map(map: &Vec<(String, bool)>) -> Result<Behaviours, GutenError> {
-        let mut field_struct = Behaviours::default();
-
-        for (f, v) in map {
-            match f.as_str() {
-                "composable" => {
-                    field_struct.composable = *v;
-                    Ok(())
-                }
-                "loose" => {
-                    field_struct.loose = *v;
-                    Ok(())
-                }
-                _ => Err(GutenError::UnsupportedNftBehaviour),
-            }?;
+    pub fn write_domain(&self) -> Result<String, GutenError> {
+        match self {
+            SupplyPolicy::Limited { max, frozen } => {
+                Ok(format!(
+                    "supply_domain::regulate(
+                        delegated_witness,
+                        &mut collection
+                        {max},
+                        {frozen},
+                        ctx,
+                    );\n",
+                    max = max,
+                    frozen = frozen,
+                ))
+            },
+            _ => Err(err::contextualize(
+                "Error: Trying to write Supply domain when supply policy is not limited".to_string())
+            ),
         }
-
-        Ok(field_struct)
-    }
-
-    pub fn fields() -> Vec<String> {
-        let field_struct = Behaviours::default();
-        let mut fields: Vec<String> = Vec::new();
-
-        for (i, _) in field_struct.iter_fields().enumerate() {
-            let field_name = field_struct.name_at(i).unwrap();
-
-            fields.push(field_name.to_string());
-        }
-        fields
     }
 }
+
+// #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
+// pub struct Behaviours {
+//     pub composable: bool,
+//     pub loose: bool,
+// }
+
+// impl Behaviours {
+//     pub fn new(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
+//         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
+
+//         let behaviours = Behaviours::fields();
+
+//         let field_struct = behaviours
+//             .iter()
+//             .map(|f| {
+//                 let v = fields_to_add.contains(f);
+//                 (f.clone(), v)
+//             })
+//             .collect::<Vec<(String, bool)>>();
+
+//         Behaviours::from_map(&field_struct)
+//     }
+
+//     fn from_map(map: &Vec<(String, bool)>) -> Result<Behaviours, GutenError> {
+//         let mut field_struct = Behaviours::default();
+
+//         for (f, v) in map {
+//             match f.as_str() {
+//                 "composable" => {
+//                     field_struct.composable = *v;
+//                     Ok(())
+//                 }
+//                 "loose" => {
+//                     field_struct.loose = *v;
+//                     Ok(())
+//                 }
+//                 _ => Err(GutenError::UnsupportedNftBehaviour),
+//             }?;
+//         }
+
+//         Ok(field_struct)
+//     }
+
+//     pub fn fields() -> Vec<String> {
+//         let field_struct = Behaviours::default();
+//         let mut fields: Vec<String> = Vec::new();
+
+//         for (i, _) in field_struct.iter_fields().enumerate() {
+//             let field_name = field_struct.name_at(i).unwrap();
+
+//             fields.push(field_name.to_string());
+//         }
+//         fields
+//     }
+// }
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct MintStrategy {
