@@ -57,14 +57,14 @@ impl CollectionData {
     }
 
     pub fn write_domains(&self) -> String {
-        let code = String::new();
+        let mut code = String::new();
 
         code.push_str(self.write_creators().as_str());
 
         code.push_str(self.write_display().as_str());
         code.push_str(self.write_symbol().as_str());
 
-        if self.url.is_some() {
+        if let Some(_url) = &self.url {
             code.push_str(self.write_url().as_str());
         }
 
@@ -94,7 +94,7 @@ impl CollectionData {
                 sui::url::new_unsafe_from_bytes(b\"{url}\"),
                 ctx,
             );\n",
-            url = self.url.expect("No collection url setup found"),
+            url = self.url.as_ref().expect("No collection url setup found"),
         )
     }
 
@@ -112,7 +112,7 @@ impl CollectionData {
     }
 
     pub fn write_creators(&self) -> String {
-        let code = String::new();
+        let mut code = String::new();
 
         let creators_domain = if self.creators.len() == 1 {
             format!(
@@ -134,7 +134,7 @@ impl CollectionData {
                             .as_str(),
                     );
                 })
-                .collect::<()>();
+                .for_each(drop);
 
             format!(
                 "

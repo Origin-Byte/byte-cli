@@ -46,25 +46,24 @@ impl Modules {
     pub fn from_schema(schema: &Schema) -> Self {
         Modules {
             string: true,
-            url: schema.collection.url.is_some()
-                || schema.nft.fields.url == true,
-            balance: schema.royalties.policy.is_some(),
+            url: schema.collection.url.is_some() || schema.nft.url == true,
+            balance: schema.settings.royalties.is_some(),
             transfer: true,
             tx_context: true,
             nft: true,
             witness: true,
             mint_cap: true,
             collection: true,
-            tags: schema.collection.tags.has_tags(),
-            royalty: schema.royalties.policy.is_some(),
-            display: schema.nft.fields.has_display_domains(),
+            tags: schema.settings.tags.is_some(),
+            royalty: schema.settings.royalties.is_some(),
+            display: schema.nft.has_display_domains(),
             creators: true,
-            warehouse: schema.nft.mint_strategy.launchpad
-                && !schema.nft.behaviours.loose,
-            template: schema.nft.behaviours.loose,
-            templates: schema.nft.behaviours.loose,
-            composable_nft: schema.nft.behaviours.composable,
-            royalties: schema.royalties.policy.is_some(),
+            warehouse: schema.settings.mint_policies.launchpad
+                && !schema.settings.loose,
+            template: schema.settings.loose,
+            templates: schema.settings.loose,
+            composable_nft: schema.settings.composability.is_some(),
+            royalties: schema.settings.royalties.is_some(),
         }
     }
 }

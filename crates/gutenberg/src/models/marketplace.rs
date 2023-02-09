@@ -64,7 +64,7 @@ impl Listing {
         }
     }
 
-    pub fn init(&self) -> String {
+    pub fn write_init(&self) -> String {
         let mut string = String::new();
 
         string.push_str(&format!(

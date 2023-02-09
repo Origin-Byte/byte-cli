@@ -75,7 +75,7 @@ impl Module for TxContext {
 }
 
 impl TxContext {
-    pub fn sender(obj: &str) -> String {
+    pub fn sender(_obj: &str) -> String {
         "tx_context::sender(ctx)".to_string()
     }
 }

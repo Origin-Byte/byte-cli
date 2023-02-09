@@ -3,7 +3,10 @@ use crate::prelude::get_dialoguer_theme;
 use super::{address_validator, number_validator, sender, FromPrompt};
 use colored::Colorize;
 use dialoguer::{Confirm, Input, Select};
-use gutenberg::models::marketplace::{Listing, Listings, Market, Marketplace};
+use gutenberg::{
+    models::marketplace::{Listing, Listings, Market},
+    Schema,
+};
 use terminal_link::Link;
 
 const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
@@ -34,7 +37,7 @@ const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
 // }
 
 impl FromPrompt for Market {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+    fn from_prompt(scheme: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -81,12 +84,12 @@ impl FromPrompt for Market {
             _ => unreachable!(),
         };
 
-        Ok(market)
+        Ok(Some(market))
     }
 }
 
 impl FromPrompt for Listing {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -96,7 +99,7 @@ impl FromPrompt for Listing {
             .with_prompt(
                 // TODO: The meaning of this questions may be ambiguous
                 // from the perspective of the creator
-                "How many different markets do you plan on having?",
+                "How many sale venues do you want to create? (Note: One listing can have multiple venues with different configurations)",
             )
             .validate_with(number_validator)
             .interact()?
@@ -105,15 +108,15 @@ impl FromPrompt for Listing {
         let mut markets = vec![];
 
         for _ in 0..number {
-            markets.push(Market::from_prompt()?);
+            markets.push(Market::from_prompt(schema)?.unwrap());
         }
 
-        Ok(Listing::new(markets))
+        Ok(Some(Listing::new(markets)))
     }
 }
 
 impl FromPrompt for Listings {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -146,7 +149,7 @@ impl FromPrompt for Listings {
             .parse::<u64>()?;
 
         for _ in 0..number {
-            listings.0.push(Listing::from_prompt()?);
+            listings.0.push(Listing::from_prompt(schema)?.unwrap());
         }
 
         for listing in listings.0.iter_mut() {
@@ -154,6 +157,6 @@ impl FromPrompt for Listings {
             listing.receiver = receiver.clone();
         }
 
-        Ok(listings)
+        Ok(Some(listings))
     }
 }

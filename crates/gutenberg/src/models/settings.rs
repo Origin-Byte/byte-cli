@@ -9,48 +9,41 @@ use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    collection::CollectionData, nft::NftData, royalties::RoyaltyPolicy,
+    collection::CollectionData,
+    marketplace::{Listing, Listings},
+    nft::NftData,
+    royalties::RoyaltyPolicy,
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
-    pub mint_strategy: MintStrategy,
+    pub mint_policies: MintPolicies,
     pub composability: Option<Composability>,
     pub loose: bool,
     pub supply_policy: SupplyPolicy,
+    pub listings: Option<Listings>,
 }
-
-// impl Default for Settings {
-//     fn default() -> Self {
-//         Settings {
-//             tags: None,
-//             royalties: Royalties::default(),
-//             mint_strategy: MintStrategy::default(),
-//             composability: None,
-//             loose: false,
-//             supply_policy: SupplyPolicy::default(),
-//         }
-//     }
-// }
 
 impl Settings {
     pub fn new(
         tags: Option<Tags>,
         royalties: Option<RoyaltyPolicy>,
-        mint_strategy: MintStrategy,
+        mint_policies: MintPolicies,
         composability: Option<Composability>,
         loose: bool,
         supply_policy: SupplyPolicy,
+        listings: Option<Listings>,
     ) -> Settings {
         Settings {
             tags,
             royalties,
-            mint_strategy,
+            mint_policies,
             composability,
             loose,
             supply_policy,
+            listings,
         }
     }
 
@@ -62,18 +55,45 @@ impl Settings {
         self.royalties = Option::Some(royalties);
     }
 
+    pub fn set_mint_policies(&mut self, policies: MintPolicies) {
+        self.mint_policies = policies;
+    }
+
+    pub fn set_composability(&mut self, composability: Composability) {
+        self.composability = Option::Some(composability);
+    }
+
+    pub fn set_loose(&mut self, is_loose: bool) {
+        self.loose = is_loose;
+    }
+
+    pub fn set_supply_policy(&mut self, supply: SupplyPolicy) {
+        self.supply_policy = supply;
+    }
+
+    pub fn set_listings(&mut self, listings: Listings) {
+        self.listings = Some(listings);
+    }
+
+    pub fn add_listing(&mut self, listing: Listing) {
+        self.listings
+            .get_or_insert_with(Default::default)
+            .0
+            .push(listing);
+    }
+
     pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
         let mut code = String::new();
 
-        if self.tags.is_some() {
+        if let Some(_tags) = &self.tags {
             code.push_str(self.write_tags().as_str());
         }
 
-        if self.royalties.is_some() {
+        if let Some(_royalties) = &self.royalties {
             code.push_str(self.write_royalties().as_str());
         }
 
-        if self.composability.is_some() {
+        if let Some(_composability) = &self.composability {
             code.push_str(self.write_composability().as_str());
         }
 
@@ -82,7 +102,7 @@ impl Settings {
         }
 
         match self.supply_policy {
-            SupplyPolicy::Limited { max, frozen } => code.push_str(
+            SupplyPolicy::Limited { max: _, frozen: _ } => code.push_str(
                 self.supply_policy
                     .write_domain()
                     // It's safe to unwrap we are checking
@@ -96,8 +116,19 @@ impl Settings {
         code
     }
 
+    pub fn write_init_listings(&self) -> String {
+        let code = self
+            .listings
+            .iter()
+            .flat_map(|listings| listings.0.iter())
+            .map(Listing::write_init)
+            .collect::<Vec<_>>();
+
+        code.join("\n")
+    }
+
     pub fn write_transfer_fns(&self) -> String {
-        let code = String::from(
+        let mut code = String::from(
             "
             transfer::transfer(mint_cap, tx_context::sender(ctx));
             transfer::share_object(collection);\n",
@@ -114,18 +145,21 @@ impl Settings {
 
     pub fn write_tags(&self) -> String {
         self.tags
+            .as_ref()
             .expect("No collection tags setup found")
             .write_domain(true)
     }
 
     pub fn write_royalties(&self) -> String {
         self.royalties
+            .as_ref()
             .expect("No collection royalties setup found")
-            .write()
+            .write_domain()
     }
 
     pub fn write_composability(&self) -> String {
         self.composability
+            .as_ref()
             .expect("No collection composability setup found")
             .write_domain()
     }
@@ -140,7 +174,7 @@ impl Settings {
     }
 
     pub fn write_type_declarations(&self) -> String {
-        match self.composability {
+        match &self.composability {
             Some(composability) => composability.write_types(),
             None => "".to_string(),
         }
@@ -160,7 +194,36 @@ pub struct Child {
     pub limit: u64,
 }
 
+impl Child {
+    pub fn new(child_type: String, order: u64, limit: u64) -> Self {
+        Child {
+            child_type,
+            order,
+            limit,
+        }
+    }
+}
+
 impl Composability {
+    pub fn new_from_tradeable_traits(
+        types: Vec<String>,
+        core_trait: String,
+    ) -> Self {
+        let mut traits_ = types.clone();
+        traits_.retain(|trait_| trait_ != &core_trait);
+
+        let mut blueprint = HashMap::new();
+        let mut i = 1;
+        for trait_ in traits_.iter() {
+            blueprint
+                .insert(core_trait.clone(), Child::new(trait_.clone(), i, 1));
+
+            i += 1;
+        }
+
+        Composability { types, blueprint }
+    }
+
     pub fn write_types(&self) -> String {
         let mut types = String::new();
 
@@ -172,13 +235,14 @@ impl Composability {
                     t
                 ));
             })
-            .collect::<()>();
+            .for_each(drop);
 
         types
     }
 
     pub fn write_domain(&self) -> String {
-        let code = String::from("let blueprint = c_nft::new_blueprint(ctx);\n");
+        let mut code =
+            String::from("let blueprint = c_nft::new_blueprint(ctx);\n");
 
         self.blueprint
             .iter()
@@ -199,7 +263,7 @@ impl Composability {
                     .as_str(),
                 );
             })
-            .collect::<()>();
+            .for_each(drop);
 
         code.push_str("c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);\n");
 
@@ -323,17 +387,17 @@ impl SupplyPolicy {
 // }
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
-pub struct MintStrategy {
+pub struct MintPolicies {
     pub launchpad: bool,
     pub airdrop: bool,
     pub direct: bool,
 }
 
-impl MintStrategy {
-    pub fn new(fields_vec: Vec<String>) -> Result<MintStrategy, GutenError> {
+impl MintPolicies {
+    pub fn new(fields_vec: Vec<String>) -> Result<MintPolicies, GutenError> {
         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
 
-        let fields = MintStrategy::fields();
+        let fields = MintPolicies::fields();
 
         let field_struct = fields
             .iter()
@@ -343,11 +407,11 @@ impl MintStrategy {
             })
             .collect::<Vec<(String, bool)>>();
 
-        MintStrategy::from_map(&field_struct)
+        MintPolicies::from_map(&field_struct)
     }
 
-    fn from_map(map: &Vec<(String, bool)>) -> Result<MintStrategy, GutenError> {
-        let mut field_struct = MintStrategy::default();
+    fn from_map(map: &Vec<(String, bool)>) -> Result<MintPolicies, GutenError> {
+        let mut field_struct = MintPolicies::default();
 
         for (f, v) in map {
             match f.as_str() {
@@ -371,7 +435,7 @@ impl MintStrategy {
     }
 
     pub fn fields() -> Vec<String> {
-        let field_struct = MintStrategy::default();
+        let field_struct = MintPolicies::default();
         let mut fields: Vec<String> = Vec::new();
 
         for (i, _) in field_struct.iter_fields().enumerate() {
@@ -449,14 +513,14 @@ impl MintStrategy {
     pub fn write_mint_fn(
         &self,
         witness: &str,
-        mint_strategy: MintType,
+        mint_policy: MintType,
         nft_data: &NftData,
     ) -> String {
         let fun_name: String;
         let to_whom: String;
         let transfer: String;
 
-        match mint_strategy {
+        match mint_policy {
             MintType::Direct => {
                 fun_name = "direct_mint".to_string();
                 to_whom = "        receiver: address,".to_string();

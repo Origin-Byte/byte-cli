@@ -1,40 +1,17 @@
 use super::{address_validator, number_validator, sender, FromPrompt};
 use crate::prelude::get_dialoguer_theme;
 
-use dialoguer::{Confirm, Input, MultiSelect};
-use gutenberg::{
-    models::{
-        collection::Collection,
-        marketplace::{Listings, Marketplace},
-        nft,
-        royalties::Royalties,
-        tags::Tags,
-    },
-    Schema,
-};
+use dialoguer::{Confirm, Input};
+use gutenberg::{models::collection::CollectionData, Schema};
 
-const TAG_OPTIONS: [&str; 11] = [
-    "Art",
-    "ProfilePicture",
-    "Collectible",
-    "GameAsset",
-    "TokenisedAsset",
-    "Ticker",
-    "DomainName",
-    "Music",
-    "Video",
-    "Ticket",
-    "License",
-];
-
-impl FromPrompt for Collection {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+impl FromPrompt for CollectionData {
+    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
         let theme = get_dialoguer_theme();
 
-        let mut collection = Collection::default();
+        let mut collection = CollectionData::default();
 
         let name = Input::with_theme(&theme)
             .with_prompt("What is the name of the Collection?")
@@ -57,23 +34,6 @@ impl FromPrompt for Collection {
 
         collection.set_symbol(symbol);
 
-        let has_tags = Confirm::with_theme(&theme)
-            .with_prompt("Do you want to add Tags to your Collection?")
-            .interact()
-            .unwrap();
-
-        if has_tags {
-            let tag_indices = MultiSelect::with_theme(&theme)
-            .with_prompt("Which tags do you want to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
-            .items(&TAG_OPTIONS)
-            .interact()
-            .unwrap();
-
-            let tags =
-                Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
-            collection.set_tags(tags);
-        }
-
         let has_url = Confirm::with_theme(&theme)
             .with_prompt("Do you want to add a URL to your Collection Website?")
             .interact()
@@ -88,7 +48,33 @@ impl FromPrompt for Collection {
             collection.set_url(url);
         };
 
-        Ok(collection)
+        let creators_num = Input::with_theme(&theme)
+            .with_prompt("How many creator addresses are there?")
+            .validate_with(number_validator)
+            .interact()
+            .unwrap()
+            .parse::<u64>()
+            .unwrap();
+
+        let mut creators = Vec::new();
+
+        for i in 0..creators_num {
+            let address = Input::with_theme(&theme)
+                .with_prompt(format!(
+                    "Please input address of the {} beneficiary?",
+                    i + 1
+                ))
+                .default(sender().to_string())
+                .validate_with(address_validator)
+                .interact()
+                .unwrap();
+
+            creators.push(address);
+        }
+
+        collection.set_creators(creators);
+
+        Ok(Some(collection))
     }
 }
 

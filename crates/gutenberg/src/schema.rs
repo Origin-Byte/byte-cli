@@ -2,15 +2,10 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::contract::modules::{Imports, Modules};
+use crate::contract::modules::Imports;
 use crate::err::GutenError;
 use crate::models::settings::Settings;
-use crate::models::{
-    collection::CollectionData,
-    marketplace::{Listing, Listings, Marketplace},
-    nft::NftData,
-    royalties::RoyaltyPolicy,
-};
+use crate::models::{collection::CollectionData, nft::NftData};
 use crate::storage::*;
 
 use serde::{Deserialize, Serialize};
@@ -28,28 +23,25 @@ pub struct Schema {
     pub settings: Settings,
     /// Creates a new marketplace with the collection
     // pub marketplace: Option<Marketplace>,
-    pub listings: Option<Listings>,
     pub contract: Option<String>,
     pub storage: Storage,
 }
 
 impl Schema {
-    // pub fn new() -> Schema {
-    //     Schema {
-    //         collection: Collection::default(),
-    //         nft: Nft::default(),
-    //         royalties: Royalties::default(),
-    //         marketplace: Option::None,
-    //         listings: Option::None,
-    //         contract: Option::None,
-    //     }
-    // }
-
-    pub fn add_listing(&mut self, listing: Listing) {
-        self.listings
-            .get_or_insert_with(Default::default)
-            .0
-            .push(listing);
+    pub fn new(
+        collection: CollectionData,
+        nft: NftData,
+        settings: Settings,
+        contract: Option<String>,
+        storage: Storage,
+    ) -> Schema {
+        Schema {
+            collection,
+            nft,
+            settings,
+            contract,
+            storage,
+        }
     }
 
     pub fn module_name(&self) -> String {
@@ -71,24 +63,42 @@ impl Schema {
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let transfer_fns = self.settings.write_transfer_fns();
+        let init_listings = self.settings.write_init_listings();
 
-        // TODO: Missing listings..
+        let transfer_fns = self.settings.write_transfer_fns();
 
         format!(
             "{signature} {{
                 {domains}
                 {feature_domains}
+                {init_listings}
                 {transfer_fns}
             }}",
             signature = signature,
             domains = domains,
             feature_domains = feature_domains,
+            init_listings = init_listings,
             transfer_fns = transfer_fns,
         )
     }
 
-    pub fn write_entry_funs() {}
+    pub fn write_entry_fns(&self) -> String {
+        let mut code = String::new();
+
+        if let Some(royalties) = &self.settings.royalties {
+            let royalties_fn = royalties.write_entry_fn(&self.witness_name());
+            code.push_str(royalties_fn.as_str());
+        }
+
+        let mint_fns = self
+            .settings
+            .mint_policies
+            .write_mint_fns(&self.collection.name, &self.nft);
+
+        code.push_str(mint_fns.as_str());
+
+        code
+    }
 
     /// Higher level method responsible for generating Move code from the
     /// struct `Schema` and dump it into a default folder
@@ -105,21 +115,15 @@ impl Schema {
 
         let type_declarations = self.settings.write_type_declarations();
 
-        let init_function = self.write_init_fn();
+        let init_fn = self.write_init_fn();
+
+        let entry_fns = self.write_entry_fns();
 
         // let init_marketplace = self
         //     .marketplace
         //     .as_ref()
         //     .map(Marketplace::init)
         //     .unwrap_or_else(String::new);
-
-        let init_listings = self
-            .listings
-            .iter()
-            .flat_map(|listings| listings.0.iter())
-            .map(Listing::init)
-            .collect::<Vec<_>>();
-        let init_listings = init_listings.join("\n    ");
 
         // // Collate list of objects that need to be shared
         // // TODO: Use Marketplace::init and Listing::init functions to avoid
@@ -130,24 +134,35 @@ impl Schema {
         //     .map(Marketplace::share)
         //     .unwrap_or_default();
 
-        let mut vars = HashMap::<&'static str, &str>::new();
+        // module {module_name}::{module_name} {{
+        //     {imports}
 
-        let mint_functions = self.nft.write_mint_fns(&witness);
+        //     /// One time witness is only instantiated in the init method
+        //     struct {witness} has drop {{}}
+
+        //     /// Can be used for authorization of other actions post-creation. It is
+        //     /// vital that this struct is not freely given to any contract, because it
+        //     /// serves as an auth token.
+        //     struct Witness has drop {{}}
+
+        //     {type_declarations}
+
+        //     {init_function}
+
+        //     {entry_functions}
+        // }}
+
+        let mut vars = HashMap::<&'static str, &str>::new();
 
         vars.insert("module_name", &module_name);
         vars.insert("imports", &imports);
         vars.insert("witness", &witness);
-        vars.insert("init_function", &init_function);
-
-        vars.insert("name", &self.collection.name);
-        vars.insert("description", &self.collection.description);
-        vars.insert("symbol", &self.collection.symbol);
-        vars.insert("royalty_strategy", &royalty_strategy);
-        vars.insert("mint_functions", &mint_functions);
+        vars.insert("type_declarations", &type_declarations);
+        vars.insert("init_function", &init_fn);
+        vars.insert("entry_functions", &entry_fns);
 
         // Marketplace and Listing objects
         // vars.insert("init_marketplace", &init_marketplace);
-        vars.insert("init_listings", &init_listings);
         // vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars

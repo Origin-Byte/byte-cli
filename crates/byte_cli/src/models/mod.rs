@@ -1,15 +1,17 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
+use gutenberg::Schema;
 
 use crate::prelude::CliError;
 
 pub mod collection;
 pub mod marketplace;
-pub mod royalties;
 pub mod nft;
+pub mod royalties;
+pub mod settings;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized;
 }
