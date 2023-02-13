@@ -13,6 +13,7 @@ impl FromPrompt for NftData {
     {
         let theme = get_dialoguer_theme();
 
+        // TODO: The fields attribute is incompatible with tradeable traits.. or its undefined..
         let nft_field_indices = MultiSelect::with_theme(&theme)
             .with_prompt("Which NFT fields do you want the NFTs to have? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
             .items(&FIELD_OPTIONS)

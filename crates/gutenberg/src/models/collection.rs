@@ -36,6 +36,19 @@ impl CollectionData {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        if self.name.is_empty()
+            && self.description.is_empty()
+            && self.symbol.is_empty()
+            && self.url.is_none()
+            && self.creators.is_empty()
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }

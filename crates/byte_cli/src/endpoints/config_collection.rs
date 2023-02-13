@@ -1,7 +1,5 @@
 use crate::models::FromPrompt;
-use crate::prelude::*;
 
-use dialoguer::Confirm;
 use gutenberg::{
     models::{collection::CollectionData, nft::NftData, settings::Settings},
     Schema,
@@ -9,12 +7,19 @@ use gutenberg::{
 
 pub fn init_collection_config(
     mut schema: Schema,
+    to_complete: bool,
 ) -> Result<Schema, anyhow::Error> {
-    schema.collection = CollectionData::from_prompt(&schema)?.unwrap();
+    if !to_complete || schema.collection.is_empty() {
+        schema.collection = CollectionData::from_prompt(&schema)?.unwrap();
+    }
 
-    schema.nft = NftData::from_prompt(&schema)?.unwrap();
+    if !to_complete || schema.nft.is_empty() {
+        schema.nft = NftData::from_prompt(&schema)?.unwrap();
+    }
 
-    schema.settings = Settings::from_prompt(&schema)?.unwrap();
+    if !to_complete || schema.settings.is_empty() {
+        schema.settings = Settings::from_prompt(&schema)?.unwrap();
+    }
 
     Ok(schema)
 }

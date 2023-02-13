@@ -11,33 +11,8 @@ use terminal_link::Link;
 
 const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
 
-// impl FromPrompt for Listing {
-//     fn from_prompt() -> Result<Self, anyhow::Error>
-//     where
-//         Self: Sized,
-//     {
-//         let theme = get_dialoguer_theme();
-
-//         let admin = Input::with_theme(&theme)
-//             .with_prompt("What is the address of the listing administrator?")
-//             .default(sender().to_string())
-//             .validate_with(address_validator)
-//             .interact()
-//             .unwrap();
-
-//         let receiver = Input::with_theme(&theme)
-//             .with_prompt("What is the address that receives the sale proceeds?")
-//             .default(sender().to_string())
-//             .validate_with(address_validator)
-//             .interact()
-//             .unwrap();
-
-//         Ok(Marketplace { admin, receiver })
-//     }
-// }
-
 impl FromPrompt for Market {
-    fn from_prompt(scheme: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(_scheme: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -97,8 +72,7 @@ impl FromPrompt for Listing {
 
         let number = Input::with_theme(&theme)
             .with_prompt(
-                // TODO: The meaning of this questions may be ambiguous
-                // from the perspective of the creator
+                // TODO: Refer to what listing we are talking about..
                 "How many sale venues do you want to create? (Note: One listing can have multiple venues with different configurations)",
             )
             .validate_with(number_validator)

@@ -36,6 +36,14 @@ impl NftData {
         NftData::from_map(&field_struct)
     }
 
+    pub fn is_empty(&self) -> bool {
+        if !self.display && !self.url && !self.attributes && !self.tags {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     fn from_map(map: &Vec<(String, bool)>) -> Result<NftData, GutenError> {
         let mut field_struct = NftData::default();
 

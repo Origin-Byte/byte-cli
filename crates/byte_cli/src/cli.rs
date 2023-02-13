@@ -22,6 +22,8 @@ pub enum Commands {
         /// Path to the directory with the config file
         #[clap(default_value = DEFAULT_FOLDER)]
         config_dir: String,
+        #[clap(short, long, action)]
+        complete: bool,
     },
 
     /// Creates or adds configuration to JSON config file to be read the asset

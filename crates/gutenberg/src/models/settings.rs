@@ -47,6 +47,21 @@ impl Settings {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        if self.tags.is_none()
+            && self.royalties.is_none()
+            && self.mint_policies.is_empty()
+            && self.composability.is_none()
+            && !self.loose
+            && self.supply_policy.is_empty()
+            && self.listings.is_none()
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     pub fn set_tags(&mut self, tags: Tags) {
         self.tags = Option::Some(tags);
     }
@@ -308,6 +323,13 @@ impl SupplyPolicy {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        match self {
+            SupplyPolicy::Undefined => true,
+            _ => false,
+        }
+    }
+
     pub fn write_domain(&self) -> Result<String, GutenError> {
         match self {
             SupplyPolicy::Limited { max, frozen } => {
@@ -408,6 +430,14 @@ impl MintPolicies {
             .collect::<Vec<(String, bool)>>();
 
         MintPolicies::from_map(&field_struct)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        if !self.launchpad && !self.airdrop && !self.direct {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<MintPolicies, GutenError> {

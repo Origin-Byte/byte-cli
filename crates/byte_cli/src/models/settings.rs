@@ -53,6 +53,8 @@ impl FromPrompt for Settings {
 
         settings.set_mint_policies(MintPolicies::new(mint_policies)?);
 
+        // TODO: Mention that tradeable traits is still unstable
+        // TODO: Mention that loose (currently does not support tradeable traits)
         let nft_features_indices = MultiSelect::with_theme(&theme)
             .with_prompt("Which NFT features do you want the NFTs to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
             .items(&FEATURE_OPTIONS)
@@ -87,7 +89,7 @@ impl FromPrompt for Settings {
             .set_supply_policy(SupplyPolicy::from_prompt(&schema)?.unwrap());
 
         if settings.mint_policies.launchpad {
-            let mut listings = Listings::from_prompt(&schema)?.unwrap();
+            let listings = Listings::from_prompt(&schema)?.unwrap();
 
             settings.listings = Some(listings);
         }
@@ -97,7 +99,7 @@ impl FromPrompt for Settings {
 }
 
 impl FromPrompt for Composability {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -139,7 +141,7 @@ impl FromPrompt for Composability {
 }
 
 impl FromPrompt for SupplyPolicy {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {

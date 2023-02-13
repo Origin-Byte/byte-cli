@@ -34,7 +34,7 @@ impl Module for TagsMod {
 }
 
 impl TagsMod {
-    pub fn init_tags(tags: &str) -> String {
+    pub fn init_tags() -> String {
         "let tags = tags::empty(ctx);".to_string()
     }
 
@@ -42,7 +42,7 @@ impl TagsMod {
         format!("tags::add_tag(&mut tags, tags::{}());", tag)
     }
 
-    pub fn add_collection_domain(tag: &str) -> String {
+    pub fn add_collection_domain() -> String {
         "tags::add_collection_tag_domain(
             delegated_witness,
             &mut collection,
@@ -51,7 +51,7 @@ impl TagsMod {
         .to_string()
     }
 
-    pub fn add_nft_domain(tag: &str) -> String {
+    pub fn add_nft_domain() -> String {
         "tags::add_tag_domain(
             delegated_witness,
             &mut nft,

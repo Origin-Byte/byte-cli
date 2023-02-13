@@ -1,4 +1,7 @@
-use super::{address_validator, number_validator, sender, FromPrompt};
+use super::{
+    address_validator, positive_integer_validator, sender,
+    FromPrompt,
+};
 use crate::prelude::get_dialoguer_theme;
 
 use dialoguer::{Confirm, Input};
@@ -50,7 +53,7 @@ impl FromPrompt for CollectionData {
 
         let creators_num = Input::with_theme(&theme)
             .with_prompt("How many creator addresses are there?")
-            .validate_with(number_validator)
+            .validate_with(positive_integer_validator)
             .interact()
             .unwrap()
             .parse::<u64>()
@@ -59,15 +62,24 @@ impl FromPrompt for CollectionData {
         let mut creators = Vec::new();
 
         for i in 0..creators_num {
-            let address = Input::with_theme(&theme)
-                .with_prompt(format!(
-                    "Please input address of the {} beneficiary?",
-                    i + 1
-                ))
-                .default(sender().to_string())
-                .validate_with(address_validator)
-                .interact()
-                .unwrap();
+            // Loop checks if address is not duplicated
+            let address = loop {
+                let address = Input::with_theme(&theme)
+                    .with_prompt(format!(
+                        "Please input address of the creator number {}?",
+                        i + 1
+                    ))
+                    .default(sender().to_string())
+                    .validate_with(address_validator)
+                    .interact()
+                    .unwrap();
+
+                if creators.contains(&address) {
+                    println!("The address {} has already been added, please provide a different one.", address)
+                } else {
+                    break address;
+                }
+            };
 
             creators.push(address);
         }
