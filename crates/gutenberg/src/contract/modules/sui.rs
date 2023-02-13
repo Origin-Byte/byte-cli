@@ -4,11 +4,31 @@ use super::Module;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct VecSet();
+
+impl Module for VecSet {
+    fn import(&self) -> String {
+        "    use sui::vec_set;\n".to_string()
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VecMap();
+
+impl Module for VecMap {
+    fn import(&self) -> String {
+        "    use sui::vec_map;\n".to_string()
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Url();
 
 impl Module for Url {
     fn import(&self) -> String {
-        "use sui::url;".to_string()
+        "    use sui::url;\n".to_string()
     }
 }
 
@@ -30,13 +50,13 @@ pub struct Balance();
 
 impl Module for Balance {
     fn import(&self) -> String {
-        "use sui::balance;".to_string()
+        "    use sui::balance;\n".to_string()
     }
 }
 
 impl Balance {
     pub fn balance_mut_expr(var: &str) -> String {
-        format!("royalties::balance_mut(Witness {{}}, {var});", var = var)
+        format!("royalties::balance_mut(Witness {{}}, {var});\n", var = var)
     }
 
     pub fn balance_value(var: &str) -> String {
@@ -50,17 +70,17 @@ pub struct Transfer();
 
 impl Module for Transfer {
     fn import(&self) -> String {
-        "use sui::transfer;".to_string()
+        "    use sui::transfer;\n".to_string()
     }
 }
 
 impl Transfer {
     pub fn tranfer_to_sender(obj: &str) -> String {
-        format!("transfer::transfer({}, tx_context::sender(ctx));", obj)
+        format!("transfer::transfer({}, tx_context::sender(ctx));\n", obj)
     }
 
     pub fn share(obj: &str) -> String {
-        format!("transfer::share_object({});", obj)
+        format!("transfer::share_object({});\n", obj)
     }
 }
 
@@ -70,7 +90,7 @@ pub struct TxContext();
 
 impl Module for TxContext {
     fn import(&self) -> String {
-        "use sui::tx_context::{Self, TxContext};".to_string()
+        "    use sui::tx_context::{Self, TxContext};\n".to_string()
     }
 }
 

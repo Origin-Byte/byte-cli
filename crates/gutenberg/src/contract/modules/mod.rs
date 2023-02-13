@@ -10,7 +10,7 @@ pub use protocol::{
     WarehouseMod, WitnessMod,
 };
 pub use standard::StringMod;
-pub use sui::{Balance, Transfer, TxContext, Url};
+pub use sui::{Balance, Transfer, TxContext, Url, VecMap, VecSet};
 
 pub trait Module {
     fn import(&self) -> String;
@@ -18,6 +18,8 @@ pub trait Module {
 
 pub struct Modules {
     string: bool,
+    vec_set: bool,
+    vec_map: bool,
     url: bool,
     balance: bool,
     transfer: bool,
@@ -46,6 +48,8 @@ impl Modules {
     pub fn from_schema(schema: &Schema) -> Self {
         Modules {
             string: true,
+            vec_set: schema.collection.creators.len() > 0,
+            vec_map: schema.settings.royalties.is_some(),
             url: schema.collection.url.is_some() || schema.nft.url == true,
             balance: schema.settings.royalties.is_some(),
             transfer: true,
@@ -79,6 +83,12 @@ impl Imports {
     pub fn write_imports(&mut self) -> String {
         if self.modules.string {
             self.write_import(StringMod::default());
+        }
+        if self.modules.vec_set {
+            self.write_import(VecSet::default());
+        }
+        if self.modules.vec_map {
+            self.write_import(VecMap::default());
         }
         if self.modules.url {
             self.write_import(Url::default());

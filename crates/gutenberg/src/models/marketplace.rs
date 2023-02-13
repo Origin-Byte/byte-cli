@@ -64,22 +64,38 @@ impl Listing {
         }
     }
 
+    pub fn write_admin(&self) -> String {
+        if self.admin == "tx_context::sender(ctx)".to_string() {
+            "tx_context::sender(ctx)".to_string()
+        } else {
+            format!("@{}", self.admin)
+        }
+    }
+
+    pub fn write_receiver(&self) -> String {
+        if self.receiver == "tx_context::sender(ctx)".to_string() {
+            "tx_context::sender(ctx)".to_string()
+        } else {
+            format!("@{}", self.receiver)
+        }
+    }
+
     pub fn write_init(&self) -> String {
         let mut string = String::new();
 
         string.push_str(&format!(
             "
         let listing = nft_protocol::listing::new(
-            @{admin},
-            @{receiver},
+            {admin},
+            {receiver},
             ctx,
         );
 
         let venue_id =
             nft_protocol::listing::create_venue(&mut listing, ctx);
 ",
-            admin = self.admin,
-            receiver = self.receiver,
+            admin = self.write_admin(),
+            receiver = self.write_receiver(),
         ));
 
         for market in self.markets.iter() {

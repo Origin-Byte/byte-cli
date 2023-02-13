@@ -99,7 +99,7 @@ impl NftData {
         self.display || self.url || self.attributes
     }
 
-    pub fn write_fields(&self) -> String {
+    pub fn write_field_signature(&self) -> String {
         let code = self
             .to_map()
             .iter()
@@ -125,6 +125,104 @@ impl NftData {
                 }
                 _ => {
                     eprintln!("Field not recognized");
+                    std::process::exit(2);
+                }
+            })
+            .collect();
+
+        code
+    }
+
+    pub fn write_field_params(&self) -> String {
+        let code = self
+            .to_map()
+            .iter()
+            // Filter by domain fields set to true
+            .filter(|(_, v)| *v)
+            .map(|(k, _)| match k.as_str() {
+                "display" => {
+                    "        name,
+        description,"
+                }
+                "url" => {
+                    "
+        url,"
+                }
+                "attributes" => {
+                    "
+        attribute_keys,
+        attribute_values,"
+                }
+                "tags" => {
+                    "
+        tags,"
+                }
+                _ => {
+                    eprintln!("NFT fields not found");
+                    std::process::exit(2);
+                }
+            })
+            .collect();
+
+        code
+    }
+
+    pub fn write_get_nft(&self) -> String {
+        format!(
+            "let nft = mint_nft(
+            {}
+            mint_cap,
+            ctx
+        );",
+            self.write_field_params()
+        )
+    }
+
+    pub fn write_domains(&self) -> String {
+        let code = self
+            .to_map()
+            .iter()
+            // Filter by domain fields set to true
+            .filter(|(_, v)| *v)
+            .map(|(k, _)| match k.as_str() {
+                "display" => {
+                    "        display::add_display_domain(
+            &mut nft,
+            name,
+            description,
+            ctx,
+        );
+
+"
+                }
+                "url" => {
+                    "        display::add_url_domain(
+            &mut nft,
+            url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+"
+                }
+                "attributes" => {
+                    "
+        display::add_attributes_domain_from_vec(
+            &mut nft,
+            attribute_keys,
+            attribute_values,
+            ctx,
+        );
+"
+                }
+                "tags" => {
+                    "
+        tags::add_tag_domain(
+            &mut nft,
+            tags,
+            ctx,
+        );"
+                }
+                _ => {
+                    eprintln!("No NFT fields found.");
                     std::process::exit(2);
                 }
             })

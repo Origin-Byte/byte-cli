@@ -55,7 +55,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 "Sui".to_string(),
                 package::Dependency::new(
                     "https://github.com/MystenLabs/sui.git".to_string(),
-                    "2d709054a08d904b9229a2472af679f210af3827".to_string(),
+                    "0ef3625".to_string(),
                 )
                 .subdir("crates/sui-framework".to_string()),
             ),
@@ -63,15 +63,14 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 "Originmate".to_string(),
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/originmate.git".to_string(),
-                    "fe192e74e25ed71449996fcb30337ed7232f41e3".to_string(),
+                    "99c0e38".to_string(),
                 ),
             ),
             (
                 "NftProtocol".to_string(),
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    // feature/object-bag-nft
-                    "c18b63e8d723a36d4a7ec39df3e040dca7c4ddc6".to_string(),
+                    "ebf3e4f".to_string(),
                 ),
             ),
         ]),

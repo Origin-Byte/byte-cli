@@ -79,14 +79,14 @@ impl RoyaltyPolicy {
             RoyaltyPolicy::Proportional { shares, bps } => (
                 shares.clone(),
                 format!(
-                    "royalty::add_proportional_royalty(&mut royalty, {});",
+                    "        royalty::add_proportional_royalty(&mut royalty, {});\n",
                     bps
                 ),
             ),
             RoyaltyPolicy::Constant { shares, fee } => (
                 shares.clone(),
                 format!(
-                    "royalty::add_constant_royalty(&mut royalty, {});",
+                    "        royalty::add_constant_royalty(&mut royalty, {});\n",
                     fee
                 ),
             ),
@@ -98,14 +98,15 @@ impl RoyaltyPolicy {
                 address = royalty_shares[0].address,
             )
         } else {
-            let mut vecmap = String::from("let royalty = vec_map::empty();\n");
+            let mut vecmap =
+                String::from("let royalty_map = vec_map::empty();\n");
 
             royalty_shares
                 .iter()
                 .map(|share| {
                     vecmap.push_str(
                         format!(
-                        "vec_map::insert(&mut royalty, {address}, {share});\n",
+                        "        vec_map::insert(&mut royalty_map, @{address}, {share});\n",
                         address = share.address,
                         share = share.share
                     )
@@ -115,11 +116,14 @@ impl RoyaltyPolicy {
                 .for_each(drop);
 
             vecmap.push_str("\n");
+            vecmap.push_str(
+                "        let royalty = royalty::from_shares(royalty_map, ctx);\n",
+            );
 
             vecmap
         };
 
-        let add_domain = "royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
+        let add_domain = "        royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
 
         code.push_str(royalty_strategy.as_str());
         code.push_str(add_domain);
@@ -127,7 +131,7 @@ impl RoyaltyPolicy {
         code
     }
 
-    pub fn write_entry_fn(&self, name: &String) -> String {
+    pub fn write_entry_fn(&self, witness: &String) -> String {
         let domain = match self {
             RoyaltyPolicy::Proportional { shares: _, bps: _ } => {
                 "calculate_proportional_royalty(domain, balance::value(b))"
@@ -138,23 +142,22 @@ impl RoyaltyPolicy {
         };
 
         format!(
-            "\n
-            /// Calculates and transfers royalties to the `RoyaltyDomain`
-            public entry fun collect_royalty<FT>(
-                payment: &mut TradePayment<{name}, FT>,
-                collection: &mut Collection<{name}>,
-                ctx: &mut TxContext,
-            ) {{
-                let b = royalties::balance_mut(Witness {{}}, payment);
+            "    /// Calculates and transfers royalties to the `RoyaltyDomain`
+    public entry fun collect_royalty<FT>(
+        payment: &mut TradePayment<{witness}, FT>,
+        collection: &mut Collection<{witness}>,
+        ctx: &mut TxContext,
+    ) {{
+        let b = royalties::balance_mut(Witness {{}}, payment);
 
-                let domain = royalty::royalty_domain(collection);
-                let royalty_owed =
-                    royalty::{domain};
+        let domain = royalty::royalty_domain(collection);
+        let royalty_owed =
+            royalty::{domain};
 
-                royalty::collect_royalty(collection, b, royalty_owed);
-                royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
-            }}\n",
-            name = name,
+        royalty::collect_royalty(collection, b, royalty_owed);
+        royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
+    }}\n",
+            witness = witness,
             domain = domain,
         )
     }

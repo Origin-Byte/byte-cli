@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
+    contract::modules::{ComposableNftMod, DisplayMod},
     err::{self, GutenError},
     models::tags::Tags,
 };
@@ -144,9 +145,8 @@ impl Settings {
 
     pub fn write_transfer_fns(&self) -> String {
         let mut code = String::from(
-            "
-            transfer::transfer(mint_cap, tx_context::sender(ctx));
-            transfer::share_object(collection);\n",
+            "transfer::transfer(mint_cap, tx_context::sender(ctx));
+        transfer::share_object(collection);\n",
         );
 
         if self.loose {
@@ -245,10 +245,7 @@ impl Composability {
         self.types
             .iter()
             .map(|t| {
-                types.push_str(&format!(
-                    "struct {} has copy, drop, store {{}} \n",
-                    t
-                ));
+                types.push_str(ComposableNftMod::add_type(t).as_str());
             })
             .for_each(drop);
 
@@ -256,20 +253,20 @@ impl Composability {
     }
 
     pub fn write_domain(&self) -> String {
-        let mut code =
-            String::from("let blueprint = c_nft::new_blueprint(ctx);\n");
+        let mut code = ComposableNftMod::init_blueprint();
 
         self.blueprint
             .iter()
             .map(|(parent_type, child)| {
                 code.push_str(
                     format!(
-                        "c_nft::add_relationship<{parent_type}, {child_type}>(
-                    &mut blueprint,
-                    {limit}, // limit
-                    {order}, // order
-                    ctx
-                );\n",
+                        "
+        c_nft::add_relationship<{parent_type}, {child_type}>(
+            &mut blueprint,
+            {limit}, // limit
+            {order}, // order
+            ctx
+        );\n",
                         parent_type = parent_type,
                         child_type = child.child_type,
                         limit = child.limit,
@@ -280,7 +277,7 @@ impl Composability {
             })
             .for_each(drop);
 
-        code.push_str("c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);\n");
+        code.push_str(ComposableNftMod::add_collection_domain().as_str());
 
         code
     }
@@ -487,155 +484,123 @@ impl MintPolicies {
         map
     }
 
-    pub fn write_domains(&self) -> String {
-        let code = self
-            .to_map()
-            .iter()
-            // Filter by domain fields set to true
-            .filter(|(_, v)| *v)
-            .map(|(k, _)| match k.as_str() {
-                "display" => {
-                    "        display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
-        );
+    pub fn write_mint_fn(
+        &self,
+        witness: &str,
+        mint_policy: Option<MintType>,
+        nft: &NftData,
+    ) -> String {
+        let code: String;
 
-"
-                }
-                "url" => {
-                    "        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
-        );
-"
-                }
-                "attributes" => {
-                    "
-        display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
-        );
-"
-                }
-                "tags" => {
-                    "
-        tags::add_tag_domain(
-            &mut nft,
-            tags,
-            ctx,
-        );"
+        let mut fun_name = String::new();
+        let mut fun_type = String::new();
+        let mut return_type = String::new();
+        let mut args = String::new();
+        let mut domains = String::new();
+        let mut params = String::new();
+        let mut transfer = String::new();
+
+        if nft.display {
+            args.push_str(DisplayMod::add_display_args().as_str());
+            domains.push_str(DisplayMod::add_nft_display().as_str());
+            params.push_str(DisplayMod::add_display_params().as_str());
+        }
+        if nft.url {
+            args.push_str(DisplayMod::add_url_args().as_str());
+            domains.push_str(DisplayMod::add_nft_url().as_str());
+            params.push_str(DisplayMod::add_url_params().as_str());
+        }
+        if nft.attributes {
+            args.push_str(DisplayMod::add_attributes_args().as_str());
+            domains.push_str(DisplayMod::add_nft_attributes().as_str());
+            params.push_str(DisplayMod::add_attributes_params().as_str());
+        }
+
+        args.push_str("        mint_cap: &MintCap<SUIMARINES>,\n");
+        args.push_str("        ctx: &mut TxContext,\n");
+
+        params.push_str("            mint_cap,\n");
+        params.push_str("            ctx,");
+
+        if let Some(mint_policy) = mint_policy {
+            match mint_policy {
+                MintType::Launchpad => {
+                    args.push_str(
+                        format!(
+                            "        warehouse: &mut Warehouse<{}>,",
+                            witness
+                        )
+                        .as_str(),
+                    );
+                    transfer
+                        .push_str("warehouse::deposit_nft(warehouse, nft);");
+                    fun_name.push_str("mint_to_launchpad")
                 }
                 _ => {
-                    eprintln!("File has no extension");
-                    std::process::exit(2);
+                    args.push_str("        receiver: address,");
+                    transfer.push_str("transfer::transfer(nft, receiver);");
+                    fun_name.push_str("mint_to_address")
                 }
-            })
-            .collect();
+            }
+
+            fun_type.push_str("public entry ");
+
+            code = format!(
+                "\n
+    {fun_type}fun {fun_name}(
+        {args}
+    ){return_type} {{
+        let nft = mint(
+            {params}
+        );
+
+        {transfer}
+    }}"
+            );
+        } else {
+            fun_name.push_str("mint");
+            return_type.push_str(format!(": Nft<{}>", witness).as_str());
+            transfer.push_str("nft");
+
+            let build_nft = "let nft =
+            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});\n";
+
+            code = format!(
+                "\n
+    {fun_type}fun {fun_name}(
+        {args}        ){return_type} {{
+        {build_nft}
+        {domains}
+        {transfer}
+    }}"
+            );
+        }
 
         code
     }
 
-    pub fn write_mint_fn(
-        &self,
-        witness: &str,
-        mint_policy: MintType,
-        nft_data: &NftData,
-    ) -> String {
-        let fun_name: String;
-        let to_whom: String;
-        let transfer: String;
-
-        match mint_policy {
-            MintType::Direct => {
-                fun_name = "direct_mint".to_string();
-                to_whom = "        receiver: address,".to_string();
-                transfer = "
-            transfer::transfer(nft, receiver);"
-                    .to_string();
-            }
-            MintType::Airdrop => {
-                fun_name = "airdrop_mint".to_string();
-                to_whom = format!(
-                    "        mint_cap: &MintCap<{witness}>,
-        receiver: address,",
-                    witness = witness,
-                );
-                transfer = "
-        transfer::transfer(nft, receiver);"
-                    .to_string();
-            }
-            MintType::Launchpad => {
-                fun_name = "mint_to_warehouse".to_string();
-                to_whom = format!(
-                    "        mint_cap: &MintCap<{witness}>,
-        inventory: &mut Inventory,",
-                    witness = witness,
-                );
-                transfer = "        inventory::deposit_nft(inventory, nft);"
-                    .to_string();
-            }
-        };
-
-        let domains = self.write_domains();
-        let fields = nft_data.write_fields();
-
-        let end_of_signature = format!(
-            "        ctx: &mut TxContext,
-    ) {{
-        let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);\n",
-            witness = witness
-        );
-
-        [
-            format!(
-                "
-    public entry fun {fun_name}(",
-                fun_name = fun_name
-            ),
-            fields,
-            to_whom,
-            end_of_signature,
-            domains,
-            transfer,
-            "    }
-
-            "
-            .to_string(),
-        ]
-        .join("\n")
-    }
-
-    pub fn write_mint_fns(&self, name: &str, nft_data: &NftData) -> String {
+    pub fn write_mint_fns(&self, witness: &str, nft_data: &NftData) -> String {
         let mut mint_fns = String::new();
 
         if self.launchpad {
             mint_fns.push_str(&self.write_mint_fn(
-                name,
-                MintType::Launchpad,
+                witness,
+                Some(MintType::Launchpad),
                 nft_data,
             ));
         }
 
-        if self.airdrop {
+        // TODO: For now the flow are indistinguishable
+        if self.airdrop || self.direct {
             mint_fns.push_str(&self.write_mint_fn(
-                name,
-                MintType::Airdrop,
+                witness,
+                Some(MintType::Airdrop),
                 nft_data,
             ));
         }
 
-        if self.direct {
-            mint_fns.push_str(&self.write_mint_fn(
-                name,
-                MintType::Direct,
-                nft_data,
-            ));
-        }
+        mint_fns.push_str(&self.write_mint_fn(witness, None, nft_data));
 
         mint_fns
     }

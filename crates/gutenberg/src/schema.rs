@@ -54,30 +54,35 @@ impl Schema {
 
     pub fn write_init_fn(&self) -> String {
         let signature = format!(
-            "fun init(witness: {}, ctx: &mut TxContext)",
+            "    fun init(witness: {}, ctx: &mut TxContext)",
             self.witness_name()
         );
+
+        let init_collection = "
+        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});\n";
 
         let domains = self.collection.write_domains();
 
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let init_listings = self.settings.write_init_listings();
+        // let init_listings = self.settings.write_init_listings();
 
         let transfer_fns = self.settings.write_transfer_fns();
 
         format!(
             "{signature} {{
-                {domains}
-                {feature_domains}
-                {init_listings}
-                {transfer_fns}
-            }}",
+                {init_collection}
+        {domains}
+        {feature_domains}
+        {transfer_fns}
+    }}",
             signature = signature,
+            init_collection = init_collection,
             domains = domains,
             feature_domains = feature_domains,
-            init_listings = init_listings,
+            // init_listings = init_listings,
             transfer_fns = transfer_fns,
         )
     }
@@ -93,7 +98,7 @@ impl Schema {
         let mint_fns = self
             .settings
             .mint_policies
-            .write_mint_fns(&self.collection.name, &self.nft);
+            .write_mint_fns(&self.witness_name(), &self.nft);
 
         code.push_str(mint_fns.as_str());
 

@@ -4,6 +4,8 @@
 //! by the caller.
 use serde::{Deserialize, Serialize};
 
+use crate::contract::modules::DisplayMod;
+
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct CollectionData {
@@ -49,6 +51,10 @@ impl CollectionData {
         }
     }
 
+    pub fn witness_name(&self) -> String {
+        self.name.to_uppercase().replace(' ', "")
+    }
+
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
@@ -74,54 +80,14 @@ impl CollectionData {
 
         code.push_str(self.write_creators().as_str());
 
-        code.push_str(self.write_display().as_str());
-        code.push_str(self.write_symbol().as_str());
+        code.push_str(DisplayMod::add_collection_display(self).as_str());
+        code.push_str(DisplayMod::add_collection_symbol(self).as_str());
 
         if let Some(_url) = &self.url {
-            code.push_str(self.write_url().as_str());
+            code.push_str(DisplayMod::add_collection_url(self).as_str());
         }
 
         code
-    }
-
-    pub fn write_display(&self) -> String {
-        format!(
-            "
-            display::add_collection_display_domain(
-                delegated_witness,
-                &mut collection,
-                string::utf8(b\"{name}\"),
-                string::utf8(b\"{description}
-            );\n",
-            name = self.name,
-            description = self.description,
-        )
-    }
-
-    pub fn write_url(&self) -> String {
-        format!(
-            "
-            display::add_collection_url_domain(
-                delegated_witness,
-                &mut collection,
-                sui::url::new_unsafe_from_bytes(b\"{url}\"),
-                ctx,
-            );\n",
-            url = self.url.as_ref().expect("No collection url setup found"),
-        )
-    }
-
-    pub fn write_symbol(&self) -> String {
-        format!(
-            "
-            display::add_collection_symbol_domain(
-                delegated_witness,
-                &mut collection,
-                string::utf8(b\"{symbol}\"),
-                ctx,
-            );",
-            symbol = self.symbol,
-        )
     }
 
     pub fn write_creators(&self) -> String {
@@ -130,9 +96,9 @@ impl CollectionData {
         let creators_domain = if self.creators.len() == 1 {
             format!(
                 "
-                creators::from_address<{name}, Witness>(
-                    &Witness {{}}, {address}, ctx,
-                )",
+    creators::from_address<{name}, Witness>(
+        &Witness {{}}, {address}, ctx,
+    )",
                 name = self.name,
                 address = self.creators[0],
             )
@@ -143,28 +109,30 @@ impl CollectionData {
                 .iter()
                 .map(|addr| {
                     code.push_str(
-                        format!("vec_set::insert(&mut creators, {});\n", addr)
-                            .as_str(),
+                        format!(
+                            "        vec_set::insert(&mut creators, @{});\n",
+                            addr
+                        )
+                        .as_str(),
                     );
                 })
                 .for_each(drop);
 
             format!(
-                "
-                creators::from_creators<{name}, Witness>(
-                    &Witness {{}}, creators, ctx
-                )",
-                name = self.name
+                "creators::from_creators<{witness}, Witness>(
+                &Witness {{}}, creators, ctx
+            )",
+                witness = self.witness_name()
             )
         };
 
         let add_domain = format!(
             "
-            collection::add_domain(
-                delegated_witness,
-                &mut collection,
-                {},
-            );",
+        collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            {},
+        );\n",
             creators_domain
         );
 

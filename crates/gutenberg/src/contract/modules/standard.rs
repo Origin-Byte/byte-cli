@@ -8,7 +8,7 @@ pub struct StringMod();
 
 impl Module for StringMod {
     fn import(&self) -> String {
-        "use std::string::{Self, String};".to_string()
+        "    use std::string::{Self, String};\n".to_string()
     }
 }
 
