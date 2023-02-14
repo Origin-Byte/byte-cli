@@ -95,7 +95,6 @@ impl FromPrompt for Listings {
         Self: Sized,
     {
         let theme = get_dialoguer_theme();
-        let mut listings = Listings::default();
 
         let admin = Input::with_theme(&theme)
             .with_prompt("What is the address of the listing administrator?")
@@ -116,6 +115,47 @@ impl FromPrompt for Listings {
         let number = Input::with_theme(&theme)
             .with_prompt(
                 format!("How many listings do you plan on having? Check our {} to learn more about listings.", link.blue()),
+            )
+            .default("1".to_string())
+            .validate_with(number_validator)
+            .interact()?
+            .parse::<u64>()?;
+
+        let mut markets = vec![];
+
+        for _ in 0..number {
+            markets.push(Market::from_prompt()?);
+        }
+
+        Ok(Listing::new(markets))
+    }
+}
+
+impl FromPrompt for Listings {
+    fn from_prompt() -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        let theme = get_dialoguer_theme();
+        let mut listings = Listings::default();
+
+        let admin = Input::with_theme(&theme)
+            .with_prompt("What is the address of the listing administrator?")
+            .default(sender().to_string())
+            .validate_with(address_validator)
+            .interact()
+            .unwrap();
+
+        let receiver = Input::with_theme(&theme)
+            .with_prompt("What is the address that receives the sale proceeds?")
+            .default(sender().to_string())
+            .validate_with(address_validator)
+            .interact()
+            .unwrap();
+
+        let number = Input::with_theme(&theme)
+            .with_prompt(
+                "How many listings do you plan on having? Click [here](https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing) to learn more about listings.",
             )
             .default("1".to_string())
             .validate_with(number_validator)
