@@ -9,9 +9,9 @@ use gutenberg::{
     Schema,
 };
 
-const FEATURE_OPTIONS: [&str; 3] = ["tags", "tradeable_traits", "loose"];
+const FEATURE_OPTIONS: [&str; 1] = ["tags"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-const MINTING_OPTIONS: [&str; 3] = ["launchpad", "direct", "airdrop"];
+const MINTING_OPTIONS: [&str; 2] = ["launchpad", "airdrop"];
 
 const TAG_OPTIONS: [&str; 11] = [
     "Art",
@@ -53,8 +53,6 @@ impl FromPrompt for Settings {
 
         settings.set_mint_policies(MintPolicies::new(mint_policies)?);
 
-        // TODO: Mention that tradeable traits is still unstable
-        // TODO: Mention that loose (currently does not support tradeable traits)
         let nft_features_indices = MultiSelect::with_theme(&theme)
             .with_prompt("Which NFT features do you want the NFTs to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
             .items(&FEATURE_OPTIONS)
