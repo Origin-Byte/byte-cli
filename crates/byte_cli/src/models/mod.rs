@@ -1,21 +1,56 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
+use gutenberg::Schema;
 
 use crate::prelude::CliError;
 
 pub mod collection;
 pub mod marketplace;
-pub mod royalties;
 pub mod nft;
+pub mod royalties;
+pub mod settings;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
-    fn from_prompt() -> Result<Self, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized;
 }
 
 pub fn sender() -> &'static str {
     "tx_context::sender(ctx)"
+}
+
+pub fn bps_validator(input: &String) -> Result<(), String> {
+    if input.parse::<u64>().is_err() {
+        Err(format!("Couldn't parse '{input}' to a number."))
+    } else {
+        if input.parse::<u64>().unwrap() > 10_000 {
+            Err(format!(
+                "The Basis Points number {input} provided is above 100%."
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub fn positive_integer_validator(input: &String) -> Result<(), String> {
+    if input.parse::<u64>().is_err() {
+        Err(format!("Couldn't parse '{input}' to a number."))
+    } else {
+        let numb = input.parse::<u64>().unwrap();
+        if numb > 0 {
+            Err(format!(
+                "The number {input} provided has to be bigger than 0."
+            ))
+        } else if numb > 20 {
+            Err(format!(
+                "The number {input} provided is above the limit of 20."
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 pub fn number_validator(input: &String) -> Result<(), String> {

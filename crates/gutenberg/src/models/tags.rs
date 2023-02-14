@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::err::GutenError;
+use crate::{contract::modules::TagsMod, err::GutenError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Tag {
@@ -82,20 +82,22 @@ impl Tags {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write(&self) -> String {
-        let mut out = String::from("let tags = tags::empty(ctx);\n");
+    pub fn write_domain(&self, is_collection: bool) -> String {
+        let mut code = String::from("let tags = tags::empty(ctx);\n");
 
         for tag in self.0.iter().map(Tag::to_string) {
-            out.push_str(&format!(
+            code.push_str(&format!(
                 "        tags::add_tag(&mut tags, tags::{tag}());\n",
             ));
         }
 
-        out.push_str(
-            "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
-        );
+        if is_collection {
+            code.push_str(TagsMod::add_collection_domain().as_str());
+        } else {
+            code.push_str(TagsMod::add_nft_domain().as_str());
+        }
 
-        out
+        code
     }
 
     pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {

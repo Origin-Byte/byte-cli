@@ -36,11 +36,15 @@ async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::ConfigCollection { config_dir } => {
+        Commands::ConfigCollection {
+            config_dir,
+            complete,
+        } => {
             let path = io::get_path_buf(config_dir.as_str());
             let mut schema = io::try_read_config(&path)?;
 
-            schema = config_collection::init_collection_config(schema)?;
+            schema =
+                config_collection::init_collection_config(schema, complete)?;
 
             io::write_config(&schema, path.as_path())?;
         }
@@ -56,7 +60,7 @@ async fn run() -> Result<()> {
             let path = io::get_path_buf(config_dir.as_str());
             let mut schema = io::try_read_config(&path)?;
 
-            schema = config_collection::init_collection_config(schema)?;
+            schema = config_collection::init_collection_config(schema, false)?;
             schema = config_upload::init_upload_config(schema)?;
 
             io::write_config(&schema, path.as_path())?;

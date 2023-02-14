@@ -1,18 +1,5 @@
 module {module_name}::{module_name} {{
-    use std::string::{{Self, String}};
-
-    use sui::url;
-    use sui::balance;
-    use sui::transfer;
-    use sui::tx_context::{{Self, TxContext}};
-
-    use nft_protocol::nft;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
-    use nft_protocol::creators;
-    use nft_protocol::royalties::{{Self, TradePayment}};
-    use nft_protocol::collection::{{Self, Collection, MintCap}};
+{imports}
 
     /// One time witness is only instantiated in the init method
     struct {witness} has drop {{}}
@@ -22,63 +9,9 @@ module {module_name}::{module_name} {{
     /// serves as an auth token.
     struct Witness has drop {{}}
 
-    fun init(witness: {witness}, ctx: &mut TxContext) {{
-        let (mint_cap, collection) = collection::create<{witness}>(
-            &witness,
-            ctx,
-        );
+{type_declarations}
 
-        collection::add_domain(
-            &mut collection,
-            &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx), ctx)
-        );
+{init_function}
 
-        // Register custom domains
-        display::add_collection_display_domain(
-            &mut collection,
-            &mut mint_cap,
-            string::utf8(b"{name}"),
-            string::utf8(b"{description}"),
-            ctx,
-        );
-
-        display::add_collection_url_domain(
-            &mut collection,
-            &mut mint_cap,
-            sui::url::new_unsafe_from_bytes(b"{url}"),
-            ctx,
-        );
-
-        display::add_collection_symbol_domain(
-            &mut collection,
-            &mut mint_cap,
-            string::utf8(b"{symbol}"),
-            ctx,
-        );
-
-        {royalty_strategy}
-        {tags}
-{init_marketplace}{init_listings}{share_marketplace}
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-    }}
-
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<{witness}, FT>,
-        collection: &mut Collection<{witness}>,
-        ctx: &mut TxContext,
-    ) {{
-        let b = royalties::balance_mut(Witness {{}}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
-    }}
-
-    {mint_functions}
+{entry_functions}
 }}

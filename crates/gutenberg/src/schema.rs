@@ -2,13 +2,10 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use crate::contract::modules::Imports;
 use crate::err::GutenError;
-use crate::models::{
-    collection::Collection,
-    marketplace::{Listing, Listings, Marketplace},
-    nft::Nft,
-    royalties::Royalties,
-};
+use crate::models::settings::Settings;
+use crate::models::{collection::CollectionData, nft::NftData};
 use crate::storage::*;
 
 use serde::{Deserialize, Serialize};
@@ -21,37 +18,90 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
-    pub collection: Collection,
-    pub nft: Nft,
-    pub royalties: Royalties,
+    pub collection: CollectionData,
+    pub nft: NftData,
+    pub settings: Settings,
     /// Creates a new marketplace with the collection
-    pub marketplace: Option<Marketplace>,
-    pub listings: Option<Listings>,
+    // pub marketplace: Option<Marketplace>,
     pub contract: Option<String>,
     pub storage: Storage,
 }
 
 impl Schema {
-    // pub fn new() -> Schema {
-    //     Schema {
-    //         collection: Collection::default(),
-    //         nft: Nft::default(),
-    //         royalties: Royalties::default(),
-    //         marketplace: Option::None,
-    //         listings: Option::None,
-    //         contract: Option::None,
-    //     }
-    // }
-
-    pub fn add_listing(&mut self, listing: Listing) {
-        self.listings
-            .get_or_insert_with(Default::default)
-            .0
-            .push(listing);
+    pub fn new(
+        collection: CollectionData,
+        nft: NftData,
+        settings: Settings,
+        contract: Option<String>,
+        storage: Storage,
+    ) -> Schema {
+        Schema {
+            collection,
+            nft,
+            settings,
+            contract,
+            storage,
+        }
     }
 
     pub fn module_name(&self) -> String {
         self.collection.name.to_lowercase().replace(' ', "_")
+    }
+
+    pub fn witness_name(&self) -> String {
+        self.collection.name.to_uppercase().replace(' ', "")
+    }
+
+    pub fn write_init_fn(&self) -> String {
+        let signature = format!(
+            "    fun init(witness: {}, ctx: &mut TxContext)",
+            self.witness_name()
+        );
+
+        let init_collection = "let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});\n";
+
+        let domains = self.collection.write_domains();
+
+        let feature_domains =
+            self.settings.write_feature_domains(&self.collection);
+
+        // let init_listings = self.settings.write_init_listings();
+
+        let transfer_fns = self.settings.write_transfer_fns();
+
+        format!(
+            "{signature} {{
+        {init_collection}
+        {domains}
+        {feature_domains}
+        {transfer_fns}
+    }}",
+            signature = signature,
+            init_collection = init_collection,
+            domains = domains,
+            feature_domains = feature_domains,
+            // init_listings = init_listings,
+            transfer_fns = transfer_fns,
+        )
+    }
+
+    pub fn write_entry_fns(&self) -> String {
+        let mut code = String::new();
+
+        if let Some(royalties) = &self.settings.royalties {
+            let royalties_fn = royalties.write_entry_fn(&self.witness_name());
+            code.push_str(royalties_fn.as_str());
+        }
+
+        let mint_fns = self
+            .settings
+            .mint_policies
+            .write_mint_fns(&self.witness_name(), &self.nft);
+
+        code.push_str(mint_fns.as_str());
+
+        code
     }
 
     /// Higher level method responsible for generating Move code from the
@@ -63,52 +113,61 @@ impl Schema {
         mut output: W,
     ) -> Result<(), GutenError> {
         let module_name = self.module_name();
-        let witness = self.collection.name.to_uppercase().replace(' ', "");
+        let witness = self.witness_name();
 
-        let init_marketplace = self
-            .marketplace
-            .as_ref()
-            .map(Marketplace::init)
-            .unwrap_or_else(String::new);
+        let imports = Imports::from_schema(self).write_imports();
 
-        let init_listings = self
-            .listings
-            .iter()
-            .flat_map(|listings| listings.0.iter())
-            .map(Listing::init)
-            .collect::<Vec<_>>();
-        let init_listings = init_listings.join("\n    ");
+        let type_declarations = self.settings.write_type_declarations();
 
-        // Collate list of objects that need to be shared
-        // TODO: Use Marketplace::init and Listing::init functions to avoid
-        // explicit share
-        let share_marketplace = self
-            .marketplace
-            .as_ref()
-            .map(Marketplace::share)
-            .unwrap_or_default();
+        let init_fn = self.write_init_fn();
+
+        let entry_fns = self.write_entry_fns();
+
+        // let init_marketplace = self
+        //     .marketplace
+        //     .as_ref()
+        //     .map(Marketplace::init)
+        //     .unwrap_or_else(String::new);
+
+        // // Collate list of objects that need to be shared
+        // // TODO: Use Marketplace::init and Listing::init functions to avoid
+        // // explicit share
+        // let share_marketplace = self
+        //     .marketplace
+        //     .as_ref()
+        //     .map(Marketplace::share)
+        //     .unwrap_or_default();
+
+        // module {module_name}::{module_name} {{
+        //     {imports}
+
+        //     /// One time witness is only instantiated in the init method
+        //     struct {witness} has drop {{}}
+
+        //     /// Can be used for authorization of other actions post-creation. It is
+        //     /// vital that this struct is not freely given to any contract, because it
+        //     /// serves as an auth token.
+        //     struct Witness has drop {{}}
+
+        //     {type_declarations}
+
+        //     {init_function}
+
+        //     {entry_functions}
+        // }}
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
-        let tags = self.collection.tags.write();
-        let royalty_strategy = self.royalties.write();
-        let mint_functions = self.nft.write_mint_fns(&witness);
-        let url = self.collection.url.as_deref().unwrap_or_default();
-
         vars.insert("module_name", &module_name);
+        vars.insert("imports", &imports);
         vars.insert("witness", &witness);
-        vars.insert("name", &self.collection.name);
-        vars.insert("description", &self.collection.description);
-        vars.insert("symbol", &self.collection.symbol);
-        vars.insert("royalty_strategy", &royalty_strategy);
-        vars.insert("mint_functions", &mint_functions);
-        vars.insert("tags", &tags);
-        vars.insert("url", url);
+        vars.insert("type_declarations", &type_declarations);
+        vars.insert("init_function", &init_fn);
+        vars.insert("entry_functions", &entry_fns);
 
         // Marketplace and Listing objects
-        vars.insert("init_marketplace", &init_marketplace);
-        vars.insert("init_listings", &init_listings);
-        vars.insert("share_marketplace", &share_marketplace);
+        // vars.insert("init_marketplace", &init_marketplace);
+        // vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars
             .into_iter()
