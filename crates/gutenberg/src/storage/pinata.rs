@@ -138,8 +138,7 @@ impl PinataSetup {
 
             Err(anyhow!(format!(
                 "Error uploading batch with status ({}): {}",
-                status,
-                body
+                status, body
             )))
         }
     }
