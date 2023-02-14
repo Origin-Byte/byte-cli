@@ -39,7 +39,7 @@ pub fn positive_integer_validator(input: &String) -> Result<(), String> {
         Err(format!("Couldn't parse '{input}' to a number."))
     } else {
         let numb = input.parse::<u64>().unwrap();
-        if numb > 0 {
+        if numb <= 0 {
             Err(format!(
                 "The number {input} provided has to be bigger than 0."
             ))
