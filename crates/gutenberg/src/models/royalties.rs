@@ -99,7 +99,7 @@ impl RoyaltyPolicy {
             )
         } else {
             let mut vecmap =
-                String::from("let royalty_map = vec_map::empty();\n");
+                String::from("\n        let royalty_map = vec_map::empty();\n");
 
             royalty_shares
                 .iter()

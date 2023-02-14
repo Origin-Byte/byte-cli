@@ -45,7 +45,7 @@ impl TagsMod {
     }
 
     pub fn add_collection_domain() -> String {
-        "tags::add_collection_tag_domain(
+        "        tags::add_collection_tag_domain(
             delegated_witness,
             &mut collection,
             tags,

@@ -151,7 +151,7 @@ impl Settings {
 
         if self.loose {
             code.push_str(
-                "transfer::transfer(templates, tx_context::sender(ctx));",
+                "        transfer::transfer(templates, tx_context::sender(ctx));",
             )
         }
 
@@ -181,10 +181,10 @@ impl Settings {
 
     pub fn write_loose(&self, collection: &CollectionData) -> String {
         format!(
-            "let templates = templates::new_templates<{name}>(
+            "\n        let templates = templates::new_templates<{witness}>(
                 ctx,
             );\n",
-            name = collection.name
+            witness = collection.witness_name(),
         )
     }
 
@@ -348,62 +348,6 @@ impl SupplyPolicy {
         }
     }
 }
-
-// #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
-// pub struct Behaviours {
-//     pub composable: bool,
-//     pub loose: bool,
-// }
-
-// impl Behaviours {
-//     pub fn new(fields_vec: Vec<String>) -> Result<Behaviours, GutenError> {
-//         let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
-
-//         let behaviours = Behaviours::fields();
-
-//         let field_struct = behaviours
-//             .iter()
-//             .map(|f| {
-//                 let v = fields_to_add.contains(f);
-//                 (f.clone(), v)
-//             })
-//             .collect::<Vec<(String, bool)>>();
-
-//         Behaviours::from_map(&field_struct)
-//     }
-
-//     fn from_map(map: &Vec<(String, bool)>) -> Result<Behaviours, GutenError> {
-//         let mut field_struct = Behaviours::default();
-
-//         for (f, v) in map {
-//             match f.as_str() {
-//                 "composable" => {
-//                     field_struct.composable = *v;
-//                     Ok(())
-//                 }
-//                 "loose" => {
-//                     field_struct.loose = *v;
-//                     Ok(())
-//                 }
-//                 _ => Err(GutenError::UnsupportedNftBehaviour),
-//             }?;
-//         }
-
-//         Ok(field_struct)
-//     }
-
-//     pub fn fields() -> Vec<String> {
-//         let field_struct = Behaviours::default();
-//         let mut fields: Vec<String> = Vec::new();
-
-//         for (i, _) in field_struct.iter_fields().enumerate() {
-//             let field_name = field_struct.name_at(i).unwrap();
-
-//             fields.push(field_name.to_string());
-//         }
-//         fields
-//     }
-// }
 
 #[derive(Debug, Deserialize, Serialize, Default, Reflect)]
 pub struct MintPolicies {

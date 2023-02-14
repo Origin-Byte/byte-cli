@@ -58,8 +58,7 @@ impl Schema {
             self.witness_name()
         );
 
-        let init_collection = "
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let init_collection = "let (mint_cap, collection) = collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&Witness {});\n";
 
         let domains = self.collection.write_domains();
@@ -73,7 +72,7 @@ impl Schema {
 
         format!(
             "{signature} {{
-                {init_collection}
+        {init_collection}
         {domains}
         {feature_domains}
         {transfer_fns}

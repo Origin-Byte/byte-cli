@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::err::GutenError;
+use crate::{contract::modules::TagsMod, err::GutenError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Tag {
@@ -92,21 +92,9 @@ impl Tags {
         }
 
         if is_collection {
-            code.push_str(
-                "tags::add_collection_tag_domain(
-                    delegated_witness,
-                    &mut collection,
-                    tags,
-                );\n",
-            );
+            code.push_str(TagsMod::add_collection_domain().as_str());
         } else {
-            code.push_str(
-                "tags::add_tag_domain(
-                    delegated_witness,
-                    &mut nft,
-                    tags,
-                );\n",
-            );
+            code.push_str(TagsMod::add_nft_domain().as_str());
         }
 
         code
