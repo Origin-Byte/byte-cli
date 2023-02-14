@@ -1,12 +1,15 @@
 use anyhow::{anyhow, Result};
 use gutenberg::{package, Schema};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
+use std::process::Output;
 use std::{
     fs::{self, File},
     process::{Command, Stdio},
 };
+
+use crate::models::sui_output::SuiOutput;
 
 pub fn parse_config(config_file: &Path) -> Result<Schema> {
     let file = File::open(config_file).map_err(|err| {
@@ -118,8 +121,14 @@ pub fn publish_contract(
     contract_dir: &Path,
 ) -> Result<()> {
     let gas_budget = gas_budget.to_string();
-    let mut args =
-        vec!["client", "publish", "--json", "--gas-budget", &gas_budget];
+    let mut args = vec![
+        "client",
+        "publish",
+        "--json",
+        "--gas-budget",
+        &gas_budget,
+        "--skip-dependency-verification",
+    ];
     if let Some(client_config) = client_config {
         args.append(&mut vec![
             "client.config",
@@ -143,5 +152,23 @@ pub fn publish_contract(
 
     println!("{output:?}");
 
+    // let sui_output = SuiOutput::from_output(&output);
+
+    // println!("YOOOOOH \n {sui_output:?}");
+
     Ok(())
 }
+
+// pub fn print_certificate(output: Output) {
+//     // ----- Certificate ----
+//     // Transaction Hash: TransactionDigest(2WmrfxMgQoFUEXGi9wcKvQXqqaXFF2qKyvcagH1KEb6W)
+//     // Transaction Signature: AA==@9gqzLGPc7GrLUoo/wIr1OVPSP5/ZzbKnLYMJNlcp1bThdwm9mQVxbOWCvG4Bk8eiiM+Ri5O8m2ENG8Cg7CZGDA==@xmYzcPMFXID/19jg9KxYpxL27OiKwgPFkAA5a/m0rTc=
+//     // Signed Authorities Bitmap: RoaringBitmap<[0, 1, 2]>
+//     // Transaction Kind : Publish
+//     // Sender: 0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143
+//     // Gas Payment: Object ID: 0x0e2905e94f7b4a815099a1088d18d37508fe56b8, version: 0xa64, digest: o#45SuCHJCltvTn3A2IK7BohG/0YivU8OGnZ3l3t5OYss=
+//     // Gas Price: 1
+//     // Gas Budget: 60000
+//     println!("----- Certificate ----");
+//     println!("Transaction Hash: TransactionDigest({})", output)
+// }

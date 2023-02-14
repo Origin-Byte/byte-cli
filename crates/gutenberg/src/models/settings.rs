@@ -461,7 +461,6 @@ impl MintPolicies {
         }
 
         args.push_str("        mint_cap: &MintCap<SUIMARINES>,\n");
-        args.push_str("        ctx: &mut TxContext,\n");
 
         params.push_str("            mint_cap,\n");
         params.push_str("            ctx,");
@@ -478,12 +477,14 @@ impl MintPolicies {
                     );
                     transfer
                         .push_str("warehouse::deposit_nft(warehouse, nft);");
-                    fun_name.push_str("mint_to_launchpad")
+                    fun_name.push_str("mint_to_launchpad");
+                    args.push_str("        ctx: &mut TxContext,\n");
                 }
                 _ => {
                     args.push_str("        receiver: address,");
                     transfer.push_str("transfer::transfer(nft, receiver);");
-                    fun_name.push_str("mint_to_address")
+                    fun_name.push_str("mint_to_address");
+                    args.push_str("        ctx: &mut TxContext,\n");
                 }
             }
 
@@ -509,6 +510,8 @@ impl MintPolicies {
             let build_nft = "let nft =
             nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
         let delegated_witness = witness::from_witness(&Witness {});\n";
+
+            args.push_str("        ctx: &mut TxContext,\n");
 
             code = format!(
                 "\n
