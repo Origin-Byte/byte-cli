@@ -1,13 +1,11 @@
 use crate::prelude::get_dialoguer_theme;
 
 use super::{address_validator, number_validator, sender, FromPrompt};
-use colored::Colorize;
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
     models::marketplace::{Listing, Listings, Market},
     Schema,
 };
-use terminal_link::Link;
 
 const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
 
@@ -91,48 +89,6 @@ impl FromPrompt for Listing {
 
 impl FromPrompt for Listings {
     fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
-    where
-        Self: Sized,
-    {
-        let theme = get_dialoguer_theme();
-
-        let admin = Input::with_theme(&theme)
-            .with_prompt("What is the address of the listing administrator?")
-            .default(sender().to_string())
-            .validate_with(address_validator)
-            .interact()
-            .unwrap();
-
-        let receiver = Input::with_theme(&theme)
-            .with_prompt("What is the address that receives the sale proceeds?")
-            .default(sender().to_string())
-            .validate_with(address_validator)
-            .interact()
-            .unwrap();
-
-        let link = format!("{}", Link::new("documentation", "https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing"));
-
-        let number = Input::with_theme(&theme)
-            .with_prompt(
-                format!("How many listings do you plan on having? Check our {} to learn more about listings.", link.blue()),
-            )
-            .default("1".to_string())
-            .validate_with(number_validator)
-            .interact()?
-            .parse::<u64>()?;
-
-        let mut markets = vec![];
-
-        for _ in 0..number {
-            markets.push(Market::from_prompt()?);
-        }
-
-        Ok(Listing::new(markets))
-    }
-}
-
-impl FromPrompt for Listings {
-    fn from_prompt() -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
