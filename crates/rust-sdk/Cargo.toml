@@ -13,7 +13,9 @@ sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui", branch = "devn
 sui-adapter = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
 sui-framework-build = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
 sui-framework = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
-move-package = { git = "https://github.com/move-language/move", rev = "a8e95cbae69564d8928c9873b8acfabc50e642cf" }
+sui-config = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
+sui-source-validation = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
+move-package = { git = "https://github.com/move-language/move", rev = "652badf6fd67e1d4cc2aa6dc69d63ad14083b673" }
 
 thiserror = "1.0"
 strfmt = "0.2"

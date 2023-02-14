@@ -91,7 +91,8 @@ async fn run() -> Result<()> {
                 client_config.as_deref(),
                 &schema,
                 contract_dir.as_path(),
-            )?;
+            )
+            .await?;
         }
         Commands::MintNfts {
             config,

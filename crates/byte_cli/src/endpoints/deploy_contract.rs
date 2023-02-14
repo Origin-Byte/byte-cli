@@ -10,6 +10,7 @@ use std::{
 };
 
 use crate::models::sui_output::SuiOutput;
+use rust_sdk::publish;
 
 pub fn parse_config(config_file: &Path) -> Result<Schema> {
     let file = File::open(config_file).map_err(|err| {
@@ -114,43 +115,48 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
     })
 }
 
-pub fn publish_contract(
+pub async fn publish_contract(
     gas_budget: usize,
     client_config: Option<&Path>,
     schema: &Schema,
     contract_dir: &Path,
 ) -> Result<()> {
-    let gas_budget = gas_budget.to_string();
-    let mut args = vec![
-        "client",
-        "publish",
-        "--json",
-        "--gas-budget",
-        &gas_budget,
-        "--skip-dependency-verification",
-    ];
-    if let Some(client_config) = client_config {
-        args.append(&mut vec![
-            "client.config",
-            client_config.to_str().unwrap(),
-        ]);
-    }
+    let client = publish::get_client().await.unwrap();
+    let keystore = publish::get_keystore().await.unwrap();
 
-    let package_path = contract_dir.to_str().unwrap();
-    args.push(package_path);
+    publish::publish_contract(&client, &keystore).await;
 
-    let module_name = schema.module_name();
+    // let gas_budget = gas_budget.to_string();
+    // let mut args = vec![
+    //     "client",
+    //     "publish",
+    //     "--json",
+    //     "--gas-budget",
+    //     &gas_budget,
+    //     "--skip-dependency-verification",
+    // ];
+    // if let Some(client_config) = client_config {
+    //     args.append(&mut vec![
+    //         "client.config",
+    //         client_config.to_str().unwrap(),
+    //     ]);
+    // }
 
-    // Could not pull sui-sdk as a dependency so yolo
-    let output = Command::new("sui")
-        .args(args)
-        .stdout(Stdio::inherit())
-        .output()
-        .map_err(|err| {
-            anyhow!(r#"Could not publish module "{module_name}": {err}"#)
-        })?;
+    // let package_path = contract_dir.to_str().unwrap();
+    // args.push(package_path);
 
-    println!("{output:?}");
+    // let module_name = schema.module_name();
+
+    // // Could not pull sui-sdk as a dependency so yolo
+    // let output = Command::new("sui")
+    //     .args(args)
+    //     .stdout(Stdio::inherit())
+    //     .output()
+    //     .map_err(|err| {
+    //         anyhow!(r#"Could not publish module "{module_name}": {err}"#)
+    //     })?;
+
+    // println!("{output:?}");
 
     // let sui_output = SuiOutput::from_output(&output);
 
