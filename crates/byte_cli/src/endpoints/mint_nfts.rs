@@ -3,7 +3,6 @@ use gutenberg::Schema;
 use std::{fs::File, path::PathBuf};
 use walkdir::WalkDir;
 
-// TODO: Harcode the data here!
 use rust_sdk::mint::{self, NftData};
 
 pub async fn mint_nfts(

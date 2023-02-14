@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use ini::ini;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
-
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{path::Path, str::FromStr, sync::Arc};
@@ -20,6 +20,52 @@ pub struct AWSConfig {
     pub directory: String,
     pub region: String,
     pub profile: String,
+}
+
+impl AWSConfig {
+    pub fn new(
+        bucket: String,
+        directory: String,
+        region: String,
+        profile: String,
+    ) -> Self {
+        Self {
+            bucket,
+            directory,
+            region,
+            profile,
+        }
+    }
+
+    pub fn new_from_profile() -> Self {
+        todo!()
+    }
+
+    pub fn get_region(profile: &str) -> Result<Region> {
+        let home_dir = dirs::home_dir()
+            .expect("Unexpected error: Could not find home directory.");
+        let config_path = home_dir.join(Path::new(".aws/config"));
+        let aws_config = ini!(config_path
+            .to_str()
+            .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
+
+        let region = &aws_config
+            .get(profile)
+            .ok_or_else(|| {
+                anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally")
+            })?
+            .get("region")
+            .ok_or_else(|| {
+                anyhow!("Region not found in AWS config file!")
+            })?
+            .as_ref()
+            .ok_or_else(|| {
+                anyhow!("Unexpected error: Failed while fetching AWS region from config file.")
+            })?
+            .to_string();
+
+        Ok(region.parse()?)
+    }
 }
 
 pub struct AWSSetup {

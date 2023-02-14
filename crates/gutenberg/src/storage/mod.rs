@@ -15,8 +15,8 @@ pub enum Storage {
     Aws(AWSConfig),
     Undefined,
     Pinata(PinataConfig),
-    // Bundlr(BundlrConfig),
     NftStorage(NftStorageConfig),
+    // Bundlr(BundlrConfig),
     // Shdw(ShdwConfig),
 }
 

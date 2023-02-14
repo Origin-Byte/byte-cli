@@ -10,3 +10,4 @@ Cargo.lock
 
 suimarines/
 .vscode/
+.DS_Store

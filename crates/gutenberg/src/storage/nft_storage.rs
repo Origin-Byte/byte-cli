@@ -48,12 +48,11 @@ pub struct NftStorageConfig {
     pub auth_token: String,
 }
 
-// pub struct Setup {
-//     pub client: Client,
-//     pub endpoint: url::Url,
-//     pub content_gateway: String,
-//     pub parallel_limit: u16,
-// }
+impl NftStorageConfig {
+    pub fn new(auth_token: String) -> Self {
+        Self { auth_token }
+    }
+}
 
 pub struct NftStorageSetup {
     client: Arc<Client>,
@@ -138,7 +137,7 @@ impl Uploader for NftStorageSetup {
 
             upload_size += size;
             upload_count += 1;
-            current.push(&asset);
+            current.push(asset);
         }
         // adds the last chunk if there is one
         if !current.is_empty() {

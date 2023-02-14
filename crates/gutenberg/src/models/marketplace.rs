@@ -56,11 +56,11 @@ pub struct Listing {
 }
 
 impl Listing {
-    pub fn new(market: Market) -> Self {
+    pub fn new(markets: Vec<Market>) -> Self {
         Self {
             admin: String::new(),
             receiver: String::new(),
-            markets: vec![market],
+            markets,
         }
     }
 

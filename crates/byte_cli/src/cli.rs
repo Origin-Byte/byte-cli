@@ -3,7 +3,9 @@ use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
 use std::path::PathBuf;
 
-pub use crate::consts::DEFAULT_ASSETS_FOLDER;
+pub use crate::consts::{
+    DEFAULT_ASSETS_FOLDER, DEFAULT_CONFIG_FILENAME, DEFAULT_FOLDER,
+};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -16,23 +18,27 @@ pub struct Cli {
 pub enum Commands {
     /// Creates or adds confiiguration to JSON config file to be read by
     /// Gutenberg for the purpose of building the Move module
-    InitCollectionConfig { output_file: Option<PathBuf> },
+    ConfigCollection {
+        /// Path to the directory with the config file
+        #[clap(default_value = DEFAULT_FOLDER)]
+        config_dir: String,
+    },
 
     /// Creates or adds configuration to JSON config file to be read the asset
     /// deployer for the purpose of deploying assets, usually to an off-chain
     /// storage service
-    InitUploadConfig {
-        /// Path to the directory with the assets
-        #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
-        assets_dir: String,
+    ConfigUpload {
+        /// Path to the directory with the config file
+        #[clap(default_value = DEFAULT_FOLDER)]
+        config_dir: String,
     },
 
     /// Combines `init-collection-config` and `init-upload-config in one single
     /// flow, hence make the UX seamless for the majority of use cases
-    InitConfig {
-        /// Path to the directory with the assets
-        #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
-        assets_dir: String,
+    Config {
+        /// Path to the directory with the config file
+        #[clap(default_value = DEFAULT_FOLDER)]
+        config_dir: String,
     },
 
     /// Deploys assets to a storage service

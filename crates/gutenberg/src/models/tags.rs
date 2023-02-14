@@ -106,4 +106,8 @@ impl Tags {
 
         Ok(())
     }
+
+    pub fn has_tags(&self) -> bool {
+        self.0.len() > 0
+    }
 }

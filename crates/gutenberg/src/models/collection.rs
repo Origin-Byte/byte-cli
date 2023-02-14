@@ -50,8 +50,8 @@ impl Collection {
         self.symbol = symbol;
     }
 
-    pub fn set_url(&mut self, symbol: String) {
-        self.symbol = symbol;
+    pub fn set_url(&mut self, url: String) {
+        self.url = Some(url);
     }
 
     pub fn set_tags(&mut self, tags: Tags) {

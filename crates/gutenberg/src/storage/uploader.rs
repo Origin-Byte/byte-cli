@@ -35,7 +35,7 @@ impl<T: ParallelUploader> Uploader for T {
     /// Uploads assets in parallel. It creates [`self::parallel_limit()`] tasks at a time to avoid
     /// reaching the limit of concurrent files open and it syncs the cache file at every `self.parallel_limit() / 2`
     /// step.
-    async fn upload(&self, assets: &Vec<Asset>) -> Result<()> {
+    async fn upload(&self, _assets: &Vec<Asset>) -> Result<()> {
         todo!()
     }
 }

@@ -3,6 +3,7 @@ pub mod cli;
 pub mod consts;
 pub mod endpoints;
 pub mod err;
+pub mod io;
 pub mod models;
 pub mod prelude;
 
@@ -35,22 +36,31 @@ async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::InitCollectionConfig { output_file } => {
-            let schema = &init_config::init_collection_config()?;
-            init_config::write_config(
-                schema,
-                output_file
-                    .unwrap_or_else(|| {
-                        let mut path = PathBuf::new();
-                        path.push(&schema.collection.name.to_lowercase());
-                        path.set_extension("json");
-                        path
-                    })
-                    .as_path(),
-            )?;
+        Commands::ConfigCollection { config_dir } => {
+            let path = io::get_path_buf(config_dir.as_str());
+            let mut schema = io::try_read_config(&path)?;
+
+            schema = config_collection::init_collection_config(schema)?;
+
+            io::write_config(&schema, path.as_path())?;
         }
-        Commands::InitUploadConfig { assets_dir: _ } => {}
-        Commands::InitConfig { assets_dir: _ } => {}
+        Commands::ConfigUpload { config_dir } => {
+            let path = io::get_path_buf(config_dir.as_str());
+            let mut schema = io::try_read_config(&path)?;
+
+            schema = config_upload::init_upload_config(schema)?;
+
+            io::write_config(&schema, path.as_path())?;
+        }
+        Commands::Config { config_dir } => {
+            let path = io::get_path_buf(config_dir.as_str());
+            let mut schema = io::try_read_config(&path)?;
+
+            schema = config_collection::init_collection_config(schema)?;
+            schema = config_upload::init_upload_config(schema)?;
+
+            io::write_config(&schema, path.as_path())?;
+        }
         Commands::DeployAssets { assets_dir } => {
             deploy_assets::deploy_assets(assets_dir.as_str()).await?
         }

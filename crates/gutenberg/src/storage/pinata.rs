@@ -9,7 +9,7 @@ use reqwest::{
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{path::Path, str::FromStr, sync::Arc};
+use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::storage::uploader::Asset;
@@ -44,6 +44,16 @@ pub struct PinataConfig {
     // TODO: Reconsider this limit
     #[serde(default = "default_limit")]
     pub parallel_limit: u16,
+}
+
+impl PinataConfig {
+    pub fn new(jwt: String, gateway: String, parallel_limit: u16) -> Self {
+        Self {
+            jwt,
+            gateway,
+            parallel_limit,
+        }
+    }
 }
 
 pub struct Setup {
@@ -128,8 +138,7 @@ impl PinataSetup {
 
             Err(anyhow!(format!(
                 "Error uploading batch with status ({}): {}",
-                status,
-                body.to_string()
+                status, body
             )))
         }
     }
