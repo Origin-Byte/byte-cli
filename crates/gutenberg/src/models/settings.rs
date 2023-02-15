@@ -49,18 +49,13 @@ impl Settings {
     }
 
     pub fn is_empty(&self) -> bool {
-        if self.tags.is_none()
+        self.tags.is_none()
             && self.royalties.is_none()
             && self.mint_policies.is_empty()
             && self.composability.is_none()
             && !self.loose
             && self.supply_policy.is_empty()
             && self.listings.is_none()
-        {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     pub fn set_tags(&mut self, tags: Tags) {
@@ -321,10 +316,7 @@ impl SupplyPolicy {
     }
 
     pub fn is_empty(&self) -> bool {
-        match self {
-            SupplyPolicy::Undefined => true,
-            _ => false,
-        }
+        matches!(self, SupplyPolicy::Undefined)
     }
 
     pub fn write_domain(&self) -> Result<String, GutenError> {
@@ -374,11 +366,7 @@ impl MintPolicies {
     }
 
     pub fn is_empty(&self) -> bool {
-        if !self.launchpad && !self.airdrop && !self.direct {
-            return true;
-        } else {
-            return false;
-        }
+        !self.launchpad && !self.airdrop && !self.direct
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<MintPolicies, GutenError> {

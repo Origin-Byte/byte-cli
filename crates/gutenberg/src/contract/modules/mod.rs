@@ -48,9 +48,9 @@ impl Modules {
     pub fn from_schema(schema: &Schema) -> Self {
         Modules {
             string: true,
-            vec_set: schema.collection.creators.len() > 0,
+            vec_set: !schema.collection.creators.is_empty(),
             vec_map: schema.settings.royalties.is_some(),
-            url: schema.collection.url.is_some() || schema.nft.url == true,
+            url: schema.collection.url.is_some() || schema.nft.url,
             balance: schema.settings.royalties.is_some(),
             transfer: true,
             tx_context: true,

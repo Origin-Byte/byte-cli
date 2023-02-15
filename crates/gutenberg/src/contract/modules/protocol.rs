@@ -15,7 +15,7 @@ impl Module for NftMod {
 }
 
 impl NftMod {
-    pub fn new(receiver: &str) -> String {
+    pub fn new_nft(receiver: &str) -> String {
         format!("nft::new(&Witness {{}}, mint_cap, {}, ctx);\n", receiver)
     }
 
@@ -179,45 +179,40 @@ impl DisplayMod {
     }
 
     pub fn add_nft_display() -> String {
-        format!(
-            "display::add_display_domain(
+        "display::add_display_domain(
             delegated_witness, &mut nft, name, description, ctx,
         );\n"
-        )
+            .to_string()
     }
 
     pub fn add_nft_url() -> String {
-        format!(
-            "        display::add_url_domain(
+        "        display::add_url_domain(
             delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );\n"
-        )
+            .to_string()
     }
 
     pub fn add_nft_attributes() -> String {
-        format!(
-            "        display::add_attributes_domain_from_vec(
+        "        display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values, ctx,
         );\n"
-        )
+            .to_string()
     }
 
     pub fn add_display_args() -> String {
-        format!(
-            "name: String,
+        "name: String,
         description: String,\n"
-        )
+            .to_string()
     }
 
     pub fn add_url_args() -> String {
-        format!("        url: vector<u8>,\n")
+        "        url: vector<u8>,\n".to_string()
     }
 
     pub fn add_attributes_args() -> String {
-        format!(
-            "        attribute_keys: vector<String>,
+        "        attribute_keys: vector<String>,
         attribute_values: vector<String>,\n"
-        )
+            .to_string()
     }
 
     pub fn add_display_params() -> String {
@@ -227,14 +222,13 @@ impl DisplayMod {
     }
 
     pub fn add_url_params() -> String {
-        format!("            url,\n")
+        "            url,\n".to_string()
     }
 
     pub fn add_attributes_params() -> String {
-        format!(
-            "            attribute_keys,
+        "            attribute_keys,
             attribute_values,\n"
-        )
+            .to_string()
     }
 }
 

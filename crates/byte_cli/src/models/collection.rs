@@ -1,6 +1,5 @@
 use super::{
-    address_validator, positive_integer_validator, sender,
-    FromPrompt,
+    address_validator, positive_integer_validator, sender, FromPrompt,
 };
 use crate::prelude::get_dialoguer_theme;
 

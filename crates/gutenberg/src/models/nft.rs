@@ -37,11 +37,7 @@ impl NftData {
     }
 
     pub fn is_empty(&self) -> bool {
-        if !self.display && !self.url && !self.attributes && !self.tags {
-            return true;
-        } else {
-            return false;
-        }
+        !self.display && !self.url && !self.attributes && !self.tags
     }
 
     fn from_map(map: &Vec<(String, bool)>) -> Result<NftData, GutenError> {

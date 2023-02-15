@@ -61,7 +61,7 @@ impl RoyaltyPolicy {
                     .iter()
                     .zip(shares_vec.iter())
                     .map(|(address, share)| {
-                        shares.push(Share::new(address.clone(), share.clone()))
+                        shares.push(Share::new(address.clone(), *share))
                     })
                     .for_each(drop);
             };

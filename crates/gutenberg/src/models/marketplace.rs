@@ -65,7 +65,7 @@ impl Listing {
     }
 
     pub fn write_admin(&self) -> String {
-        if self.admin == "tx_context::sender(ctx)".to_string() {
+        if self.admin == *"tx_context::sender(ctx)".to_string() {
             "tx_context::sender(ctx)".to_string()
         } else {
             format!("@{}", self.admin)
@@ -73,7 +73,7 @@ impl Listing {
     }
 
     pub fn write_receiver(&self) -> String {
-        if self.receiver == "tx_context::sender(ctx)".to_string() {
+        if self.receiver == *"tx_context::sender(ctx)".to_string() {
             "tx_context::sender(ctx)".to_string()
         } else {
             format!("@{}", self.receiver)

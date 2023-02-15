@@ -52,15 +52,12 @@ pub enum Commands {
 
     /// Deploys NFT contract to Sui Blockchain
     DeployContract {
-        /// Path to directory containing a Move package
-        config: PathBuf,
+        /// Path to the configuration folder
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: PathBuf,
         /// Gas budget for running module initializers
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
-        /// Sets the file for storing the state of user accounts
-        client_config: Option<PathBuf>,
-        /// Sets output directory
-        output_dir: Option<PathBuf>,
     },
 
     /// Mints NFTs by calling the deployed contract

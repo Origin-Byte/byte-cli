@@ -3,7 +3,10 @@ use gutenberg::Schema;
 use std::{fs::File, path::PathBuf};
 use walkdir::WalkDir;
 
-use rust_sdk::mint::{self, NftData};
+use rust_sdk::{
+    mint::{self, NftData},
+    utils::{get_client, get_keystore},
+};
 
 pub async fn mint_nfts(
     schema: &Schema,
@@ -19,8 +22,8 @@ pub async fn mint_nfts(
     // Push the folder data, where the json metadata is stored.
     config_path.push("data");
 
-    let client = mint::get_client().await.unwrap();
-    let keystore = mint::get_keystore().await.unwrap();
+    let client = get_client().await.unwrap();
+    let keystore = get_keystore().await.unwrap();
 
     if warehouse_id.is_none() {
         warehouse_id =

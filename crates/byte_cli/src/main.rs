@@ -13,7 +13,6 @@ use endpoints::*;
 use anyhow::Result;
 use clap::Parser;
 use console::style;
-use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() {
@@ -69,17 +68,13 @@ async fn run() -> Result<()> {
             deploy_assets::deploy_assets(assets_dir.as_str()).await?
         }
         Commands::DeployContract {
-            config,
-            output_dir,
+            project_dir,
             gas_budget,
-            client_config,
         } => {
-            let schema = deploy_contract::parse_config(config.as_path())?;
-            let contract_dir = output_dir.unwrap_or_else(|| {
-                let mut path = PathBuf::new();
-                path.push(&schema.collection.name.to_lowercase());
-                path
-            });
+            let schema = deploy_contract::parse_config(project_dir.as_path())?;
+
+            let mut contract_dir = project_dir.clone();
+            contract_dir.push("contract");
 
             deploy_contract::generate_contract(
                 &schema,
@@ -88,8 +83,6 @@ async fn run() -> Result<()> {
 
             deploy_contract::publish_contract(
                 gas_budget,
-                client_config.as_deref(),
-                &schema,
                 contract_dir.as_path(),
             )
             .await?;

@@ -110,6 +110,6 @@ impl Tags {
     }
 
     pub fn has_tags(&self) -> bool {
-        self.0.len() > 0
+        !self.0.is_empty()
     }
 }
