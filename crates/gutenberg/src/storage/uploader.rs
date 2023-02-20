@@ -96,7 +96,6 @@ impl<T: ParallelUploader> Uploader for T {
         lazy: bool,
     ) -> Result<()> {
         println!("I am here...");
-        // let mut handles = Vec::new();
         let mut set = JoinSet::new();
 
         let mut current_batch = 0;
@@ -111,81 +110,6 @@ impl<T: ParallelUploader> Uploader for T {
         while let Some(res) = set.join_next().await {
             res.unwrap().unwrap().unwrap();
         }
-
-        // let handles = assets
-        //     .drain(..)
-        //     .map(|asset| self.upload_asset(asset))
-        //     .collect::<Vec<JoinHandle<Result<UploadedAsset>>>>();
-
-        // let mut uploaded_assets = Vec::new();
-        // for handle in handles {
-        //     uploaded_assets.push(handle.await.unwrap());
-        // }
-
-        // let one_sec = time::Duration::from_millis(10_000);
-        // thread::sleep(one_sec);
-
-        // while !assets.is_empty() {
-        //     for asset in assets.drain(0..cmp::min(batch_size, assets.len())) {
-        //         handles.push(self.upload_asset(asset));
-
-        //         while !interrupt.load(Ordering::SeqCst) && !handles.is_empty() {
-        //             // The returned future will wait for any future within iter to be
-        //             // ready. Upon completion the item resolved will be returned,
-        //             // along with the index of the future that was ready and the
-        //             // list of all the remaining futures.
-        //             match select_all(handles).await {
-        //                 (Ok(res), _index, remaining) => {
-        //                     handles = remaining;
-        //                     if res.is_ok() {
-        //                         let uploaded_asset = res?;
-        //                         let item = state
-        //                             .uploaded_items
-        //                             .0
-        //                             .get_mut(&uploaded_asset.id)
-        //                             .unwrap();
-
-        //                         item.link = uploaded_asset.link.clone();
-
-        //                         current_batch += 1;
-        //                     } else {
-        //                         let err = GutenError::UploadError(format!(
-        //                             "Upload error: {:?}",
-        //                             res.err().unwrap()
-        //                         ));
-
-        //                         if !lazy {
-        //                             return Err(anyhow!(format!(
-        //                                 "Error: {}",
-        //                                 err
-        //                             )));
-        //                         } else {
-        //                             // user will need to retry the upload
-        //                             errors.push(err);
-        //                         }
-        //                     }
-        //                 }
-        //                 (Err(err), _index, remaining) => {
-        //                     handles = remaining;
-        //                     let error = GutenError::UploadError(format!(
-        //                         "Upload error: {:?}",
-        //                         err
-        //                     ));
-
-        //                     if !lazy {
-        //                         return Err(anyhow!(format!(
-        //                             "Error: {}",
-        //                             error
-        //                         )));
-        //                     } else {
-        //                         // user will need to retry the upload
-        //                         errors.push(error);
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
 
         println!("SERVICE DONE");
 

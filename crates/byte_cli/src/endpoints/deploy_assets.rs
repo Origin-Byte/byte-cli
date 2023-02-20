@@ -84,13 +84,6 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
             uploader
                 .upload(&mut assets, &mut storage_state, false)
                 .await?;
-
-            // storage::upload_data(
-            //     &mut assets,
-            //     &mut storage_state,
-            //     false,
-            //     uploader,
-            // );
         }
         Storage::Pinata(config) => {}
         Storage::NftStorage(config) => {}

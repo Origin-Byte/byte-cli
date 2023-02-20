@@ -2,6 +2,7 @@ use crate::err::{self, RustSdkError};
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use std::sync::Arc;
 use sui_keys::keystore::{AccountKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -13,6 +14,8 @@ use sui_sdk::{
 };
 use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
+
+use tokio::task::{AbortHandle, JoinHandle, JoinSet};
 
 pub const NFT_PROTOCOL: &str = "0xa672b029392522d76849990dfcf72d9249d1d522";
 pub const MY_ADDRESS: &str = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143";
@@ -99,20 +102,44 @@ pub enum SuiArgType {
     ObjectId,
 }
 
+pub async fn handle_mint_nft(
+    sui: Arc<SuiClient>,
+    keystore: Arc<Keystore>,
+    nft_data: NftData,
+    package_id: Arc<String>,
+    warehouse_id: Arc<String>,
+    module_name: Arc<String>,
+    gas_budget: Arc<u64>,
+) -> JoinHandle<Result<ObjectID, RustSdkError>> {
+    tokio::spawn(async move {
+        mint_nft(
+            sui,
+            keystore,
+            nft_data,
+            package_id,
+            warehouse_id,
+            module_name,
+            gas_budget,
+        )
+        .await
+    })
+}
+
 pub async fn mint_nft(
-    sui: &SuiClient,
-    keystore: &Keystore,
-    nft_data: &NftData,
-    package_id: &str,
-    warehouse_id: &str,
-    _module_name: &str,
+    sui: Arc<SuiClient>,
+    keystore: Arc<Keystore>,
+    nft_data: NftData,
+    package_id: Arc<String>,
+    warehouse_id: Arc<String>,
+    module_name: Arc<String>,
+    gas_budget: Arc<u64>,
 ) -> Result<ObjectID, RustSdkError> {
     let address = SuiAddress::from_str(MY_ADDRESS)?;
-    let package_id = ObjectID::from_str(package_id)
-        .map_err(|err| err::object_id(err, package_id))?;
+    let package_id = ObjectID::from_str(package_id.as_str())
+        .map_err(|err| err::object_id(err, package_id.as_str()))?;
 
-    let warehouse_id = ObjectID::from_str(warehouse_id)
-        .map_err(|err| err::object_id(err, warehouse_id))?;
+    let warehouse_id = ObjectID::from_str(warehouse_id.as_str())
+        .map_err(|err| err::object_id(err, warehouse_id.as_str()))?;
 
     let mut args = nft_data.to_map();
 
@@ -123,12 +150,12 @@ pub async fn mint_nft(
         .move_call(
             address,
             package_id,
-            "suimarines",
+            module_name.as_str(),
             "mint_nft",
             vec![],
             args,
-            None,   // Gas object, Node can pick on itself
-            100000, // Gas budget
+            None,       // Gas object, Node can pick on itself
+            *gas_budget, // Gas budget
         )
         .await?;
 
