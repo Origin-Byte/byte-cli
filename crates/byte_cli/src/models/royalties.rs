@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use anyhow::Result;
 
 use super::{
@@ -58,7 +60,7 @@ pub fn get_policy_type() -> Result<Option<RoyaltyPolicy>, anyhow::Error> {
                 .parse::<u64>()?;
 
             Ok(Some(RoyaltyPolicy::Proportional {
-                shares: Vec::new(),
+                shares: BTreeSet::new(),
                 bps,
             }))
         }
@@ -70,7 +72,7 @@ pub fn get_policy_type() -> Result<Option<RoyaltyPolicy>, anyhow::Error> {
                 .parse::<u64>()?;
 
             Ok(Some(RoyaltyPolicy::Constant {
-                shares: Vec::new(),
+                shares: BTreeSet::new(),
                 fee,
             }))
         }
@@ -88,7 +90,7 @@ pub fn are_royalty_owners_creators() -> bool {
         .unwrap()
 }
 
-pub fn get_beneficiaries() -> Vec<Share> {
+pub fn get_beneficiaries() -> BTreeSet<Share> {
     let theme = get_dialoguer_theme();
 
     let beneficiary_num = Input::with_theme(&theme)
@@ -99,7 +101,7 @@ pub fn get_beneficiaries() -> Vec<Share> {
         .parse::<u64>()
         .unwrap();
 
-    let mut shares: Vec<Share> = Vec::new();
+    let mut shares: BTreeSet<Share> = BTreeSet::new();
     let mut beneficiaries: Vec<String> = Vec::new();
     let mut shares_remaining: u64 = 10_000;
 
@@ -145,13 +147,13 @@ Note: Shares remaining: {}, please make sure the end sum amounts to 100% (i.e. 1
         };
 
         beneficiaries.push(address.clone());
-        shares.push(Share::new(address, share));
+        shares.insert(Share::new(address, share));
     }
 
     shares
 }
 
-pub fn royalty_shares(addresses: &Vec<String>) -> Vec<u64> {
+pub fn royalty_shares(addresses: &BTreeSet<String>) -> Vec<u64> {
     let theme = get_dialoguer_theme();
 
     let shares = addresses.iter().map(|address| {

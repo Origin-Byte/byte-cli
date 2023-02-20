@@ -3,11 +3,13 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 use crate::{
     consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
     contract::modules::DisplayMod,
     err::GutenError,
+    utils::validate_address,
 };
 
 /// Contains the metadata fields of the collection
@@ -22,7 +24,7 @@ pub struct CollectionData {
     /// The URL of the collection website
     pub url: Option<String>,
     /// The addresses of creators
-    pub creators: Vec<String>,
+    pub creators: BTreeSet<String>,
 }
 
 impl CollectionData {
@@ -31,7 +33,7 @@ impl CollectionData {
         description: String,
         symbol: String,
         url: Option<String>,
-        creators: Vec<String>,
+        creators: BTreeSet<String>,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -110,16 +112,27 @@ The Collection URL input `{}` is not valid.",
         Ok(())
     }
 
-    pub fn set_creators(&mut self, creators: Vec<String>) {
+    pub fn set_creators(
+        &mut self,
+        creators: BTreeSet<String>,
+    ) -> Result<(), GutenError> {
         if creators.len() > MAX_CREATORS_LENGTH {
-            return GutenError::UnsupportedCollectionInput(format!(
+            return Err(GutenError::UnsupportedCollectionInput(format!(
                 "The creators list provided surpasses the limit of {}. The list provided has {} addresses.",
                 MAX_CREATORS_LENGTH, creators.len()
-            ))?;
+            )));
         }
+
+        // Guarantees that creator addresses are valid
+        creators
+            .iter()
+            .map(|creator| validate_address(creator))
+            .collect::<Result<(), GutenError>>()?;
 
         // Validate that creator strings are addresses
         self.creators = creators;
+
+        Ok(())
     }
 
     pub fn write_domains(&self) -> String {
@@ -147,7 +160,7 @@ The Collection URL input `{}` is not valid.",
         &Witness {{}}, {address}, ctx,
     )",
                 name = self.name,
-                address = self.creators[0],
+                address = self.creators.first().unwrap(),
             )
         } else {
             code.push_str("let creators = vec_set::empty();\n");

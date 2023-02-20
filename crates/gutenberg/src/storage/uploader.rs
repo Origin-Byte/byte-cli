@@ -1,23 +1,9 @@
-use std::{
-    cmp,
-    path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::path::PathBuf;
 
-use futures::future::select_all;
-// use futures::stream::futures_unordered::FuturesUnordered;
-use futures::StreamExt;
-use std::sync::mpsc::{channel, Sender};
-use tokio::task::{AbortHandle, JoinHandle, JoinSet};
+use tokio::task::{JoinHandle, JoinSet};
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
-use std::{thread, time};
-
-use crate::err::GutenError;
 
 use super::StorageState;
 
@@ -92,16 +78,14 @@ impl<T: ParallelUploader> Uploader for T {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        state: &mut StorageState,
-        lazy: bool,
+        _state: &mut StorageState,
+        _lazy: bool,
     ) -> Result<()> {
         println!("I am here...");
         let mut set = JoinSet::new();
 
-        let mut current_batch = 0;
-        let batch_size = 50;
-
-        let num_jobs = assets.len();
+        // TODO: Cache strategy - need to add fault tolerance and recovery strategy
+        // TODO: Fail immediately as soon as one thread fails
 
         for asset in assets.drain(..) {
             set.spawn(self.upload_asset(asset));

@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use super::{
     address_validator, positive_integer_validator, sender, FromPrompt,
 };
@@ -20,7 +22,7 @@ impl FromPrompt for CollectionData {
             .interact()
             .unwrap();
 
-        collection.set_name(name);
+        collection.set_name(name)?;
 
         let description = Input::with_theme(&theme)
             .with_prompt("What is the description of the Collection?")
@@ -36,7 +38,7 @@ impl FromPrompt for CollectionData {
             .interact()
             .unwrap();
 
-        collection.set_symbol(symbol);
+        collection.set_symbol(symbol)?;
 
         let has_url = Confirm::with_theme(&theme)
             .with_prompt("Do you want to add a URL to your Collection Website?")
@@ -49,7 +51,7 @@ impl FromPrompt for CollectionData {
                 .interact()
                 .unwrap();
 
-            collection.set_url(url);
+            collection.set_url(url)?;
         };
 
         let creators_num = Input::with_theme(&theme)
@@ -60,7 +62,7 @@ impl FromPrompt for CollectionData {
             .parse::<u64>()
             .unwrap();
 
-        let mut creators = Vec::new();
+        let mut creators = BTreeSet::new();
 
         for i in 0..creators_num {
             // Loop checks if address is not duplicated
@@ -82,10 +84,10 @@ impl FromPrompt for CollectionData {
                 }
             };
 
-            creators.push(address);
+            creators.insert(address);
         }
 
-        collection.set_creators(creators);
+        collection.set_creators(creators)?;
 
         Ok(Some(collection))
     }

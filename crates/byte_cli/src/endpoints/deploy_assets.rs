@@ -1,14 +1,11 @@
-use std::env;
-use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
-
-use crate::aws;
 use anyhow::Result;
 use dotenv::dotenv;
 use glob::glob;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 
 use gutenberg::storage::{
-    self, aws::AWSSetup, Asset, Storage, StorageState, Uploader,
+    aws::AWSSetup, Asset, Storage, StorageState, Uploader,
 };
 use gutenberg::Schema;
 
@@ -19,11 +16,6 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
     dotenv().ok();
 
     println!("Storage Policy: {:?}", storage);
-
-    let region = env::var("REGION")?;
-    let bucket_name = env::var("BUCKET_NAME")?;
-
-    let client = aws::get_aws_client(region.as_str())?;
 
     let mut files: Vec<String> = vec![];
 
@@ -85,8 +77,8 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
                 .upload(&mut assets, &mut storage_state, false)
                 .await?;
         }
-        Storage::Pinata(config) => {}
-        Storage::NftStorage(config) => {}
+        Storage::Pinata(_config) => {}
+        Storage::NftStorage(_config) => {}
     }
 
     Ok(())
