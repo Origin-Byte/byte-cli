@@ -1,11 +1,8 @@
 use clap::{Parser, Subcommand};
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
-use std::path::PathBuf;
 
-pub use crate::consts::{
-    DEFAULT_ASSETS_FOLDER, DEFAULT_CONFIG_FILENAME, DEFAULT_FOLDER,
-};
+pub use crate::consts::{DEFAULT_CONFIG_FILENAME, DEFAULT_FOLDER};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -21,7 +18,7 @@ pub enum Commands {
     ConfigCollection {
         /// Path to the directory with the config file
         #[clap(default_value = DEFAULT_FOLDER)]
-        config_dir: String,
+        project_dir: String,
         #[clap(short, long, action)]
         complete: bool,
     },
@@ -32,7 +29,7 @@ pub enum Commands {
     ConfigUpload {
         /// Path to the directory with the config file
         #[clap(default_value = DEFAULT_FOLDER)]
-        config_dir: String,
+        project_dir: String,
     },
 
     /// Combines `init-collection-config` and `init-upload-config in one single
@@ -40,21 +37,21 @@ pub enum Commands {
     Config {
         /// Path to the directory with the config file
         #[clap(default_value = DEFAULT_FOLDER)]
-        config_dir: String,
+        project_dir: String,
     },
 
     /// Deploys assets to a storage service
     DeployAssets {
         /// Path to the directory with the assets
-        #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
-        assets_dir: String,
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
     },
 
     /// Deploys NFT contract to Sui Blockchain
     DeployContract {
         /// Path to the configuration folder
         #[clap(default_value = DEFAULT_FOLDER)]
-        project_dir: PathBuf,
+        project_dir: String,
         /// Gas budget for running module initializers
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
@@ -62,9 +59,8 @@ pub enum Commands {
 
     /// Mints NFTs by calling the deployed contract
     MintNfts {
-        /// Path to the directory with the assets
-        #[clap(default_value = DEFAULT_ASSETS_FOLDER)]
-        config: PathBuf,
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
         /// Gas budget for running module initializers
         #[clap(default_value_t = 60000)]
         gas_budget: usize,

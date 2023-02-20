@@ -44,9 +44,6 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
                 .interact()
                 .unwrap();
 
-            // TODO
-            // if region == "default" {}
-
             let bucket = Input::with_theme(&theme)
                 .with_prompt("What is the name of the S3 bucket?")
                 .interact()
@@ -59,9 +56,9 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
                 .unwrap();
 
             let config =
-                aws::AWSConfig::new(bucket, directory, region, profile);
+                aws::AWSConfig::new(bucket, directory, region, profile)?;
 
-            schema.storage = Storage::Aws(config);
+            schema.storage = Some(Storage::Aws(config));
 
             Ok(schema)
         }
@@ -97,7 +94,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
             let config =
                 pinata::PinataConfig::new(jwt, upload_gateway, parallel_limit);
 
-            schema.storage = Storage::Pinata(config);
+            schema.storage = Some(Storage::Pinata(config));
 
             Ok(schema)
         }
@@ -109,7 +106,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
 
             let config = nft_storage::NftStorageConfig::new(auth_token);
 
-            schema.storage = Storage::NftStorage(config);
+            schema.storage = Some(Storage::NftStorage(config));
 
             Ok(schema)
         }

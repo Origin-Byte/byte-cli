@@ -7,6 +7,8 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
+use std::path::{Path, PathBuf};
+
 use crate::prelude::*;
 use endpoints::*;
 
@@ -36,45 +38,65 @@ async fn run() -> Result<()> {
 
     match cli.command {
         Commands::ConfigCollection {
-            config_dir,
+            project_dir,
             complete,
         } => {
-            let path = io::get_path_buf(config_dir.as_str());
-            let mut schema = io::try_read_config(&path)?;
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("config.json");
+
+            let mut schema = io::try_read_config(&file_path)?;
 
             schema =
                 config_collection::init_collection_config(schema, complete)?;
 
-            io::write_config(&schema, path.as_path())?;
+            io::write_config(&schema, &file_path)?;
         }
-        Commands::ConfigUpload { config_dir } => {
-            let path = io::get_path_buf(config_dir.as_str());
-            let mut schema = io::try_read_config(&path)?;
+        Commands::ConfigUpload { project_dir } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("config.json");
+
+            let mut schema = io::try_read_config(&file_path)?;
 
             schema = config_upload::init_upload_config(schema)?;
 
-            io::write_config(&schema, path.as_path())?;
+            io::write_config(&schema, &file_path)?;
         }
-        Commands::Config { config_dir } => {
-            let path = io::get_path_buf(config_dir.as_str());
-            let mut schema = io::try_read_config(&path)?;
+        Commands::Config { project_dir } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("config.json");
+
+            let mut schema = io::try_read_config(&file_path)?;
 
             schema = config_collection::init_collection_config(schema, false)?;
             schema = config_upload::init_upload_config(schema)?;
 
-            io::write_config(&schema, path.as_path())?;
+            io::write_config(&schema, &file_path)?;
         }
-        Commands::DeployAssets { assets_dir } => {
-            deploy_assets::deploy_assets(assets_dir.as_str()).await?
+        Commands::DeployAssets { project_dir } => {
+            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+
+            let mut file_path = project_path.clone();
+            file_path.push("config.json");
+
+            let mut assets_path = project_path.clone();
+            assets_path.push("assets/");
+
+            let schema = io::try_read_config(&file_path)?;
+
+            deploy_assets::deploy_assets(&schema, assets_path).await?
         }
         Commands::DeployContract {
             project_dir,
             gas_budget,
         } => {
-            let schema = deploy_contract::parse_config(project_dir.as_path())?;
+            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+            let mut file_path = project_path.clone();
+            file_path.push("config.json");
 
-            let mut contract_dir = project_dir.clone();
-            contract_dir.push("contract");
+            let schema = deploy_contract::parse_config(file_path.as_path())?;
+
+            let mut contract_dir = project_path.clone();
+            contract_dir.push("contract/");
 
             deploy_contract::generate_contract(
                 &schema,
@@ -88,16 +110,27 @@ async fn run() -> Result<()> {
             .await?;
         }
         Commands::MintNfts {
-            config,
+            project_dir,
             gas_budget,
             warehouse_id,
         } => {
-            // TODO: This method should not be in the deploy_contract
-            let schema = deploy_contract::parse_config(config.as_path())?;
+            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+            let mut file_path = project_path.clone();
+            file_path.push("config.json");
+
+            let mut metadata_path = project_path.clone();
+            metadata_path.push("metadata/");
+
+            let schema = deploy_contract::parse_config(file_path.as_path())?;
 
             if let Some(_contract) = &schema.contract {
-                mint_nfts::mint_nfts(&schema, gas_budget, config, warehouse_id)
-                    .await
+                mint_nfts::mint_nfts(
+                    &schema,
+                    gas_budget,
+                    metadata_path,
+                    warehouse_id,
+                )
+                .await
             }
         }
     }

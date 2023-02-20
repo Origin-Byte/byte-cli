@@ -24,7 +24,7 @@ pub struct Schema {
     /// Creates a new marketplace with the collection
     // pub marketplace: Option<Marketplace>,
     pub contract: Option<String>,
-    pub storage: Storage,
+    pub storage: Option<Storage>,
 }
 
 impl Schema {
@@ -33,7 +33,7 @@ impl Schema {
         nft: NftData,
         settings: Settings,
         contract: Option<String>,
-        storage: Storage,
+        storage: Option<Storage>,
     ) -> Schema {
         Schema {
             collection,

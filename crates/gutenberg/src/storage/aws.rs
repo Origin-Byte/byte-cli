@@ -5,11 +5,13 @@ use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{path::Path, str::FromStr, sync::Arc};
-use tokio::task::JoinHandle;
+use std::{thread, time};
+use tokio::sync::mpsc::Sender;
+use tokio::task::{AbortHandle, JoinHandle, JoinSet};
 
 use crate::storage::uploader::Asset;
 
-use super::{ParallelUploader, Prepare};
+use super::{ParallelUploader, Prepare, UploadedAsset};
 
 // Maximum number of times to retry each individual upload.
 const MAX_RETRY: u8 = 3;
@@ -26,45 +28,21 @@ impl AWSConfig {
     pub fn new(
         bucket: String,
         directory: String,
-        region: String,
+        mut region: String,
         profile: String,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        assert_profile(profile.as_str())?;
+
+        if region == "default" {
+            region = get_region_string(profile.as_str())?;
+        }
+
+        Ok(Self {
             bucket,
             directory,
             region,
             profile,
-        }
-    }
-
-    pub fn new_from_profile() -> Self {
-        todo!()
-    }
-
-    pub fn get_region(profile: &str) -> Result<Region> {
-        let home_dir = dirs::home_dir()
-            .expect("Unexpected error: Could not find home directory.");
-        let config_path = home_dir.join(Path::new(".aws/config"));
-        let aws_config = ini!(config_path
-            .to_str()
-            .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
-
-        let region = &aws_config
-            .get(profile)
-            .ok_or_else(|| {
-                anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally")
-            })?
-            .get("region")
-            .ok_or_else(|| {
-                anyhow!("Region not found in AWS config file!")
-            })?
-            .as_ref()
-            .ok_or_else(|| {
-                anyhow!("Unexpected error: Failed while fetching AWS region from config file.")
-            })?
-            .to_string();
-
-        Ok(region.parse()?)
+        })
     }
 }
 
@@ -78,7 +56,8 @@ impl AWSSetup {
     pub async fn new(config: &AWSConfig) -> Result<Self> {
         let credentials =
             Credentials::from_profile(Some(config.profile.as_str()))?;
-        let region = Region::from_str(config.region.as_str())?;
+
+        let region = config.region.parse()?;
 
         Ok(Self {
             bucket: Arc::new(Bucket::new(&config.bucket, region, credentials)?),
@@ -90,20 +69,28 @@ impl AWSSetup {
         })
     }
 
-    async fn dump(
+    async fn write(
+        // tx: Sender<UploadedAsset>,
         bucket: Arc<Bucket>,
         directory: String,
         url: String,
         asset: Asset,
-    ) -> Result<()> {
+    ) -> Result<UploadedAsset> {
+        println!("DEBUG: Uploading asset on AWS");
+        println!("DEBUG: The asset path I am reading from: {:?}", asset.path);
+
+        println!("DEBUG: The bucket is the following: {:?}", bucket);
+
+        // let content: Vec<u8> = vec![];
         let content = fs::read(&asset.path)?;
 
-        let path = Path::new(&directory).join(&asset.name);
+        let path = Path::new(&directory).join(&asset.id);
         let path_str = path.to_str().ok_or_else(|| {
             anyhow!("Failed to convert S3 bucket directory path to string.")
         })?;
-
         let mut retry = MAX_RETRY;
+        println!("DEBUG: Putting object with content type: path -> {:?}, type -> {:?}", path_str, asset.content_type,);
+
         loop {
             match bucket
                 .put_object_with_content_type(
@@ -115,16 +102,19 @@ impl AWSSetup {
             {
                 Ok((_, code)) => match code {
                     200 => {
+                        println!("DEBUG: AWS returned ok with code {:}", code);
                         break;
                     }
                     _ => {
+                        println!("DEBUG: AWS returned err with code {:}", code);
                         return Err(anyhow!(
                             "Failed to upload {} to S3 with Http Code: {code}",
-                            asset.name
+                            asset.id
                         ));
                     }
                 },
                 Err(error) => {
+                    println!("DEBUG: AWS returned err with code {:?}", error);
                     if retry == 0 {
                         return Err(error.into());
                     }
@@ -138,7 +128,7 @@ impl AWSSetup {
 
         println!("Successfully uploaded {} to S3 at {}", asset.id, link);
 
-        Ok(())
+        Ok(UploadedAsset::new(asset.id.clone(), link.to_string()))
     }
 }
 
@@ -151,13 +141,65 @@ impl Prepare for AWSSetup {
 
 #[async_trait]
 impl ParallelUploader for AWSSetup {
-    fn parallel_upload(&self, asset: Asset) -> JoinHandle<Result<()>> {
+    fn upload_asset(
+        &self,
+        // set: &mut JoinSet<()>,
+        // tx: Sender<UploadedAsset>,
+        asset: Asset,
+    ) -> JoinHandle<Result<UploadedAsset>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
 
         tokio::spawn(async move {
-            AWSSetup::dump(bucket, directory, url, asset).await
+            AWSSetup::write(bucket, directory, url, asset).await
         })
+    }
+}
+
+pub fn get_region(profile: &str) -> Result<Region> {
+    let region_string = get_region_string(profile)?;
+
+    Ok(region_string.parse()?)
+}
+
+pub fn get_region_string(profile: &str) -> Result<String> {
+    let home_dir = dirs::home_dir()
+        .expect("Unexpected error: Could not find home directory.");
+    let config_path = home_dir.join(Path::new(".aws/config"));
+    let aws_config = ini!(config_path
+        .to_str()
+        .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
+
+    let region = &aws_config
+        .get(profile)
+        .ok_or_else(|| {
+            anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally")
+        })?
+        .get("region")
+        .ok_or_else(|| {
+            anyhow!("Region not found in AWS config file!")
+        })?
+        .as_ref()
+        .ok_or_else(|| {
+            anyhow!("Unexpected error: Failed while fetching AWS region from config file.")
+        })?
+        .to_string();
+
+    Ok(region.clone())
+}
+
+pub fn assert_profile(profile: &str) -> Result<()> {
+    let home_dir = dirs::home_dir()
+        .expect("Unexpected error: Could not find home directory.");
+    let config_path = home_dir.join(Path::new(".aws/config"));
+    let aws_config = ini!(config_path
+        .to_str()
+        .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
+
+    if !aws_config.contains_key(profile) {
+        return Err(anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally"));
+    } else {
+        Ok(())
     }
 }

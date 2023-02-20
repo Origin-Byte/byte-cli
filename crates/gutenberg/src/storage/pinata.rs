@@ -10,9 +10,9 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{path::Path, sync::Arc};
-use tokio::task::JoinHandle;
+use tokio::task::{JoinHandle, JoinSet};
 
-use crate::storage::uploader::Asset;
+use crate::storage::{uploader::Asset, UploadedAsset};
 
 use super::{ParallelUploader, Prepare};
 
@@ -102,13 +102,13 @@ impl PinataSetup {
         }
     }
 
-    async fn dump(setup: &Setup, asset: Asset) -> Result<()> {
+    async fn write(setup: &Setup, asset: Asset) -> Result<UploadedAsset> {
         let content = fs::read(&asset.path)?;
 
         let mut form = Form::new();
 
         let file = Part::bytes(content)
-            .file_name(asset.name.clone())
+            .file_name(asset.id.clone())
             .mime_str(asset.content_type.as_str())?;
         form = form
             .part("file", file)
@@ -128,11 +128,11 @@ impl PinataSetup {
             let Response { ipfs_hash } = serde_json::from_value(body)?;
 
             let uri = url::Url::parse(&setup.content_gateway)?
-                .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.name))?;
+                .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.id))?;
 
             println!("Successfully uploaded {} to IPFS at {}", asset.id, uri);
 
-            Ok(())
+            Ok(UploadedAsset::new(asset.id.clone(), uri.to_string()))
         } else {
             let body = response.json::<serde_json::Value>().await?;
 
@@ -157,7 +157,7 @@ impl Prepare for PinataSetup {
             if size > FILE_SIZE_LIMIT {
                 return Err(anyhow!(
                     "File '{}' exceeds the 10MB file size limit",
-                    asset.path,
+                    asset.path.as_path().display(),
                 ));
             }
             Ok(())
@@ -169,8 +169,8 @@ impl Prepare for PinataSetup {
 
 #[async_trait]
 impl ParallelUploader for PinataSetup {
-    fn parallel_upload(&self, asset: Asset) -> JoinHandle<Result<()>> {
+    fn upload_asset(&self, asset: Asset) -> JoinHandle<Result<UploadedAsset>> {
         let setup = self.0.clone();
-        tokio::spawn(async move { PinataSetup::dump(&setup, asset).await })
+        tokio::spawn(async move { PinataSetup::write(&setup, asset).await })
     }
 }
