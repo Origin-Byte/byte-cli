@@ -81,11 +81,18 @@ impl AWSSetup {
         let credentials =
             Credentials::from_profile(Some(config.profile.as_str()))?;
 
-        println!("CREDENIALS: {:?}", credentials);
         let region = Region::from_str(config.region.as_str())?;
 
+        let bucket = Bucket::new(&config.bucket, region, credentials)?;
+        let url = format!(
+            "https://{}.s3.amazonaws.com/{}",
+            config.bucket, config.directory
+        );
+
+        // TODO: Assert that S3 Bucket region exists
+
         Ok(Self {
-            bucket: Arc::new(Bucket::new(&config.bucket, region, credentials)?),
+            bucket: Arc::new(bucket),
             directory: config.directory.to_string(),
             url: format!(
                 "https://{}.s3.amazonaws.com/{}",
@@ -101,7 +108,7 @@ impl AWSSetup {
         url: String,
         asset: Asset,
     ) -> Result<UploadedAsset> {
-        println!("DEBUG: I am uploading an asset on AWS");
+        println!("DEBUG: Uploading asset on AWS");
         println!("DEBUG: The asset path I am reading from: {:?}", asset.path);
 
         println!("DEBUG: The bucket is the following: {:?}", bucket);
@@ -109,15 +116,11 @@ impl AWSSetup {
         // let content: Vec<u8> = vec![];
         let content = fs::read(&asset.path)?;
 
-        println!("DEBUG: A");
         let path = Path::new(&directory).join(&asset.id);
-        println!("DEBUG: B");
         let path_str = path.to_str().ok_or_else(|| {
             anyhow!("Failed to convert S3 bucket directory path to string.")
         })?;
-        println!("DEBUG: C");
         let mut retry = MAX_RETRY;
-        println!("DEBUG: D");
         println!("DEBUG: Putting object with content type: path -> {:?}, type -> {:?}", path_str, asset.content_type,);
 
         loop {
@@ -156,8 +159,6 @@ impl AWSSetup {
         let link = url::Url::parse(&url)?.join("/")?.join(path_str)?;
 
         println!("Successfully uploaded {} to S3 at {}", asset.id, link);
-
-        // tx.send(UploadedAsset::new(asset.id.clone(), link.to_string()));
 
         Ok(UploadedAsset::new(asset.id.clone(), link.to_string()))
     }
