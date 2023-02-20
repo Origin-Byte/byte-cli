@@ -311,7 +311,10 @@ impl SupplyPolicy {
                 let frozen = frozen.unwrap();
                 Ok(SupplyPolicy::Limited { max, frozen })
             }
-            _ => Err(GutenError::UnsupportedSupply),
+            other => Err(GutenError::UnsupportedSettings(format!(
+                "Unsupported supply policy `{}`",
+                other
+            ))),
         }
     }
 
@@ -386,7 +389,10 @@ impl MintPolicies {
                     field_struct.direct = *v;
                     Ok(())
                 }
-                _ => Err(GutenError::UnsupportedNftField),
+                other => Err(GutenError::UnsupportedSettings(format!(
+                    "The NFT mint policy provided `{}` is not supported",
+                    other
+                ))),
             }?;
         }
 

@@ -4,7 +4,11 @@
 //! by the caller.
 use serde::{Deserialize, Serialize};
 
-use crate::contract::modules::DisplayMod;
+use crate::{
+    consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
+    contract::modules::DisplayMod,
+    err::GutenError,
+};
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -50,23 +54,71 @@ impl CollectionData {
         self.name.to_uppercase().replace(' ', "")
     }
 
-    pub fn set_name(&mut self, name: String) {
+    pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
+        if !name.chars().all(|c| matches!(c, 'a'..='z')) {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection name provided `{}` should not have alphanumeric characters.",
+                name
+            )));
+        }
+
+        name = name.to_lowercase();
         self.name = name;
+
+        Ok(())
     }
 
     pub fn set_description(&mut self, description: String) {
         self.description = description;
     }
 
-    pub fn set_symbol(&mut self, symbol: String) {
+    pub fn set_symbol(&mut self, mut symbol: String) -> Result<(), GutenError> {
+        if !symbol.chars().all(|c| matches!(c, 'a'..='z')) {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection symbol provided `{}` should not have alphanumeric characters.",
+                symbol
+            )));
+        }
+
+        if symbol.len() > MAX_SYMBOL_LENGTH {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection symbol `{}` has {} characters, which is above the maximum length of {}.",
+                symbol,
+                symbol.len(),
+                MAX_SYMBOL_LENGTH
+            )));
+        }
+
+        symbol = symbol.to_uppercase();
         self.symbol = symbol;
+
+        Ok(())
     }
 
-    pub fn set_url(&mut self, url: String) {
-        self.url = Some(url);
+    pub fn set_url(&mut self, url_string: String) -> Result<(), GutenError> {
+        // Just here for validation
+        let _ = url::Url::parse(&url_string).map_err(|err| {
+            GutenError::UnsupportedCollectionInput(format!(
+                "The following error has occured: {}
+The Collection URL input `{}` is not valid.",
+                err, url_string
+            ))
+        })?;
+
+        self.url = Some(url_string);
+
+        Ok(())
     }
 
     pub fn set_creators(&mut self, creators: Vec<String>) {
+        if creators.len() > MAX_CREATORS_LENGTH {
+            return GutenError::UnsupportedCollectionInput(format!(
+                "The creators list provided surpasses the limit of {}. The list provided has {} addresses.",
+                MAX_CREATORS_LENGTH, creators.len()
+            ))?;
+        }
+
+        // Validate that creator strings are addresses
         self.creators = creators;
     }
 

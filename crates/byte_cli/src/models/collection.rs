@@ -30,7 +30,9 @@ impl FromPrompt for CollectionData {
         collection.set_description(description);
 
         let symbol = Input::with_theme(&theme)
-            .with_prompt("What is the symbol of the Collection?")
+            .with_prompt(
+                "What is the symbol of the Collection? (Maximum of 5 letters)",
+            )
             .interact()
             .unwrap();
 
@@ -86,5 +88,24 @@ impl FromPrompt for CollectionData {
         collection.set_creators(creators);
 
         Ok(Some(collection))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use dialoguer::Select;
+
+    use super::*;
+
+    #[test]
+    fn prompt_name() {
+        let name = "Suimarines";
+
+        let result: String = Input::new()
+            .with_post_completion_text("Suimarines")
+            .interact()
+            .unwrap();
+
+        assert_eq!(result, name);
     }
 }
