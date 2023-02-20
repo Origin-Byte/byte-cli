@@ -3804,6 +3804,8 @@ dependencies = [
  "aws-config",
  "bevy_reflect",
  "dirs",
+ "futures",
+ "indexmap",
  "ini",
  "pretty_assertions",
  "reqwest",

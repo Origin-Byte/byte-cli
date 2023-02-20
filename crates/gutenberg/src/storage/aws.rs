@@ -5,11 +5,13 @@ use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{path::Path, str::FromStr, sync::Arc};
-use tokio::task::JoinHandle;
+use std::{thread, time};
+use tokio::sync::mpsc::Sender;
+use tokio::task::{AbortHandle, JoinHandle, JoinSet};
 
 use crate::storage::uploader::Asset;
 
-use super::{ParallelUploader, Prepare};
+use super::{ParallelUploader, Prepare, UploadedAsset};
 
 // Maximum number of times to retry each individual upload.
 const MAX_RETRY: u8 = 3;
@@ -78,6 +80,8 @@ impl AWSSetup {
     pub async fn new(config: &AWSConfig) -> Result<Self> {
         let credentials =
             Credentials::from_profile(Some(config.profile.as_str()))?;
+
+        println!("CREDENIALS: {:?}", credentials);
         let region = Region::from_str(config.region.as_str())?;
 
         Ok(Self {
@@ -90,20 +94,32 @@ impl AWSSetup {
         })
     }
 
-    async fn dump(
+    async fn write(
+        // tx: Sender<UploadedAsset>,
         bucket: Arc<Bucket>,
         directory: String,
         url: String,
         asset: Asset,
-    ) -> Result<()> {
+    ) -> Result<UploadedAsset> {
+        println!("DEBUG: I am uploading an asset on AWS");
+        println!("DEBUG: The asset path I am reading from: {:?}", asset.path);
+
+        println!("DEBUG: The bucket is the following: {:?}", bucket);
+
+        // let content: Vec<u8> = vec![];
         let content = fs::read(&asset.path)?;
 
-        let path = Path::new(&directory).join(&asset.name);
+        println!("DEBUG: A");
+        let path = Path::new(&directory).join(&asset.id);
+        println!("DEBUG: B");
         let path_str = path.to_str().ok_or_else(|| {
             anyhow!("Failed to convert S3 bucket directory path to string.")
         })?;
-
+        println!("DEBUG: C");
         let mut retry = MAX_RETRY;
+        println!("DEBUG: D");
+        println!("DEBUG: Putting object with content type: path -> {:?}, type -> {:?}", path_str, asset.content_type,);
+
         loop {
             match bucket
                 .put_object_with_content_type(
@@ -115,16 +131,19 @@ impl AWSSetup {
             {
                 Ok((_, code)) => match code {
                     200 => {
+                        println!("DEBUG: AWS returned ok with code {:}", code);
                         break;
                     }
                     _ => {
+                        println!("DEBUG: AWS returned err with code {:}", code);
                         return Err(anyhow!(
                             "Failed to upload {} to S3 with Http Code: {code}",
-                            asset.name
+                            asset.id
                         ));
                     }
                 },
                 Err(error) => {
+                    println!("DEBUG: AWS returned err with code {:?}", error);
                     if retry == 0 {
                         return Err(error.into());
                     }
@@ -138,7 +157,9 @@ impl AWSSetup {
 
         println!("Successfully uploaded {} to S3 at {}", asset.id, link);
 
-        Ok(())
+        // tx.send(UploadedAsset::new(asset.id.clone(), link.to_string()));
+
+        Ok(UploadedAsset::new(asset.id.clone(), link.to_string()))
     }
 }
 
@@ -151,13 +172,18 @@ impl Prepare for AWSSetup {
 
 #[async_trait]
 impl ParallelUploader for AWSSetup {
-    fn parallel_upload(&self, asset: Asset) -> JoinHandle<Result<()>> {
+    fn upload_asset(
+        &self,
+        // set: &mut JoinSet<()>,
+        // tx: Sender<UploadedAsset>,
+        asset: Asset,
+    ) -> JoinHandle<Result<UploadedAsset>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
 
         tokio::spawn(async move {
-            AWSSetup::dump(bucket, directory, url, asset).await
+            AWSSetup::write(bucket, directory, url, asset).await
         })
     }
 }

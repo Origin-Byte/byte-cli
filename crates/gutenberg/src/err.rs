@@ -16,6 +16,8 @@ pub enum GutenError {
     UnsupportedRoyalty,
     #[error("This error should not occur and likely results from a bug")]
     UnreachableError,
+    #[error("{0}")]
+    UploadError(String),
 }
 
 pub fn contextualize(msg: String) -> GutenError {

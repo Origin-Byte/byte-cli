@@ -24,7 +24,6 @@ pub struct NftData {
     pub url: Option<String>,
     pub attribute_keys: Option<Vec<String>>,
     pub attribute_values: Option<Vec<String>>,
-    pub tags: Option<Vec<String>>,
 }
 
 impl NftData {

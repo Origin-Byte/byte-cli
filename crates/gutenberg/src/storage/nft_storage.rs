@@ -17,7 +17,7 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
 
-use super::{Asset, Prepare, Uploader};
+use super::{Asset, Prepare, StorageState, Uploader};
 
 const NFT_STORAGE_API_URL: &str = "https://api.nft.storage";
 // const NFT_STORAGE_GATEWAY_URL: &str = "https://nftstorage.link/ipfs";
@@ -100,7 +100,7 @@ impl Prepare for NftStorageSetup {
             if size > FILE_SIZE_LIMIT {
                 return Err(anyhow!(
                     "File '{}' exceeds the 10MB file size limit",
-                    asset.path,
+                    asset.path.as_path().display(),
                 ));
             }
             Ok(())
@@ -112,7 +112,12 @@ impl Prepare for NftStorageSetup {
 
 #[async_trait]
 impl Uploader for NftStorageSetup {
-    async fn upload(&self, assets: &Vec<Asset>) -> Result<()> {
+    async fn upload(
+        &self,
+        assets: &mut Vec<Asset>,
+        _state: &mut StorageState,
+        _lazy: bool,
+    ) -> Result<()> {
         let mut batches: Vec<Vec<&Asset>> = Vec::new();
         let mut current: Vec<&Asset> = Vec::new();
         let mut upload_size = 0;
@@ -152,12 +157,14 @@ impl Uploader for NftStorageSetup {
 
             for asset in &batch {
                 let data = {
-                    let content = String::from(&asset.path);
+                    let content = String::from(
+                        &asset.path.as_path().display().to_string(),
+                    );
                     content.into_bytes()
                 };
 
                 let file = Part::bytes(data)
-                    .file_name(asset.name.clone())
+                    .file_name(asset.id.clone())
                     .mime_str(asset.content_type.as_str())?;
                 form = form.part("file", file);
             }
