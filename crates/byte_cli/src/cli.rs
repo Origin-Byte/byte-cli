@@ -61,7 +61,7 @@ pub enum Commands {
     MintNfts {
         #[clap(default_value = DEFAULT_FOLDER)]
         project_dir: String,
-        /// Gas budget for running module initializers
+        /// Gas budget for minting an NFT
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
         warehouse_id: Option<String>,

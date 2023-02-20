@@ -4,10 +4,8 @@ use ini::ini;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{path::Path, str::FromStr, sync::Arc};
-use std::{thread, time};
-use tokio::sync::mpsc::Sender;
-use tokio::task::{AbortHandle, JoinHandle, JoinSet};
+use std::{path::Path, sync::Arc};
+use tokio::task::JoinHandle;
 
 use crate::storage::uploader::Asset;
 
@@ -58,6 +56,14 @@ impl AWSSetup {
             Credentials::from_profile(Some(config.profile.as_str()))?;
 
         let region = config.region.parse()?;
+
+        if let Region::Custom {
+            region,
+            endpoint: _,
+        } = region
+        {
+            return Err(anyhow!("Custom AWS region {} not supported", region));
+        }
 
         Ok(Self {
             bucket: Arc::new(Bucket::new(&config.bucket, region, credentials)?),
@@ -141,12 +147,7 @@ impl Prepare for AWSSetup {
 
 #[async_trait]
 impl ParallelUploader for AWSSetup {
-    fn upload_asset(
-        &self,
-        // set: &mut JoinSet<()>,
-        // tx: Sender<UploadedAsset>,
-        asset: Asset,
-    ) -> JoinHandle<Result<UploadedAsset>> {
+    fn upload_asset(&self, asset: Asset) -> JoinHandle<Result<UploadedAsset>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
