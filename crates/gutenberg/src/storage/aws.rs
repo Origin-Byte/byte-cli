@@ -4,7 +4,7 @@ use ini::ini;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{path::Path, str::FromStr, sync::Arc};
+use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::storage::uploader::Asset;
@@ -26,45 +26,21 @@ impl AWSConfig {
     pub fn new(
         bucket: String,
         directory: String,
-        region: String,
+        mut region: String,
         profile: String,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        assert_profile(profile.as_str())?;
+
+        if region == "default" {
+            region = get_region_string(profile.as_str())?;
+        }
+
+        Ok(Self {
             bucket,
             directory,
             region,
             profile,
-        }
-    }
-
-    pub fn new_from_profile() -> Self {
-        todo!()
-    }
-
-    pub fn get_region(profile: &str) -> Result<Region> {
-        let home_dir = dirs::home_dir()
-            .expect("Unexpected error: Could not find home directory.");
-        let config_path = home_dir.join(Path::new(".aws/config"));
-        let aws_config = ini!(config_path
-            .to_str()
-            .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
-
-        let region = &aws_config
-            .get(profile)
-            .ok_or_else(|| {
-                anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally")
-            })?
-            .get("region")
-            .ok_or_else(|| {
-                anyhow!("Region not found in AWS config file!")
-            })?
-            .as_ref()
-            .ok_or_else(|| {
-                anyhow!("Unexpected error: Failed while fetching AWS region from config file.")
-            })?
-            .to_string();
-
-        Ok(region.parse()?)
+        })
     }
 }
 
@@ -79,7 +55,7 @@ impl AWSSetup {
         let credentials =
             Credentials::from_profile(Some(config.profile.as_str()))?;
 
-        let region = Region::from_str(config.region.as_str())?;
+        let region = config.region.parse()?;
 
         if let Region::Custom {
             region,
@@ -179,5 +155,52 @@ impl ParallelUploader for AWSSetup {
         tokio::spawn(async move {
             AWSSetup::write(bucket, directory, url, asset).await
         })
+    }
+}
+
+pub fn get_region(profile: &str) -> Result<Region> {
+    let region_string = get_region_string(profile)?;
+
+    Ok(region_string.parse()?)
+}
+
+pub fn get_region_string(profile: &str) -> Result<String> {
+    let home_dir = dirs::home_dir()
+        .expect("Unexpected error: Could not find home directory.");
+    let config_path = home_dir.join(Path::new(".aws/config"));
+    let aws_config = ini!(config_path
+        .to_str()
+        .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
+
+    let region = &aws_config
+        .get(profile)
+        .ok_or_else(|| {
+            anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally")
+        })?
+        .get("region")
+        .ok_or_else(|| {
+            anyhow!("Region not found in AWS config file!")
+        })?
+        .as_ref()
+        .ok_or_else(|| {
+            anyhow!("Unexpected error: Failed while fetching AWS region from config file.")
+        })?
+        .to_string();
+
+    Ok(region.clone())
+}
+
+pub fn assert_profile(profile: &str) -> Result<()> {
+    let home_dir = dirs::home_dir()
+        .expect("Unexpected error: Could not find home directory.");
+    let config_path = home_dir.join(Path::new(".aws/config"));
+    let aws_config = ini!(config_path
+        .to_str()
+        .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
+
+    if !aws_config.contains_key(profile) {
+        return Err(anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally"));
+    } else {
+        Ok(())
     }
 }
