@@ -501,8 +501,8 @@ impl MintPolicies {
             return_type.push_str(format!(": Nft<{}>", witness).as_str());
             transfer.push_str("nft");
 
-            let build_nft = "let nft =
-            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+            // TODO: Code should be encpasulated
+            let build_nft = "nft::from_mint_cap(mint_cap, name, url, ctx);;
         let delegated_witness = witness::from_witness(&Witness {});\n";
 
             args.push_str("        ctx: &mut TxContext,\n");

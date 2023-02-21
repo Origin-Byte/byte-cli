@@ -180,7 +180,7 @@ The Collection URL input `{}` is not valid.",
 
             format!(
                 "creators::from_creators<{witness}, Witness>(
-                &Witness {{}}, creators, ctx
+                &Witness {{}}, creators,
             )",
                 witness = self.witness_name()
             )

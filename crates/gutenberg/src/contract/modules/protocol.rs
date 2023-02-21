@@ -15,13 +15,8 @@ impl Module for NftMod {
 }
 
 impl NftMod {
-    pub fn new_nft(receiver: &str) -> String {
-        format!("nft::new(&Witness {{}}, mint_cap, {}, ctx);\n", receiver)
-    }
-
     pub fn new_to_sender() -> String {
-        "nft::new(&Witness {{}}, mint_cap, tx_context::sender(ctx), ctx);"
-            .to_string()
+        "nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);".to_string()
     }
 }
 
@@ -143,7 +138,6 @@ impl DisplayMod {
             &mut collection,
             string::utf8(b\"{}\"),
             string::utf8(b\"{}\"),
-            ctx,
         );\n",
             collection.name, collection.description
         )
@@ -156,7 +150,6 @@ impl DisplayMod {
             delegated_witness,
             &mut collection,
             {url}
-            ctx,
         );\n",
             url = Url::to_url_param(
                 collection.url.as_ref().unwrap().as_str(),
@@ -172,7 +165,6 @@ impl DisplayMod {
             delegated_witness,
             &mut collection,
             string::utf8(b\"{}\"),
-            ctx
         );\n",
             collection.symbol
         )
@@ -180,21 +172,21 @@ impl DisplayMod {
 
     pub fn add_nft_display() -> String {
         "display::add_display_domain(
-            delegated_witness, &mut nft, name, description, ctx,
+            delegated_witness, &mut nft, name, description,
         );\n"
             .to_string()
     }
 
     pub fn add_nft_url() -> String {
         "        display::add_url_domain(
-            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url),
         );\n"
             .to_string()
     }
 
     pub fn add_nft_attributes() -> String {
         "        display::add_attributes_domain_from_vec(
-            delegated_witness, &mut nft, attribute_keys, attribute_values, ctx,
+            delegated_witness, &mut nft, attribute_keys, attribute_values,
         );\n"
             .to_string()
     }

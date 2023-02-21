@@ -177,6 +177,7 @@ impl NftData {
         )
     }
 
+    // TODO: DEPRECATE THIS FUNCTION
     pub fn write_domains(&self) -> String {
         let code = self
             .to_map()
@@ -189,7 +190,6 @@ impl NftData {
             &mut nft,
             name,
             description,
-            ctx,
         );
 
 "
@@ -198,7 +198,6 @@ impl NftData {
                     "        display::add_url_domain(
             &mut nft,
             url::new_unsafe_from_bytes(url),
-            ctx,
         );
 "
                 }
@@ -208,7 +207,6 @@ impl NftData {
             &mut nft,
             attribute_keys,
             attribute_values,
-            ctx,
         );
 "
                 }
