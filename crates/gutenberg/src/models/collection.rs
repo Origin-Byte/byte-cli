@@ -3,8 +3,14 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
-use crate::contract::modules::DisplayMod;
+use crate::{
+    consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
+    contract::modules::DisplayMod,
+    err::GutenError,
+    utils::validate_address,
+};
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -18,7 +24,7 @@ pub struct CollectionData {
     /// The URL of the collection website
     pub url: Option<String>,
     /// The addresses of creators
-    pub creators: Vec<String>,
+    pub creators: BTreeSet<String>,
 }
 
 impl CollectionData {
@@ -27,7 +33,7 @@ impl CollectionData {
         description: String,
         symbol: String,
         url: Option<String>,
-        creators: Vec<String>,
+        creators: BTreeSet<String>,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -50,24 +56,83 @@ impl CollectionData {
         self.name.to_uppercase().replace(' ', "")
     }
 
-    pub fn set_name(&mut self, name: String) {
+    pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
+        if !name.chars().all(|c| matches!(c, 'a'..='z')) {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection name provided `{}` should not have alphanumeric characters.",
+                name
+            )));
+        }
+
+        name = name.to_lowercase();
         self.name = name;
+
+        Ok(())
     }
 
     pub fn set_description(&mut self, description: String) {
         self.description = description;
     }
 
-    pub fn set_symbol(&mut self, symbol: String) {
+    pub fn set_symbol(&mut self, mut symbol: String) -> Result<(), GutenError> {
+        if !symbol.chars().all(|c| matches!(c, 'a'..='z')) {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection symbol provided `{}` should not have alphanumeric characters.",
+                symbol
+            )));
+        }
+
+        if symbol.len() > MAX_SYMBOL_LENGTH {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The collection symbol `{}` has {} characters, which is above the maximum length of {}.",
+                symbol,
+                symbol.len(),
+                MAX_SYMBOL_LENGTH
+            )));
+        }
+
+        symbol = symbol.to_uppercase();
         self.symbol = symbol;
+
+        Ok(())
     }
 
-    pub fn set_url(&mut self, url: String) {
-        self.url = Some(url);
+    pub fn set_url(&mut self, url_string: String) -> Result<(), GutenError> {
+        // Just here for validation
+        let _ = url::Url::parse(&url_string).map_err(|err| {
+            GutenError::UnsupportedCollectionInput(format!(
+                "The following error has occured: {}
+The Collection URL input `{}` is not valid.",
+                err, url_string
+            ))
+        })?;
+
+        self.url = Some(url_string);
+
+        Ok(())
     }
 
-    pub fn set_creators(&mut self, creators: Vec<String>) {
+    pub fn set_creators(
+        &mut self,
+        creators: BTreeSet<String>,
+    ) -> Result<(), GutenError> {
+        if creators.len() > MAX_CREATORS_LENGTH {
+            return Err(GutenError::UnsupportedCollectionInput(format!(
+                "The creators list provided surpasses the limit of {}. The list provided has {} addresses.",
+                MAX_CREATORS_LENGTH, creators.len()
+            )));
+        }
+
+        // Guarantees that creator addresses are valid
+        creators
+            .iter()
+            .map(|creator| validate_address(creator))
+            .collect::<Result<(), GutenError>>()?;
+
+        // Validate that creator strings are addresses
         self.creators = creators;
+
+        Ok(())
     }
 
     pub fn write_domains(&self) -> String {
@@ -95,7 +160,7 @@ impl CollectionData {
         &Witness {{}}, {address}, ctx,
     )",
                 name = self.name,
-                address = self.creators[0],
+                address = self.creators.first().unwrap(),
             )
         } else {
             code.push_str("let creators = vec_set::empty();\n");

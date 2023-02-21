@@ -5,7 +5,7 @@ use std::{
 
 use crate::prelude::CliError;
 use anyhow::anyhow;
-use gutenberg::{storage::Storage, Schema};
+use gutenberg::Schema;
 
 use serde::Serialize;
 

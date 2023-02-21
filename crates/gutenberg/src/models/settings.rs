@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
     contract::modules::{ComposableNftMod, DisplayMod},
@@ -193,7 +193,7 @@ impl Settings {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Composability {
-    types: Vec<String>,
+    types: BTreeSet<String>,
     blueprint: HashMap<String, Child>,
 }
 
@@ -216,7 +216,7 @@ impl Child {
 
 impl Composability {
     pub fn new_from_tradeable_traits(
-        types: Vec<String>,
+        types: BTreeSet<String>,
         core_trait: String,
     ) -> Self {
         let mut traits_ = types.clone();
@@ -311,7 +311,10 @@ impl SupplyPolicy {
                 let frozen = frozen.unwrap();
                 Ok(SupplyPolicy::Limited { max, frozen })
             }
-            _ => Err(GutenError::UnsupportedSupply),
+            other => Err(GutenError::UnsupportedSettings(format!(
+                "Unsupported supply policy `{}`",
+                other
+            ))),
         }
     }
 
@@ -386,7 +389,10 @@ impl MintPolicies {
                     field_struct.direct = *v;
                     Ok(())
                 }
-                _ => Err(GutenError::UnsupportedNftField),
+                other => Err(GutenError::UnsupportedSettings(format!(
+                    "The NFT mint policy provided `{}` is not supported",
+                    other
+                ))),
             }?;
         }
 

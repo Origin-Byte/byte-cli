@@ -10,7 +10,7 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{path::Path, sync::Arc};
-use tokio::task::{JoinHandle, JoinSet};
+use tokio::task::JoinHandle;
 
 use crate::storage::{uploader::Asset, UploadedAsset};
 

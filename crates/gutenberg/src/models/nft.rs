@@ -61,7 +61,10 @@ impl NftData {
                     field_struct.tags = *v;
                     Ok(())
                 }
-                _ => Err(GutenError::UnsupportedNftField),
+                other => Err(GutenError::UnsupportedNftInput(format!(
+                    "The NFT field `{}` provided is not a supported",
+                    other
+                ))),
             }?;
         }
 

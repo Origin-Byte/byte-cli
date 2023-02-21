@@ -154,7 +154,7 @@ pub async fn mint_nft(
             "mint_nft",
             vec![],
             args,
-            None,       // Gas object, Node can pick on itself
+            None,        // Gas object, Node can pick on itself
             *gas_budget, // Gas budget
         )
         .await?;

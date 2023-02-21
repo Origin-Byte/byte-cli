@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use dialoguer::{Confirm, Input, MultiSelect, Select};
 use gutenberg::{
     models::{
@@ -111,7 +113,7 @@ impl FromPrompt for Composability {
             .parse::<u64>()
             .unwrap();
 
-        let mut traits: Vec<String> = Vec::new();
+        let mut traits: BTreeSet<String> = BTreeSet::new();
 
         for i in 0..traits_num {
             let prompt = if i == 0 {
@@ -127,10 +129,10 @@ impl FromPrompt for Composability {
                 .interact()
                 .unwrap();
 
-            traits.push(nft_trait);
+            traits.insert(nft_trait);
         }
 
-        let core_trait = traits[0].clone();
+        let core_trait = traits.first().unwrap().clone();
 
         Ok(Some(Composability::new_from_tradeable_traits(
             traits, core_trait,

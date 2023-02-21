@@ -1,14 +1,16 @@
-use std::str::FromStr;
+use std::{collections::BTreeSet, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RoyaltyPolicy {
-    Proportional { shares: Vec<Share>, bps: u64 },
-    Constant { shares: Vec<Share>, fee: u64 },
+    Proportional { shares: BTreeSet<Share>, bps: u64 },
+    Constant { shares: BTreeSet<Share>, fee: u64 },
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Default, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Ord,
+)]
 pub struct Share {
     pub address: String,
     pub share: u64,
@@ -26,11 +28,11 @@ impl FromStr for RoyaltyPolicy {
     fn from_str(input: &str) -> Result<RoyaltyPolicy, Self::Err> {
         match input {
             "Proportional" => Ok(RoyaltyPolicy::Proportional {
-                shares: Vec::default(),
+                shares: BTreeSet::default(),
                 bps: u64::default(),
             }),
             "Constant" => Ok(RoyaltyPolicy::Constant {
-                shares: Vec::default(),
+                shares: BTreeSet::default(),
                 fee: u64::default(),
             }),
             _ => Err(()),
@@ -39,7 +41,7 @@ impl FromStr for RoyaltyPolicy {
 }
 
 impl RoyaltyPolicy {
-    pub fn add_beneficiaries(&mut self, beneficiaries: &mut Vec<Share>) {
+    pub fn add_beneficiaries(&mut self, beneficiaries: &mut BTreeSet<Share>) {
         match self {
             RoyaltyPolicy::Proportional { shares, bps: _ } => {
                 shares.append(beneficiaries)
@@ -52,16 +54,16 @@ impl RoyaltyPolicy {
 
     pub fn add_beneficiary_vecs(
         &mut self,
-        creators_vec: &Vec<String>,
+        creators_vec: &BTreeSet<String>,
         shares_vec: &Vec<u64>,
     ) {
         let push_creator =
-            |creators_vec: &Vec<String>, shares: &mut Vec<Share>| {
+            |creators_vec: &BTreeSet<String>, shares: &mut BTreeSet<Share>| {
                 creators_vec
                     .iter()
                     .zip(shares_vec.iter())
                     .map(|(address, share)| {
-                        shares.push(Share::new(address.clone(), *share))
+                        shares.insert(Share::new(address.clone(), *share))
                     })
                     .for_each(drop);
             };
@@ -95,7 +97,7 @@ impl RoyaltyPolicy {
         let mut code = if royalty_shares.len() == 1 {
             format!(
                 "let royalty = royalty::from_address({address}, ctx);\n",
-                address = royalty_shares[0].address,
+                address = royalty_shares.first().unwrap().address,
             )
         } else {
             let mut vecmap =
