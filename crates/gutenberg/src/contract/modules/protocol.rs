@@ -16,7 +16,7 @@ impl Module for NftMod {
 
 impl NftMod {
     pub fn new_to_sender() -> String {
-        "nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);".to_string()
+        "let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);".to_string()
     }
 }
 

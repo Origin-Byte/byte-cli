@@ -1,17 +1,22 @@
 use console::{style, Emoji};
-use std::path::Path;
+use std::{path::Path, sync::mpsc::Sender};
 use terminal_link::Link;
 use tokio::task::JoinSet;
 
+use std::sync::mpsc::channel;
 use sui_framework_build::compiled_package::BuildConfig;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectRead, SuiRawData};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{types::messages::Transaction, SuiClient};
-use sui_types::{intent::Intent, messages::ExecuteTransactionRequestType};
+use sui_types::{
+    base_types::{random_object_ref, ObjectID},
+    intent::Intent,
+    messages::{ExecuteTransactionRequestType, TransactionData},
+};
 
 use crate::{
     err::RustSdkError,
-    utils::{get_client, get_keystore},
+    utils::{get_active_address, get_client, get_keystore},
 };
 
 pub const VOLCANO_EMOJI: Emoji<'_, '_> = Emoji("🌋", "");
@@ -20,10 +25,10 @@ pub const NFT_PROTOCOL: &str = "0xeac7173b9977892adc10ee5d254bcb2498ec521f";
 pub async fn publish_contract(
     package_dir: &Path,
     gas_budget: u64,
-) -> Result<(), RustSdkError> {
+) -> Result<String, RustSdkError> {
     let client = get_client().await.unwrap();
     let keystore = get_keystore().await.unwrap();
-    let active_address = keystore.addresses().first().cloned().unwrap();
+    let active_address = get_active_address(&keystore).unwrap();
 
     println!("{} Compiling contract.", style("WIP").cyan().bold());
     let compiled_modules_base_64 = BuildConfig::default()
@@ -38,6 +43,7 @@ pub async fn publish_contract(
     println!("{} Compiling contract.", style("DONE").green().bold());
 
     println!("{} Preparing transaction.", style("WIP").cyan().bold());
+
     let call = client
         .transaction_builder()
         .publish(
@@ -58,13 +64,15 @@ pub async fn publish_contract(
         "{} Sending and executing transaction.",
         style("WIN").cyan().bold()
     );
+    let tx =
+        Transaction::from_data(call, Intent::default(), signature).verify()?;
+
+    let request_type =
+        Some(ExecuteTransactionRequestType::WaitForLocalExecution);
+
     let response = client
         .quorum_driver()
-        .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signature)
-                .verify()?,
-            Some(ExecuteTransactionRequestType::WaitForLocalExecution),
-        )
+        .execute_transaction(tx, request_type)
         .await
         .unwrap();
 
@@ -83,6 +91,9 @@ pub async fn publish_contract(
     );
     let mut set = JoinSet::new();
 
+    // Creating a channel to send message with package ID
+    let (sender, receiver) = channel();
+
     let objects_created = response.effects.unwrap().created;
 
     objects_created
@@ -91,8 +102,9 @@ pub async fn publish_contract(
             // TODO: Remove this clone
             let object_ = object.clone();
             let client_ = client.clone();
+            let sender_ = sender.clone();
             set.spawn(async move {
-                print_object(&client_, &object_).await;
+                print_object(&client_, &object_, sender_).await;
             });
         })
         .for_each(drop);
@@ -105,18 +117,28 @@ pub async fn publish_contract(
 
     println!("A total of {} object have been created.", i);
 
-    let link =
-        Link::new("Sui Explorer", "(https://explorer.sui.io?network=devnet");
+    let package_id = format!("{}", receiver.recv().unwrap());
+
+    let explorer_link = format!(
+        "https://explorer.sui.io/object/{}?network=devnet",
+        package_id
+    );
+
+    let link = Link::new("Sui Explorer", explorer_link.as_str());
 
     println!(
         "You can now find your collection package on the {}",
         style(link).blue().bold().underlined(),
     );
 
-    Ok(())
+    Ok(package_id)
 }
 
-async fn print_object(client: &SuiClient, object: &OwnedObjectRef) {
+async fn print_object(
+    client: &SuiClient,
+    object: &OwnedObjectRef,
+    tx: Sender<ObjectID>,
+) {
     let object_id = object.reference.object_id;
     let object_read = client.read_api().get_object(object_id).await.unwrap();
 
@@ -135,6 +157,8 @@ async fn print_object(client: &SuiClient, object: &OwnedObjectRef) {
             }
             SuiRawData::Package(_raw_package) => {
                 println!("Package object ID: {}", object_id);
+
+                tx.send(object_id).unwrap();
             }
         }
     }

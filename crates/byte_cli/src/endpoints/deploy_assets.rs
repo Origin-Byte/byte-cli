@@ -41,8 +41,6 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
             file = file
         );
 
-        println!("DEBUG: The path string is {:?}", path_string);
-
         let path = Path::new(path_string.as_str());
 
         let file_name = path.file_stem().unwrap().to_str().unwrap();

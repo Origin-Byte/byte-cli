@@ -118,10 +118,14 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 }
 
 pub async fn publish_contract(
+    schema: &mut Schema,
     gas_budget: usize,
     contract_dir: &Path,
 ) -> Result<()> {
-    publish::publish_contract(contract_dir, gas_budget as u64).await?;
+    let package_id =
+        publish::publish_contract(contract_dir, gas_budget as u64).await?;
+
+    schema.contract = Some(package_id);
 
     Ok(())
 }

@@ -15,7 +15,7 @@ use sui_sdk::{
 use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
 
-use tokio::task::{AbortHandle, JoinHandle, JoinSet};
+use tokio::task::JoinHandle;
 
 pub const NFT_PROTOCOL: &str = "0xa672b029392522d76849990dfcf72d9249d1d522";
 pub const MY_ADDRESS: &str = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143";
@@ -134,6 +134,7 @@ pub async fn mint_nft(
     module_name: Arc<String>,
     gas_budget: Arc<u64>,
 ) -> Result<ObjectID, RustSdkError> {
+    println!("Minting NFT function");
     let address = SuiAddress::from_str(MY_ADDRESS)?;
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;

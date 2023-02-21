@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use crate::prelude::*;
 use endpoints::*;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
 
@@ -93,7 +93,8 @@ async fn run() -> Result<()> {
             let mut file_path = project_path.clone();
             file_path.push("config.json");
 
-            let schema = deploy_contract::parse_config(file_path.as_path())?;
+            let mut schema =
+                deploy_contract::parse_config(file_path.as_path())?;
 
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
@@ -104,10 +105,14 @@ async fn run() -> Result<()> {
             )?;
 
             deploy_contract::publish_contract(
+                &mut schema,
                 gas_budget,
                 contract_dir.as_path(),
             )
             .await?;
+
+            // Updating with contract ID
+            io::write_config(&schema, &file_path)?;
         }
         Commands::MintNfts {
             project_dir,
@@ -122,6 +127,10 @@ async fn run() -> Result<()> {
             metadata_path.push("metadata/");
 
             let schema = deploy_contract::parse_config(file_path.as_path())?;
+
+            if schema.contract.is_none() {
+                return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+            }
 
             if let Some(_contract) = &schema.contract {
                 mint_nfts::mint_nfts(

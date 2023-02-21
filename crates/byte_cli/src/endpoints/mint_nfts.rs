@@ -17,16 +17,18 @@ pub async fn mint_nfts(
     mut warehouse_id: Option<String>,
 ) {
     let contract_id = Arc::new(schema.contract.as_ref().unwrap().clone());
+    println!("Initiliazing process on contract id: {:?}", contract_id);
     let client = Arc::new(get_client().await.unwrap());
     let keystore = Arc::new(get_keystore().await.unwrap());
     let module_name = Arc::new(schema.collection.name.clone());
     let gas_budget_ref = Arc::new(gas_budget as u64);
 
     if warehouse_id.is_none() {
+        println!("Creating warehouse");
         warehouse_id =
             Some(mint::create_warehouse(&client, &keystore).await.unwrap());
     }
-
+    println!("Built warehouse id: {:?}", warehouse_id);
     let warehouse_id_ref = Arc::new(warehouse_id.unwrap());
 
     let mut nft_data_vec: Vec<NftData> = vec![];
