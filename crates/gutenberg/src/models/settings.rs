@@ -502,7 +502,7 @@ impl MintPolicies {
             transfer.push_str("nft");
 
             // TODO: Code should be encpasulated
-            let build_nft = "nft::from_mint_cap(mint_cap, name, url, ctx);;
+            let build_nft = "let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});\n";
 
             args.push_str("        ctx: &mut TxContext,\n");
