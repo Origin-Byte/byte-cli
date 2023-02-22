@@ -17,7 +17,7 @@ use sui_sdk::{
     },
     SuiClient,
 };
-use sui_types::messages::ExecuteTransactionRequestType;
+use sui_types::{crypto::Signature, messages::ExecuteTransactionRequestType};
 use sui_types::{intent::Intent, parse_sui_type_tag};
 use tokio::task::JoinHandle;
 
@@ -87,13 +87,14 @@ pub async fn create_warehouse(
         .await?;
 
     // Sign transaction.
-    let signature = keystore.sign_secure(&sender, &call, Intent::default())?;
+    let mut signatures: Vec<Signature> = vec![];
+    signatures.push(keystore.sign_secure(&sender, &call, Intent::default())?);
 
     // Execute the transaction.
     let response = sui
         .quorum_driver()
         .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signature)
+            Transaction::from_data(call, Intent::default(), signatures)
                 .verify()?,
             Some(ExecuteTransactionRequestType::WaitForLocalExecution),
         )
@@ -191,14 +192,15 @@ pub async fn mint_nft(
         .await?;
 
     // Sign transaction.
-    let signature = keystore.sign_secure(&sender, &call, Intent::default())?;
+    let mut signatures: Vec<Signature> = vec![];
+    signatures.push(keystore.sign_secure(&sender, &call, Intent::default())?);
 
     // Execute the transaction.
 
     let response = sui
         .quorum_driver()
         .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signature)
+            Transaction::from_data(call, Intent::default(), signatures)
                 .verify()?,
             Some(ExecuteTransactionRequestType::WaitForLocalExecution),
         )

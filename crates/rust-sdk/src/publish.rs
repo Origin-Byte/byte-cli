@@ -8,7 +8,9 @@ use sui_framework_build::compiled_package::BuildConfig;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectRead, SuiRawData};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{types::messages::Transaction, SuiClient};
-use sui_types::{intent::Intent, messages::ExecuteTransactionRequestType};
+use sui_types::{
+    crypto::Signature, intent::Intent, messages::ExecuteTransactionRequestType,
+};
 
 use crate::{
     collection_state::{CollectionState, ObjectType},
@@ -50,8 +52,13 @@ pub async fn publish_contract(
         .await?;
 
     // Sign transaction.
-    let signature =
-        keystore.sign_secure(&active_address, &call, Intent::default())?;
+    let mut signatures: Vec<Signature> = vec![];
+    signatures.push(keystore.sign_secure(
+        &active_address,
+        &call,
+        Intent::default(),
+    )?);
+
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
     // Execute the transaction.
@@ -60,7 +67,7 @@ pub async fn publish_contract(
         style("WIN").cyan().bold()
     );
     let tx =
-        Transaction::from_data(call, Intent::default(), signature).verify()?;
+        Transaction::from_data(call, Intent::default(), signatures).verify()?;
 
     let request_type =
         Some(ExecuteTransactionRequestType::WaitForLocalExecution);
