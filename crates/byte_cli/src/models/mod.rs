@@ -1,7 +1,7 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
 use gutenberg::Schema;
 
-use crate::prelude::CliError;
+use crate::{consts::TX_SENDER_ADDRESS, prelude::CliError};
 
 pub mod collection;
 pub mod marketplace;
@@ -15,10 +15,6 @@ pub trait FromPrompt {
     fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized;
-}
-
-pub fn sender() -> &'static str {
-    "tx_context::sender(ctx)"
 }
 
 pub fn bps_validator(input: &String) -> Result<(), String> {
@@ -63,7 +59,7 @@ pub fn number_validator(input: &String) -> Result<(), String> {
 }
 
 pub fn address_validator(input: &String) -> Result<(), CliError> {
-    if input == sender() {
+    if input == TX_SENDER_ADDRESS {
         return Ok(());
     }
 

@@ -1,5 +1,29 @@
 use console::Emoji;
 
+// CLI Select options
+pub const FIELD_OPTIONS: [&str; 3] = ["display", "url", "attributes"];
+pub const ROYALTY_OPTIONS: [&str; 3] = ["Proportional", "Constant", "None"];
+pub const FEATURE_OPTIONS: [&str; 1] = ["tags"];
+pub const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
+pub const MINTING_OPTIONS: [&str; 2] = ["launchpad", "airdrop"];
+pub const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
+pub const TAG_OPTIONS: [&str; 11] = [
+    "Art",
+    "ProfilePicture",
+    "Collectible",
+    "GameAsset",
+    "TokenisedAsset",
+    "Ticker",
+    "DomainName",
+    "Music",
+    "Video",
+    "Ticket",
+    "License",
+];
+
+// Smart contract invariants
+pub const TX_SENDER_ADDRESS: &str =  "tx_context::sender(ctx)";
+
 /// Default path for assets folder.
 pub const DEFAULT_FOLDER: &str = "";
 pub const DEFAULT_CONFIG_FILENAME: &str = "config";

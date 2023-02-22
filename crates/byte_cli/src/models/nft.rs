@@ -1,10 +1,8 @@
 use super::{map_indices, FromPrompt};
-use crate::prelude::get_dialoguer_theme;
+use crate::{prelude::get_dialoguer_theme, consts::FIELD_OPTIONS};
 
 use dialoguer::MultiSelect;
 use gutenberg::{models::nft::NftData, Schema};
-
-const FIELD_OPTIONS: [&str; 3] = ["display", "url", "attributes"];
 
 impl FromPrompt for NftData {
     fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>

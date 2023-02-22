@@ -2,18 +2,17 @@ use std::collections::BTreeSet;
 
 use anyhow::Result;
 
-use super::{
-    address_validator, bps_validator, number_validator, sender, FromPrompt,
+use super::{address_validator, bps_validator, number_validator, FromPrompt};
+use crate::{
+    consts::{ROYALTY_OPTIONS, TX_SENDER_ADDRESS},
+    prelude::get_dialoguer_theme,
 };
-use crate::prelude::get_dialoguer_theme;
 
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
     models::royalties::{RoyaltyPolicy, Share},
     Schema,
 };
-
-const ROYALTY_OPTIONS: [&str; 3] = ["Proportional", "Constant", "None"];
 
 impl FromPrompt for RoyaltyPolicy {
     fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
@@ -112,7 +111,7 @@ pub fn get_beneficiaries() -> BTreeSet<Share> {
                     "Please input address of the beneficiary number {}?",
                     i + 1
                 ))
-                .default(sender().to_string())
+                .default(TX_SENDER_ADDRESS.to_string())
                 .validate_with(address_validator)
                 .interact()
                 .unwrap();

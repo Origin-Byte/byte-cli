@@ -11,26 +11,11 @@ use gutenberg::{
     Schema,
 };
 
-const FEATURE_OPTIONS: [&str; 1] = ["tags"];
-const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-const MINTING_OPTIONS: [&str; 2] = ["launchpad", "airdrop"];
-
-const TAG_OPTIONS: [&str; 11] = [
-    "Art",
-    "ProfilePicture",
-    "Collectible",
-    "GameAsset",
-    "TokenisedAsset",
-    "Ticker",
-    "DomainName",
-    "Music",
-    "Video",
-    "Ticket",
-    "License",
-];
-
 use super::{get_options, map_indices, number_validator, FromPrompt};
-use crate::prelude::get_dialoguer_theme;
+use crate::{
+    consts::{FEATURE_OPTIONS, MINTING_OPTIONS, SUPPLY_OPTIONS, TAG_OPTIONS},
+    prelude::get_dialoguer_theme,
+};
 
 impl FromPrompt for Settings {
     fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>

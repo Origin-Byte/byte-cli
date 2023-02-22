@@ -1,13 +1,14 @@
-use crate::prelude::get_dialoguer_theme;
+use crate::{
+    consts::{MARKET_OPTIONS, TX_SENDER_ADDRESS},
+    prelude::get_dialoguer_theme,
+};
 
-use super::{address_validator, number_validator, sender, FromPrompt};
+use super::{address_validator, number_validator, FromPrompt};
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
     models::marketplace::{Listing, Listings, Market},
     Schema,
 };
-
-const MARKET_OPTIONS: [&str; 2] = ["Fixed price", "Dutch auction"];
 
 impl FromPrompt for Market {
     fn from_prompt(_scheme: &Schema) -> Result<Option<Self>, anyhow::Error>
@@ -97,14 +98,14 @@ impl FromPrompt for Listings {
 
         let admin = Input::with_theme(&theme)
             .with_prompt("What is the address of the listing administrator?")
-            .default(sender().to_string())
+            .default(String::from(TX_SENDER_ADDRESS))
             .validate_with(address_validator)
             .interact()
             .unwrap();
 
         let receiver = Input::with_theme(&theme)
             .with_prompt("What is the address that receives the sale proceeds?")
-            .default(sender().to_string())
+            .default(String::from(TX_SENDER_ADDRESS))
             .validate_with(address_validator)
             .interact()
             .unwrap();

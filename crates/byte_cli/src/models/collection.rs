@@ -1,9 +1,7 @@
 use std::collections::BTreeSet;
 
-use super::{
-    address_validator, positive_integer_validator, sender, FromPrompt,
-};
-use crate::prelude::get_dialoguer_theme;
+use super::{address_validator, positive_integer_validator, FromPrompt};
+use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::{models::collection::CollectionData, Schema};
@@ -72,7 +70,7 @@ impl FromPrompt for CollectionData {
                         "Please input address of the creator number {}?",
                         i + 1
                     ))
-                    .default(sender().to_string())
+                    .default(TX_SENDER_ADDRESS.to_string())
                     .validate_with(address_validator)
                     .interact()
                     .unwrap();
