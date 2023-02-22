@@ -1,4 +1,4 @@
-use console::{style, Emoji};
+use console::style;
 use std::{path::Path, sync::mpsc::Sender};
 use terminal_link::Link;
 use tokio::task::JoinSet;
@@ -14,12 +14,10 @@ use sui_types::{
 };
 
 use crate::{
+    consts::{NFT_PROTOCOL, VOLCANO_EMOJI},
     err::RustSdkError,
     utils::{get_active_address, get_client, get_keystore},
 };
-
-pub const VOLCANO_EMOJI: Emoji<'_, '_> = Emoji("🌋", "");
-pub const NFT_PROTOCOL: &str = "0xe097fce5e247ff5df9ffc82510d815d57197f650";
 
 pub async fn publish_contract(
     package_dir: &Path,

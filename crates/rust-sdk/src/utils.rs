@@ -32,3 +32,33 @@ pub fn get_active_address(keystore: &Keystore) -> Result<SuiAddress> {
         anyhow!("Could not retrieve active address from keystore")
     })
 }
+
+pub struct MoveType {
+    contract_address: String,
+    module: String,
+    type_name: String,
+}
+
+impl MoveType {
+    pub fn new(
+        contract_address: String,
+        module: String,
+        type_name: String,
+    ) -> Self {
+        MoveType {
+            contract_address,
+            module,
+            type_name,
+        }
+    }
+
+    pub fn write_type(&self) -> String {
+        let mut code = self.contract_address.clone();
+        code.push_str("::");
+        code.push_str(self.module.as_str());
+        code.push_str("::");
+        code.push_str(self.type_name.as_str());
+
+        code
+    }
+}

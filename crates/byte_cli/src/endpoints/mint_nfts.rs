@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use gutenberg::Schema;
 use std::sync::Arc;
 use std::{fs::File, path::PathBuf};
@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 
 use rust_sdk::{
     mint::{self, NftData},
-    utils::{get_client, get_keystore},
+    utils::{get_active_address, get_client, get_keystore, MoveType},
 };
 
 pub async fn mint_nfts(
@@ -15,18 +15,36 @@ pub async fn mint_nfts(
     gas_budget: usize,
     metadata_path: PathBuf,
     mut warehouse_id: Option<String>,
-) {
+    mint_cap: String,
+) -> Result<()> {
     let contract_id = Arc::new(schema.contract.as_ref().unwrap().clone());
     println!("Initiliazing process on contract id: {:?}", contract_id);
+
     let client = Arc::new(get_client().await.unwrap());
     let keystore = Arc::new(get_keystore().await.unwrap());
-    let module_name = Arc::new(schema.collection.name.clone());
+    let active_address = get_active_address(&keystore)?;
+    let module_name = Arc::new(schema.module_name());
     let gas_budget_ref = Arc::new(gas_budget as u64);
+    let mint_cap_arc = Arc::new(mint_cap);
 
     if warehouse_id.is_none() {
         println!("Creating warehouse");
-        warehouse_id =
-            Some(mint::create_warehouse(&client, &keystore).await.unwrap());
+        let collection_type = MoveType::new(
+            schema.contract.as_ref().unwrap().clone(),
+            schema.module_name(),
+            schema.collection.witness_name(),
+        );
+
+        warehouse_id = Some(
+            mint::create_warehouse(
+                &client,
+                &keystore,
+                active_address,
+                collection_type,
+            )
+            .await
+            .unwrap(),
+        );
     }
     println!("Built warehouse id: {:?}", warehouse_id);
     let warehouse_id_ref = Arc::new(warehouse_id.unwrap());
@@ -60,6 +78,8 @@ pub async fn mint_nfts(
                     warehouse_id_ref.clone(),
                     module_name.clone(),
                     gas_budget_ref.clone(),
+                    active_address,
+                    mint_cap_arc.clone(),
                 )
                 .await,
             );
@@ -69,4 +89,6 @@ pub async fn mint_nfts(
             res.unwrap().unwrap().unwrap();
         }
     }
+
+    Ok(())
 }
