@@ -1,39 +1,11 @@
 {
+    "ModuleAlias": "gutenberg",
     "Collection": {
+        "name": "DomainCreators",
         "creators": [
             "0x64be9c21161c2305543e2bba67e056ebba8729e4"
         ]
     },
-    "Nft": {
-        "display": false,
-        "url": false,
-        "attributes": false,
-        "tags": false
-    },
-    "Royalties": {
-        "Proportional": {
-            "bps": 100
-        }
-    },
-    "Listings": [
-        {
-            "receiver": "@0xcf9bcdb25929869053dd4a2c467539f8b792346f",
-            "markets": [
-                {
-                    "FixedPrice": {
-                        "token": "sui::sui::SUI",
-                        "price": 500,
-                        "is_whitelisted": false
-                    }
-                },
-                {
-                    "DutchAuction": {
-                        "token": "sui::sui::SUI",
-                        "reserve_price": 100,
-                        "is_whitelisted": true
-                    }
-                }
-            ]
-        }
-    ]
+    "Nft": {},
+    "Settings": {}
 }

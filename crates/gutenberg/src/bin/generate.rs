@@ -2,11 +2,12 @@
 
 use gutenberg::Schema;
 
-use std::fs::{self, File};
+use std::fs::File;
 use std::path::Path;
 
 fn main() {
     let scenarios_path = Path::new("./tests/scenarios");
+    let modules_path = Path::new("./tests/packages/sources");
 
     for entry in std::fs::read_dir(scenarios_path)
         .unwrap()
@@ -15,6 +16,7 @@ fn main() {
         let config_path = entry.path();
 
         let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
+        let expected_file = format!("{expected_file}.move");
 
         let config_extension = config_path
             .extension()
@@ -22,14 +24,13 @@ fn main() {
             .to_str()
             .unwrap();
 
-        let mut output = Vec::new();
+        let mut output =
+            File::create(modules_path.join(expected_file)).unwrap();
 
         let config = File::open(config_path.as_path()).unwrap();
         assert_schema(config_path.as_path(), config, config_extension)
             .write_move(&mut output)
             .expect("Could not write move file");
-
-        fs::write(&expected_file, output).unwrap();
     }
 }
 

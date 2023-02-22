@@ -7,9 +7,13 @@ use crate::err::GutenError;
 #[derive(Debug, Default, Deserialize, Serialize, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
+    #[serde(default)]
     pub display: bool,
+    #[serde(default)]
     pub url: bool,
+    #[serde(default)]
     pub attributes: bool,
+    #[serde(default)]
     pub tags: bool,
 }
 

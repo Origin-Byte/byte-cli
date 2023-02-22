@@ -20,9 +20,12 @@ use super::{
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
+    #[serde(default)]
     pub mint_policies: MintPolicies,
     pub composability: Option<Composability>,
+    #[serde(default)]
     pub loose: bool,
+    #[serde(default)]
     pub supply_policy: SupplyPolicy,
     pub listings: Option<Listings>,
 }
@@ -353,11 +356,24 @@ impl SupplyPolicy {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
+#[derive(Debug, Deserialize, Serialize, Reflect)]
 pub struct MintPolicies {
+    #[serde(default)]
     pub launchpad: bool,
+    #[serde(default)]
     pub airdrop: bool,
+    #[serde(default)]
     pub direct: bool,
+}
+
+impl Default for MintPolicies {
+    fn default() -> Self {
+        Self {
+            launchpad: false,
+            airdrop: true,
+            direct: false,
+        }
+    }
 }
 
 impl MintPolicies {

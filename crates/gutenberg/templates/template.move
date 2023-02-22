@@ -1,4 +1,4 @@
-module {module_name}::{module_name} {{
+module {module_alias}::{module_name} {{
 {imports}
 
     /// One time witness is only instantiated in the init method

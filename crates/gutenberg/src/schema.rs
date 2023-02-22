@@ -19,6 +19,8 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
+    /// The named address that the module is published under
+    module_alias: Option<String>,
     pub collection: CollectionData,
     pub nft: NftData,
     pub settings: Settings,
@@ -37,6 +39,7 @@ impl Schema {
         storage: Option<Storage>,
     ) -> Schema {
         Schema {
+            module_alias: None,
             collection,
             nft,
             settings,
@@ -166,6 +169,12 @@ impl Schema {
         // }}
 
         let mut vars = HashMap::<&'static str, &str>::new();
+
+        if let Some(module_alias) = &self.module_alias {
+            vars.insert("module_alias", module_alias);
+        } else {
+            vars.insert("module_alias", &module_name);
+        }
 
         vars.insert("module_name", &module_name);
         vars.insert("imports", &imports);
