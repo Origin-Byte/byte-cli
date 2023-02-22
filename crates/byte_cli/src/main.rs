@@ -10,6 +10,7 @@ pub mod prelude;
 use std::path::{Path, PathBuf};
 
 use crate::prelude::*;
+use byte_cli::utils::assert_no_unstable_features;
 use endpoints::*;
 
 use anyhow::{anyhow, Result};
@@ -95,6 +96,9 @@ async fn run() -> Result<()> {
 
             let mut schema =
                 deploy_contract::parse_config(file_path.as_path())?;
+
+            // TODO: Remove this once all unstable features are completed
+            assert_no_unstable_features(&schema)?;
 
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
