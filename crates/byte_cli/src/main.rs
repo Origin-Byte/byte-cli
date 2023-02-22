@@ -143,7 +143,7 @@ async fn run() -> Result<()> {
                     metadata_path,
                     warehouse_id,
                 )
-                .await
+                .await?
             }
         }
     }

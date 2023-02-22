@@ -1,4 +1,7 @@
-use crate::err::{self, RustSdkError};
+use crate::{
+    consts::NFT_PROTOCOL,
+    err::{self, RustSdkError},
+};
 use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -16,9 +19,6 @@ use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
 
 use tokio::task::JoinHandle;
-
-pub const NFT_PROTOCOL: &str = "0xa672b029392522d76849990dfcf72d9249d1d522";
-pub const MY_ADDRESS: &str = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143";
 
 #[derive(Debug, Deserialize, Serialize, Reflect)]
 pub struct NftData {
@@ -48,15 +48,16 @@ impl NftData {
 pub async fn create_warehouse(
     sui: &SuiClient,
     keystore: &Keystore,
+    // SuiAddress implements Copy
+    sender: SuiAddress,
 ) -> Result<String, RustSdkError> {
-    let address = SuiAddress::from_str(MY_ADDRESS)?;
     let package_id = ObjectID::from_str(NFT_PROTOCOL)
         .map_err(|err| err::object_id(err, NFT_PROTOCOL))?;
 
     let call = sui
         .transaction_builder()
         .move_call(
-            address,
+            sender,
             package_id,
             "warehouse",
             "init_warehouse",
@@ -68,7 +69,7 @@ pub async fn create_warehouse(
         .await?;
 
     // Sign transaction.
-    let signature = keystore.sign_secure(&address, &call, Intent::default())?;
+    let signature = keystore.sign_secure(&sender, &call, Intent::default())?;
 
     // Execute the transaction.
     let response = sui
@@ -110,6 +111,7 @@ pub async fn handle_mint_nft(
     warehouse_id: Arc<String>,
     module_name: Arc<String>,
     gas_budget: Arc<u64>,
+    sender: SuiAddress,
 ) -> JoinHandle<Result<ObjectID, RustSdkError>> {
     tokio::spawn(async move {
         mint_nft(
@@ -120,6 +122,7 @@ pub async fn handle_mint_nft(
             warehouse_id,
             module_name,
             gas_budget,
+            sender,
         )
         .await
     })
@@ -133,9 +136,10 @@ pub async fn mint_nft(
     warehouse_id: Arc<String>,
     module_name: Arc<String>,
     gas_budget: Arc<u64>,
+    // SuiAddress implements Copy
+    sender: SuiAddress,
 ) -> Result<ObjectID, RustSdkError> {
     println!("Minting NFT function");
-    let address = SuiAddress::from_str(MY_ADDRESS)?;
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
 
@@ -149,7 +153,7 @@ pub async fn mint_nft(
     let call = sui
         .transaction_builder()
         .move_call(
-            address,
+            sender,
             package_id,
             module_name.as_str(),
             "mint_nft",
@@ -161,7 +165,7 @@ pub async fn mint_nft(
         .await?;
 
     // Sign transaction.
-    let signature = keystore.sign_secure(&address, &call, Intent::default())?;
+    let signature = keystore.sign_secure(&sender, &call, Intent::default())?;
 
     // Execute the transaction.
 
