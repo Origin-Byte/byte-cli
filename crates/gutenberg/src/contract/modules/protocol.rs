@@ -130,44 +130,51 @@ impl Module for DisplayMod {
 }
 
 impl DisplayMod {
-    pub fn add_collection_display(collection: &CollectionData) -> String {
-        format!(
-            "
-        display::add_collection_display_domain(
-            delegated_witness,
-            &mut collection,
-            string::utf8(b\"{}\"),
-            string::utf8(b\"{}\"),
-        );\n",
-            collection.name, collection.description
-        )
-    }
-
-    pub fn add_collection_url(collection: &CollectionData) -> String {
-        format!(
-            "
-        display::add_collection_url_domain(
-            delegated_witness,
-            &mut collection,
-            {url}
-        );\n",
-            url = Url::to_url_param(
-                collection.url.as_ref().unwrap().as_str(),
-                false
+    pub fn add_collection_display(
+        collection: &CollectionData,
+    ) -> Option<String> {
+        collection.description.as_ref().map(|description| {
+            format!(
+                "
+            display::add_collection_display_domain(
+                delegated_witness,
+                &mut collection,
+                string::utf8(b\"{}\"),
+                string::utf8(b\"{}\"),
+            );\n",
+                collection.name, description
             )
-        )
+        })
     }
 
-    pub fn add_collection_symbol(collection: &CollectionData) -> String {
-        format!(
-            "
-        display::add_collection_symbol_domain(
-            delegated_witness,
-            &mut collection,
-            string::utf8(b\"{}\"),
-        );\n",
-            collection.symbol
-        )
+    pub fn add_collection_url(collection: &CollectionData) -> Option<String> {
+        collection.url.as_ref().map(|url| {
+            format!(
+                "
+            display::add_collection_url_domain(
+                delegated_witness,
+                &mut collection,
+                {url}
+            );\n",
+                url = Url::to_url_param(url, false)
+            )
+        })
+    }
+
+    pub fn add_collection_symbol(
+        collection: &CollectionData,
+    ) -> Option<String> {
+        collection.symbol.as_ref().map(|symbol| {
+            format!(
+                "
+            display::add_collection_symbol_domain(
+                delegated_witness,
+                &mut collection,
+                string::utf8(b\"{}\"),
+            );\n",
+                symbol
+            )
+        })
     }
 
     pub fn add_nft_display() -> String {

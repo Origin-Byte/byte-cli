@@ -3,7 +3,6 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
 
 use crate::{
     consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
@@ -18,22 +17,23 @@ pub struct CollectionData {
     /// The name of the collection
     pub name: String,
     /// The description of the collection
-    pub description: String,
+    pub description: Option<String>,
     /// The symbol/ticker of the collection
-    pub symbol: String,
+    pub symbol: Option<String>,
     /// The URL of the collection website
     pub url: Option<String>,
+    #[serde(default = "Vec::new")]
     /// The addresses of creators
-    pub creators: BTreeSet<String>,
+    pub creators: Vec<String>,
 }
 
 impl CollectionData {
     pub fn new(
         name: String,
-        description: String,
-        symbol: String,
+        description: Option<String>,
+        symbol: Option<String>,
         url: Option<String>,
-        creators: BTreeSet<String>,
+        creators: Vec<String>,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -42,14 +42,6 @@ impl CollectionData {
             url,
             creators,
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.name.is_empty()
-            && self.description.is_empty()
-            && self.symbol.is_empty()
-            && self.url.is_none()
-            && self.creators.is_empty()
     }
 
     pub fn witness_name(&self) -> String {
@@ -71,7 +63,7 @@ impl CollectionData {
     }
 
     pub fn set_description(&mut self, description: String) {
-        self.description = description;
+        self.description = Some(description);
     }
 
     pub fn set_symbol(&mut self, mut symbol: String) -> Result<(), GutenError> {
@@ -92,7 +84,7 @@ impl CollectionData {
         }
 
         symbol = symbol.to_uppercase();
-        self.symbol = symbol;
+        self.symbol = Some(symbol);
 
         Ok(())
     }
@@ -114,7 +106,7 @@ The Collection URL input `{}` is not valid.",
 
     pub fn set_creators(
         &mut self,
-        creators: BTreeSet<String>,
+        creators: Vec<String>,
     ) -> Result<(), GutenError> {
         if creators.len() > MAX_CREATORS_LENGTH {
             return Err(GutenError::UnsupportedCollectionInput(format!(
@@ -140,11 +132,16 @@ The Collection URL input `{}` is not valid.",
 
         code.push_str(self.write_creators().as_str());
 
-        code.push_str(DisplayMod::add_collection_display(self).as_str());
-        code.push_str(DisplayMod::add_collection_symbol(self).as_str());
+        if let Some(display) = DisplayMod::add_collection_display(self) {
+            code.push_str(&display);
+        }
 
-        if let Some(_url) = &self.url {
-            code.push_str(DisplayMod::add_collection_url(self).as_str());
+        if let Some(symbol) = DisplayMod::add_collection_symbol(self) {
+            code.push_str(&symbol);
+        }
+
+        if let Some(url) = DisplayMod::add_collection_url(self) {
+            code.push_str(&url);
         }
 
         code

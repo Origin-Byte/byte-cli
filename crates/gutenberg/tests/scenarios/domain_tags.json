@@ -1,31 +1,15 @@
 {
     "Collection": {
-        "name": "Newbytes",
-        "description": "A unique NFT collection of Bytes on Sui",
-        "symbol": "BYTE",
         "tags": [
             "Art",
             "ProfilePicture"
-        ],
-        "url": "https://originbyte.io/"
+        ]
     },
     "Nft": {
-        "fields": {
-            "display": true,
-            "url": true,
-            "attributes": true,
-            "tags": true
-        },
-        "behaviours": {
-            "composable": true,
-            "loose": false
-        },
-        "supplyPolicy": "unlimited",
-        "mintStrategy": {
-            "direct": true,
-            "airdrop": true,
-            "launchpad": true
-        }
+        "display": false,
+        "url": false,
+        "attributes": false,
+        "tags": true
     },
     "Royalties": {
         "Proportional": {
