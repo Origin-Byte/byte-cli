@@ -3,7 +3,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use crate::{
     contract::modules::{ComposableNftMod, DisplayMod},
     err::{self, GutenError},
-    models::tags::Tags, consts::DEFAULT_ADDRESS,
+    models::tags::Tags,
 };
 
 use bevy_reflect::{Reflect, Struct};
@@ -141,24 +141,24 @@ impl Settings {
         code.join("\n")
     }
 
-    pub fn write_transfer_fns(&self, receiver: &String) -> String {
-        let receiver_ = if receiver != DEFAULT_ADDRESS {
-            format!("@{}", receiver)
-        } else {
-            DEFAULT_ADDRESS.to_string()
+    pub fn write_transfer_fns(&self, receiver: Option<&String>) -> String {
+        let receiver = match receiver {
+            Some(address) => format!("@{address}"),
+            None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
-
         let mut code = format!(
-            "transfer::transfer(mint_cap, {});
-        transfer::share_object(collection);\n",
-        receiver_
+            "
+        sui::transfer::transfer(mint_cap, {receiver});
+        sui::transfer::share_object(collection);\n"
         );
 
         if self.loose {
             code.push_str(
-                format!("        transfer::transfer(templates, {});", receiver_)
-                    .as_str(),
+                format!(
+                    "        sui::transfer::transfer(templates, {receiver});"
+                )
+                .as_str(),
             )
         }
 

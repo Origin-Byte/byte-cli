@@ -2,7 +2,6 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::consts::DEFAULT_ADDRESS;
 use crate::contract::modules::Imports;
 use crate::err::GutenError;
 use crate::models::settings::Settings;
@@ -22,6 +21,7 @@ pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
     pub collection: CollectionData,
+    #[serde(default)]
     pub nft: NftData,
     pub settings: Settings,
     /// Creates a new marketplace with the collection
@@ -57,44 +57,21 @@ impl Schema {
     }
 
     pub fn write_init_fn(&self) -> String {
-        let signature = format!(
-            "    fun init(witness: {}, ctx: &mut TxContext)",
-            self.witness_name()
-        );
-
-        let init_collection = "let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});\n";
-
         let domains = self.collection.write_domains();
 
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        // let init_listings = self.settings.write_init_listings();
-
-        let default_address = DEFAULT_ADDRESS.to_string();
-
-        let first_creator = self
-            .collection
-            .creators
-            .first()
-            .unwrap_or_else(|| &default_address);
-
-        let transfer_fns = self.settings.write_transfer_fns(first_creator);
+        let transfer_fns = self
+            .settings
+            .write_transfer_fns(self.collection.creators.first());
 
         format!(
-            "{signature} {{
-        {init_collection}
-        {domains}
-        {feature_domains}
-        {transfer_fns}
-    }}",
-            signature = signature,
-            init_collection = init_collection,
-            domains = domains,
-            feature_domains = feature_domains,
-            // init_listings = init_listings,
-            transfer_fns = transfer_fns,
+            "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
+        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&Witness {{}});
+{domains}{feature_domains}{transfer_fns}    }}",
+            witness = self.witness_name()
         )
     }
 

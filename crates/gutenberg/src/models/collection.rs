@@ -22,7 +22,7 @@ pub struct CollectionData {
     pub symbol: Option<String>,
     /// The URL of the collection website
     pub url: Option<String>,
-    #[serde(default = "Vec::new")]
+    #[serde(default)]
     /// The addresses of creators
     pub creators: Vec<String>,
 }
@@ -150,30 +150,23 @@ The Collection URL input `{}` is not valid.",
     pub fn write_creators(&self) -> String {
         let mut code = String::new();
 
-        let creators_domain = if self.creators.len() == 1 {
+        let creators_domain = if self.creators.is_empty() {
             format!(
-                "
-    creators::from_address<{name}, Witness>(
-        &Witness {{}}, {address}, ctx,
-    )",
-                name = self.name,
-                address = self.creators.first().unwrap(),
+                "nft_protocol::creators::from_address<{witness_name}, Witness>(
+                &Witness {{}}, sui::tx_context::sender(ctx),
+            )",
+                witness_name = self.witness_name(),
             )
         } else {
-            code.push_str("let creators = vec_set::empty();\n");
-
-            self.creators
-                .iter()
-                .map(|addr| {
-                    code.push_str(
-                        format!(
-                            "        vec_set::insert(&mut creators, @{});\n",
-                            addr
-                        )
-                        .as_str(),
-                    );
-                })
-                .for_each(drop);
+            code.push_str(
+                "
+        let creators = sui::vec_set::empty();\n",
+            );
+            for addr in self.creators.iter() {
+                code.push_str(&format!(
+                    "        sui::vec_set::insert(&mut creators, @{addr});\n"
+                ));
+            }
 
             format!(
                 "creators::from_creators<{witness}, Witness>(
@@ -183,17 +176,15 @@ The Collection URL input `{}` is not valid.",
             )
         };
 
-        let add_domain = format!(
+        code.push_str(&format!(
             "
-        collection::add_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             {},
         );\n",
             creators_domain
-        );
-
-        code.push_str(add_domain.as_str());
+        ));
 
         code
     }

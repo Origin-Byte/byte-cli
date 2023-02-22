@@ -32,29 +32,29 @@ impl Module for TagsMod {
 
 impl TagsMod {
     pub fn init_tags() -> String {
-        "let tags = tags::empty(ctx);\n".to_string()
+        "let tags = nft_protocol::tags::empty(ctx);\n".to_string()
     }
 
     pub fn add_tag(tag: &str) -> String {
-        format!("tags::add_tag(&mut tags, tags::{}());\n", tag)
+        format!("nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::{}());\n", tag)
     }
 
-    pub fn add_collection_domain() -> String {
-        "        tags::add_collection_tag_domain(
+    pub fn add_collection_domain() -> &'static str {
+        "
+        nft_protocol::tags::add_collection_tag_domain(
             delegated_witness,
             &mut collection,
             tags,
         );\n"
-            .to_string()
     }
 
-    pub fn add_nft_domain() -> String {
-        "tags::add_tag_domain(
+    pub fn add_nft_domain() -> &'static str {
+        "
+        nft_protocol::tags::add_tag_domain(
             delegated_witness,
             &mut nft,
             tags,
         );\n"
-            .to_string()
     }
 }
 
@@ -136,13 +136,13 @@ impl DisplayMod {
         collection.description.as_ref().map(|description| {
             format!(
                 "
-            display::add_collection_display_domain(
-                delegated_witness,
-                &mut collection,
-                string::utf8(b\"{}\"),
-                string::utf8(b\"{}\"),
-            );\n",
-                collection.name, description
+        nft_protocol::display::add_collection_display_domain(
+            delegated_witness,
+            &mut collection,
+            std::string::utf8(b\"{collection_name}\"),
+            std::string::utf8(b\"{description}\"),
+        );\n",
+                collection_name = collection.name
             )
         })
     }
@@ -151,11 +151,11 @@ impl DisplayMod {
         collection.url.as_ref().map(|url| {
             format!(
                 "
-            display::add_collection_url_domain(
-                delegated_witness,
-                &mut collection,
-                {url}
-            );\n",
+        nft_protocol::display::add_collection_url_domain(
+            delegated_witness,
+            &mut collection,
+            {url}
+        );\n",
                 url = Url::to_url_param(url, false)
             )
         })
@@ -167,32 +167,31 @@ impl DisplayMod {
         collection.symbol.as_ref().map(|symbol| {
             format!(
                 "
-            display::add_collection_symbol_domain(
-                delegated_witness,
-                &mut collection,
-                string::utf8(b\"{}\"),
-            );\n",
-                symbol
+        nft_protocol::display::add_collection_symbol_domain(
+            delegated_witness,
+            &mut collection,
+            std::string::utf8(b\"{symbol}\"),
+        );\n",
             )
         })
     }
 
     pub fn add_nft_display() -> String {
-        "display::add_display_domain(
+        "nft_protocol::display::add_display_domain(
             delegated_witness, &mut nft, name, description,
         );\n"
             .to_string()
     }
 
     pub fn add_nft_url() -> String {
-        "        display::add_url_domain(
+        "        nft_protocol::display::add_url_domain(
             delegated_witness, &mut nft, url::new_unsafe_from_bytes(url),
         );\n"
             .to_string()
     }
 
     pub fn add_nft_attributes() -> String {
-        "        display::add_attributes_domain_from_vec(
+        "        nft_protocol::display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values,
         );\n"
             .to_string()
@@ -330,12 +329,12 @@ impl Module for CollectionMod {
 
 impl CollectionMod {
     pub fn create() -> String {
-        "collection::create(&witness, ctx);\n".to_string()
+        "nft_protocol::collection::create(&witness, ctx);\n".to_string()
     }
 
     pub fn add_domain(domain: &str) -> String {
         format!(
-            "collection::add_domain(
+            "nft_protocol::collection::add_domain(
                 delegated_witness,
                 &mut collection,
                 {domain},

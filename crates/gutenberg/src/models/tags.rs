@@ -83,18 +83,21 @@ impl Tags {
 
     /// Generates Move code to push tags to a Move `vector` structure
     pub fn write_domain(&self, is_collection: bool) -> String {
-        let mut code = String::from("let tags = tags::empty(ctx);\n");
+        let mut code = String::from(
+            "
+        let tags = nft_protocol::tags::empty(ctx);\n",
+        );
 
         for tag in self.0.iter().map(Tag::to_string) {
             code.push_str(&format!(
-                "        tags::add_tag(&mut tags, tags::{tag}());\n",
+                "        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::{tag}());\n",
             ));
         }
 
         if is_collection {
-            code.push_str(TagsMod::add_collection_domain().as_str());
+            code.push_str(TagsMod::add_collection_domain());
         } else {
-            code.push_str(TagsMod::add_nft_domain().as_str());
+            code.push_str(TagsMod::add_nft_domain());
         }
 
         code

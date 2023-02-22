@@ -9,7 +9,6 @@ module gutenberg::domaintags {
     use nft_protocol::tags;
     use nft_protocol::creators;
 
-
     /// One time witness is only instantiated in the init method
     struct DOMAINTAGS has drop {}
 
@@ -18,36 +17,31 @@ module gutenberg::domaintags {
     /// serves as an auth token.
     struct Witness has drop {}
 
-
-
-    fun init(witness: DOMAINTAGS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+    fun init(witness: DOMAINTAGS, ctx: &mut sui::tx_context::TxContext) {
+        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
 
-        let creators = vec_set::empty();
-
-        collection::add_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_creators<DOMAINTAGS, Witness>(
-                &Witness {}, creators,
+            nft_protocol::creators::from_address<DOMAINTAGS, Witness>(
+                &Witness {}, sui::tx_context::sender(ctx),
             ),
         );
 
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-        tags::add_tag(&mut tags, tags::profile_picture());
-        tags::add_collection_tag_domain(
+        let tags = nft_protocol::tags::empty(ctx);
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::art());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::profile_picture());
+
+        nft_protocol::tags::add_collection_tag_domain(
             delegated_witness,
             &mut collection,
             tags,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-
+        sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
+        sui::transfer::share_object(collection);
     }
-
 
 
     public entry fun mint_to_address(

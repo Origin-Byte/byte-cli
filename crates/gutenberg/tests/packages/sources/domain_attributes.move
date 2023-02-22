@@ -9,7 +9,6 @@ module gutenberg::domainattributes {
     use nft_protocol::display;
     use nft_protocol::creators;
 
-
     /// One time witness is only instantiated in the init method
     struct DOMAINATTRIBUTES has drop {}
 
@@ -18,28 +17,21 @@ module gutenberg::domainattributes {
     /// serves as an auth token.
     struct Witness has drop {}
 
-
-
-    fun init(witness: DOMAINATTRIBUTES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+    fun init(witness: DOMAINATTRIBUTES, ctx: &mut sui::tx_context::TxContext) {
+        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
 
-        let creators = vec_set::empty();
-
-        collection::add_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_creators<DOMAINATTRIBUTES, Witness>(
-                &Witness {}, creators,
+            nft_protocol::creators::from_address<DOMAINATTRIBUTES, Witness>(
+                &Witness {}, sui::tx_context::sender(ctx),
             ),
         );
 
-        
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-
+        sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
+        sui::transfer::share_object(collection);
     }
-
 
 
     public entry fun mint_to_address(
@@ -68,7 +60,7 @@ module gutenberg::domainattributes {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
-                display::add_attributes_domain_from_vec(
+                nft_protocol::display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values,
         );
 

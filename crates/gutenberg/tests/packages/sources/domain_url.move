@@ -10,7 +10,6 @@ module gutenberg::domainurl {
     use nft_protocol::display;
     use nft_protocol::creators;
 
-
     /// One time witness is only instantiated in the init method
     struct DOMAINURL has drop {}
 
@@ -19,34 +18,27 @@ module gutenberg::domainurl {
     /// serves as an auth token.
     struct Witness has drop {}
 
-
-
-    fun init(witness: DOMAINURL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+    fun init(witness: DOMAINURL, ctx: &mut sui::tx_context::TxContext) {
+        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
 
-        let creators = vec_set::empty();
-
-        collection::add_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_creators<DOMAINURL, Witness>(
-                &Witness {}, creators,
+            nft_protocol::creators::from_address<DOMAINURL, Witness>(
+                &Witness {}, sui::tx_context::sender(ctx),
             ),
         );
 
-            display::add_collection_url_domain(
-                delegated_witness,
-                &mut collection,
-                sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            );
+        nft_protocol::display::add_collection_url_domain(
+            delegated_witness,
+            &mut collection,
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
 
-        
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-
+        sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
+        sui::transfer::share_object(collection);
     }
-
 
 
     public entry fun mint_to_address(
@@ -72,7 +64,7 @@ module gutenberg::domainurl {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
-                display::add_url_domain(
+                nft_protocol::display::add_url_domain(
             delegated_witness, &mut nft, url::new_unsafe_from_bytes(url),
         );
 

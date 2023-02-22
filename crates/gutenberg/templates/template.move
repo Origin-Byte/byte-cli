@@ -1,6 +1,5 @@
 module {module_alias}::{module_name} {{
 {imports}
-
     /// One time witness is only instantiated in the init method
     struct {witness} has drop {{}}
 
@@ -8,10 +7,7 @@ module {module_alias}::{module_name} {{
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {{}}
-
 {type_declarations}
-
 {init_function}
-
 {entry_functions}
 }}

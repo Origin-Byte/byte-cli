@@ -18,6 +18,6 @@ impl Module for StringMod {
 
 impl StringMod {
     pub fn to_string_param(text: &str) -> String {
-        format!("string::utf8(b\"{}\"),", text)
+        format!("std::string::utf8(b\"{}\"),", text)
     }
 }

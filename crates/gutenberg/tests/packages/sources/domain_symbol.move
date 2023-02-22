@@ -1,8 +1,7 @@
-module gutenberg::domaincreators {
+module gutenberg::domainurl {
     use std::string::{Self, String};
-    use sui::vec_set;
     use sui::transfer;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness;
     use nft_protocol::mint_cap::MintCap;
@@ -10,29 +9,32 @@ module gutenberg::domaincreators {
     use nft_protocol::creators;
 
     /// One time witness is only instantiated in the init method
-    struct DOMAINCREATORS has drop {}
+    struct DOMAINURL has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: DOMAINCREATORS, ctx: &mut sui::tx_context::TxContext) {
+    fun init(witness: DOMAINURL, ctx: &mut sui::tx_context::TxContext) {
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
-
-        let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, @0x64be9c21161c2305543e2bba67e056ebba8729e4);
 
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_creators<DOMAINCREATORS, Witness>(
-                &Witness {}, creators,
+            nft_protocol::creators::from_address<DOMAINURL, Witness>(
+                &Witness {}, sui::tx_context::sender(ctx),
             ),
         );
 
-        sui::transfer::transfer(mint_cap, @0x64be9c21161c2305543e2bba67e056ebba8729e4);
+        nft_protocol::display::add_collection_symbol_domain(
+            delegated_witness,
+            &mut collection,
+            std::string::utf8(b"GIUT"),
+        );
+
+        sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::share_object(collection);
     }
 
@@ -53,7 +55,7 @@ module gutenberg::domaincreators {
     fun mint(
                 mint_cap: &MintCap<SUIMARINES>,
         ctx: &mut TxContext,
-    ): Nft<DOMAINCREATORS> {
+    ): Nft<DOMAINURL> {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
