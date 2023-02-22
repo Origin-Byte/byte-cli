@@ -12,11 +12,11 @@ use std::path::{Path, PathBuf};
 use crate::prelude::*;
 use byte_cli::utils::assert_no_unstable_features;
 use endpoints::*;
-use gutenberg::collection_state::CollectionState;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
+use rust_sdk::collection_state::CollectionState;
 
 #[tokio::main]
 async fn main() {
@@ -94,6 +94,8 @@ async fn run() -> Result<()> {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
             let mut file_path = project_path.clone();
             file_path.push("config.json");
+            let mut state_path = project_path.clone();
+            state_path.push("objects.json");
 
             let mut schema =
                 deploy_contract::parse_config(file_path.as_path())?;
@@ -109,7 +111,7 @@ async fn run() -> Result<()> {
                 contract_dir.as_path(),
             )?;
 
-            deploy_contract::publish_contract(
+            let state = deploy_contract::publish_contract(
                 &mut schema,
                 gas_budget,
                 contract_dir.as_path(),
@@ -118,6 +120,7 @@ async fn run() -> Result<()> {
 
             // Updating with contract ID
             io::write_config(&schema, &file_path)?;
+            io::write_collection_state(&state, &state_path)?;
         }
         Commands::MintNfts {
             project_dir,
@@ -148,7 +151,7 @@ async fn run() -> Result<()> {
                     gas_budget,
                     metadata_path,
                     warehouse_id,
-                    state.mint_cap.clone(),
+                    state.mint_cap.as_ref().unwrap().clone().to_string(),
                 )
                 .await?
             }

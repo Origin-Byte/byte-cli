@@ -8340,6 +8340,7 @@ dependencies = [
  "clap 4.1.6",
  "colorize",
  "console",
+ "derive_more",
  "dialoguer",
  "dirs",
  "dotenv",

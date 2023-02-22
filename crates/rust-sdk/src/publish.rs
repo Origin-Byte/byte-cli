@@ -8,12 +8,10 @@ use sui_framework_build::compiled_package::BuildConfig;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectRead, SuiRawData};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{types::messages::Transaction, SuiClient};
-use sui_types::{
-    base_types::ObjectID, intent::Intent,
-    messages::ExecuteTransactionRequestType,
-};
+use sui_types::{intent::Intent, messages::ExecuteTransactionRequestType};
 
 use crate::{
+    collection_state::{CollectionState, ObjectType},
     consts::{NFT_PROTOCOL, VOLCANO_EMOJI},
     err::RustSdkError,
     utils::{get_active_address, get_client, get_keystore},
@@ -22,7 +20,7 @@ use crate::{
 pub async fn publish_contract(
     package_dir: &Path,
     gas_budget: u64,
-) -> Result<String, RustSdkError> {
+) -> Result<CollectionState, RustSdkError> {
     let client = get_client().await.unwrap();
     let keystore = get_keystore().await.unwrap();
     let active_address = get_active_address(&keystore).unwrap();
@@ -114,11 +112,27 @@ pub async fn publish_contract(
 
     println!("A total of {} object have been created.", i);
 
-    let package_id = format!("{}", receiver.recv().unwrap());
+    let mut collection_state = CollectionState::default();
+    // It's three as we are interest in the MintCap, Collection and Package
+    for _ in 0..3 {
+        let object_type = receiver.recv().unwrap();
+        match object_type {
+            ObjectType::Package(_object_id) => {
+                collection_state.contract = Some(object_type);
+            }
+            ObjectType::MintCap(_object_id) => {
+                collection_state.mint_cap = Some(object_type);
+            }
+            ObjectType::Collection(_object_id) => {
+                collection_state.collection = Some(object_type);
+            }
+            _ => {}
+        }
+    }
 
     let explorer_link = format!(
         "https://explorer.sui.io/object/{}?network=devnet",
-        package_id
+        collection_state.contract.as_ref().unwrap()
     );
 
     let link = Link::new("Sui Explorer", explorer_link.as_str());
@@ -128,13 +142,13 @@ pub async fn publish_contract(
         style(link).blue().bold().underlined(),
     );
 
-    Ok(package_id)
+    Ok(collection_state)
 }
 
 async fn print_object(
     client: &SuiClient,
     object: &OwnedObjectRef,
-    tx: Sender<ObjectID>,
+    tx: Sender<ObjectType>,
 ) {
     let object_id = object.reference.object_id;
     let object_read = client.read_api().get_object(object_id).await.unwrap();
@@ -147,15 +161,17 @@ async fn print_object(
             SuiRawData::MoveObject(raw_object) => {
                 if raw_object.type_.contains(mint_cap.as_str()) {
                     println!("Mint Cap object ID: {}", object_id);
+                    tx.send(ObjectType::MintCap(object_id)).unwrap();
                 }
                 if raw_object.type_.contains(collection.as_str()) {
                     println!("Collection object ID: {}", object_id);
+                    tx.send(ObjectType::Collection(object_id)).unwrap();
                 }
             }
             SuiRawData::Package(_raw_package) => {
                 println!("Package object ID: {}", object_id);
 
-                tx.send(object_id).unwrap();
+                tx.send(ObjectType::Package(object_id)).unwrap();
             }
         }
     }

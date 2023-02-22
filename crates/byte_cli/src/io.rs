@@ -7,6 +7,7 @@ use crate::prelude::CliError;
 use anyhow::anyhow;
 use gutenberg::Schema;
 
+use rust_sdk::collection_state::CollectionState;
 use serde::Serialize;
 
 pub fn try_read_config(path_buf: &PathBuf) -> Result<Schema, CliError> {
@@ -37,6 +38,27 @@ pub fn write_config(
     let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
     let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
     schema.serialize(ser).map_err(|err| {
+        anyhow!(
+            r#"Could not write configuration file "{}": {err}"#,
+            output_file.display()
+        )
+    })
+}
+
+pub fn write_collection_state(
+    state: &CollectionState,
+    output_file: &Path,
+) -> Result<(), anyhow::Error> {
+    let file = File::create(output_file).map_err(|err| {
+        anyhow!(
+            r#"Could not create collection state file "{}": {err}"#,
+            output_file.display()
+        )
+    })?;
+
+    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
+    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
+    state.serialize(ser).map_err(|err| {
         anyhow!(
             r#"Could not write configuration file "{}": {err}"#,
             output_file.display()

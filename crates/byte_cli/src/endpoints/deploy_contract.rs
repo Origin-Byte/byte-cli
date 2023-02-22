@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
 
-use rust_sdk::publish;
+use rust_sdk::{publish, collection_state::CollectionState};
 use std::fs::{self, File};
 
 pub fn parse_config(config_file: &Path) -> Result<Schema> {
@@ -121,11 +121,11 @@ pub async fn publish_contract(
     schema: &mut Schema,
     gas_budget: usize,
     contract_dir: &Path,
-) -> Result<()> {
-    let package_id =
+) -> Result<CollectionState> {
+    let collection_state =
         publish::publish_contract(contract_dir, gas_budget as u64).await?;
 
-    schema.contract = Some(package_id);
+    schema.contract = Some(collection_state.contract.as_ref().unwrap().to_string());
 
-    Ok(())
+    Ok(collection_state)
 }
