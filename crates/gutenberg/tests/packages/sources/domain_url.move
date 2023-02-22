@@ -5,7 +5,7 @@ module gutenberg::domainurl {
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness;
-    use nft_protocol::mint_cap::{MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display;
     use nft_protocol::creators;
@@ -52,8 +52,8 @@ module gutenberg::domainurl {
     public entry fun mint_to_address(
                 url: vector<u8>,
         mint_cap: &MintCap<SUIMARINES>,
-        receiver: address,        ctx: &mut TxContext,
-
+        receiver: address,
+        ctx: &mut TxContext,
     ) {
         let nft = mint(
                         url,
@@ -68,7 +68,7 @@ module gutenberg::domainurl {
                 url: vector<u8>,
         mint_cap: &MintCap<SUIMARINES>,
         ctx: &mut TxContext,
-        ): Nft<DOMAINURL> {
+    ): Nft<DOMAINURL> {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 

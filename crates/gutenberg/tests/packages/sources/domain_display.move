@@ -4,7 +4,7 @@ module gutenberg::domaindisplay {
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness;
-    use nft_protocol::mint_cap::{MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display;
     use nft_protocol::creators;
@@ -53,8 +53,8 @@ module gutenberg::domaindisplay {
         name: String,
         description: String,
         mint_cap: &MintCap<SUIMARINES>,
-        receiver: address,        ctx: &mut TxContext,
-
+        receiver: address,
+        ctx: &mut TxContext,
     ) {
         let nft = mint(
             name,
@@ -71,7 +71,7 @@ module gutenberg::domaindisplay {
         description: String,
         mint_cap: &MintCap<SUIMARINES>,
         ctx: &mut TxContext,
-        ): Nft<DOMAINDISPLAY> {
+    ): Nft<DOMAINDISPLAY> {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 

@@ -4,7 +4,7 @@ module gutenberg::domainattributes {
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness;
-    use nft_protocol::mint_cap::{MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display;
     use nft_protocol::creators;
@@ -34,7 +34,7 @@ module gutenberg::domainattributes {
             ),
         );
 
-
+        
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
 
@@ -46,8 +46,8 @@ module gutenberg::domainattributes {
                 attribute_keys: vector<String>,
         attribute_values: vector<String>,
         mint_cap: &MintCap<SUIMARINES>,
-        receiver: address,        ctx: &mut TxContext,
-
+        receiver: address,
+        ctx: &mut TxContext,
     ) {
         let nft = mint(
                         attribute_keys,
@@ -64,7 +64,7 @@ module gutenberg::domainattributes {
         attribute_values: vector<String>,
         mint_cap: &MintCap<SUIMARINES>,
         ctx: &mut TxContext,
-        ): Nft<DOMAINATTRIBUTES> {
+    ): Nft<DOMAINATTRIBUTES> {
         let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
