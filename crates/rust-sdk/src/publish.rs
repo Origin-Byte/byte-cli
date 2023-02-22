@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub const VOLCANO_EMOJI: Emoji<'_, '_> = Emoji("🌋", "");
-pub const NFT_PROTOCOL: &str = "0xeac7173b9977892adc10ee5d254bcb2498ec521f";
+pub const NFT_PROTOCOL: &str = "0xe097fce5e247ff5df9ffc82510d815d57197f650";
 
 pub async fn publish_contract(
     package_dir: &Path,
