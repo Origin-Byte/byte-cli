@@ -5,8 +5,6 @@ use tokio::task::{JoinHandle, JoinSet};
 use anyhow::Result;
 use async_trait::async_trait;
 
-use super::StorageState;
-
 /// Maximum number of concurrent tasks (this is important for tasks that handle files
 /// and network connections).
 pub const PARALLEL_LIMIT: usize = 45;
@@ -62,7 +60,7 @@ pub trait Uploader: Prepare {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        state: &mut StorageState,
+        state_path: PathBuf,
         lazy: bool,
     ) -> Result<()>;
 }
@@ -74,6 +72,7 @@ pub trait ParallelUploader: Uploader + Send + Sync {
         // set: &mut JoinSet<()>,
         // tx: Sender<UploadedAsset>,
         asset: Asset,
+        state: PathBuf,
     ) -> JoinHandle<Result<UploadedAsset>>;
 }
 
@@ -86,7 +85,7 @@ impl<T: ParallelUploader> Uploader for T {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        _state: &mut StorageState,
+        state: PathBuf,
         _lazy: bool,
     ) -> Result<()> {
         let mut set = JoinSet::new();
@@ -95,7 +94,7 @@ impl<T: ParallelUploader> Uploader for T {
         // TODO: Fail immediately as soon as one thread fails
 
         for asset in assets.drain(..) {
-            set.spawn(self.upload_asset(asset));
+            set.spawn(self.upload_asset(asset, state.clone()));
         }
 
         while let Some(res) = set.join_next().await {

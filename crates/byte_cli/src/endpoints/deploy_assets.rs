@@ -5,12 +5,14 @@ use gutenberg::storage::{NftStorageSetup, PinataSetup};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use gutenberg::storage::{
-    aws::AWSSetup, Asset, Storage, StorageState, Uploader,
-};
+use gutenberg::storage::{aws::AWSSetup, Asset, Storage, Uploader};
 use gutenberg::Schema;
 
-pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
+pub async fn deploy_assets(
+    schema: &Schema,
+    assets_dir: PathBuf,
+    metadata_dir: PathBuf,
+) -> Result<()> {
     let assets_dir = assets_dir.display().to_string();
     let storage = schema.storage.as_ref().unwrap();
 
@@ -56,16 +58,12 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
         panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
     }
 
-    let mut storage_state = StorageState::default();
-
     match storage {
         Storage::Aws(config) => {
             let setup = AWSSetup::new(&config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
 
-            uploader
-                .upload(&mut assets, &mut storage_state, false)
-                .await?;
+            uploader.upload(&mut assets, metadata_dir, false).await?;
         }
         Storage::Pinata(config) => {
             let setup = PinataSetup::new(&config).await?;
@@ -73,9 +71,7 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
 
             uploader.prepare(&assets).await?;
 
-            uploader
-                .upload(&mut assets, &mut storage_state, false)
-                .await?;
+            uploader.upload(&mut assets, metadata_dir, false).await?;
         }
         Storage::NftStorage(config) => {
             let setup = NftStorageSetup::new(&config).await?;
@@ -83,9 +79,7 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
 
             uploader.prepare(&assets).await?;
 
-            uploader
-                .upload(&mut assets, &mut storage_state, false)
-                .await?;
+            uploader.upload(&mut assets, metadata_dir, false).await?;
         }
     }
 

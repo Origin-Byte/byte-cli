@@ -4,6 +4,8 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+rust-sdk = { path = "../rust-sdk" }
+
 thiserror = "1.0"
 strfmt = "0.2"
 bevy_reflect = {version = "0.9"}

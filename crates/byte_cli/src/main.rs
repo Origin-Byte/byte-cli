@@ -82,10 +82,16 @@ async fn run() -> Result<()> {
 
             let mut assets_path = project_path.clone();
             assets_path.push("assets/");
+            let mut metadata_path = project_path.clone();
+            metadata_path.push("metadata/");
 
             let schema = io::try_read_config(&file_path)?;
 
-            deploy_assets::deploy_assets(&schema, assets_path).await?
+            // TODO: Remove this once all unstable features are completed
+            assert_no_unstable_features(&schema)?;
+
+            deploy_assets::deploy_assets(&schema, assets_path, metadata_path)
+                .await?
         }
         Commands::DeployContract {
             project_dir,

@@ -8,11 +8,11 @@ use reqwest::{
 };
 
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{fs, path::PathBuf};
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
-use crate::storage::{uploader::Asset, UploadedAsset};
+use crate::storage::{uploader::Asset, write_state, UploadedAsset};
 
 use super::{ParallelUploader, Prepare};
 
@@ -102,7 +102,11 @@ impl PinataSetup {
         }
     }
 
-    async fn write(setup: &Setup, asset: Asset) -> Result<UploadedAsset> {
+    async fn write(
+        setup: &Setup,
+        asset: Asset,
+        state: PathBuf,
+    ) -> Result<UploadedAsset> {
         // TODO: Each uplaod is creating their own CID, however, this
         // should be shared accross the collection..
         let content = fs::read(&asset.path)?;
@@ -135,6 +139,8 @@ impl PinataSetup {
                 .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.name))?;
 
             println!("Successfully uploaded {} to IPFS at {}", asset.name, uri);
+
+            write_state(state, asset.id.clone(), uri.to_string()).await?;
 
             Ok(UploadedAsset::new(asset.id.clone(), uri.to_string()))
         } else {
@@ -173,8 +179,14 @@ impl Prepare for PinataSetup {
 
 #[async_trait]
 impl ParallelUploader for PinataSetup {
-    fn upload_asset(&self, asset: Asset) -> JoinHandle<Result<UploadedAsset>> {
+    fn upload_asset(
+        &self,
+        asset: Asset,
+        state: PathBuf,
+    ) -> JoinHandle<Result<UploadedAsset>> {
         let setup = self.0.clone();
-        tokio::spawn(async move { PinataSetup::write(&setup, asset).await })
+        tokio::spawn(
+            async move { PinataSetup::write(&setup, asset, state).await },
+        )
     }
 }

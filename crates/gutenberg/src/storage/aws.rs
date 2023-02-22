@@ -4,10 +4,12 @@ use ini::ini;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::PathBuf;
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::storage::uploader::Asset;
+use crate::storage::write_state;
 
 use super::{ParallelUploader, Prepare, UploadedAsset};
 
@@ -81,16 +83,16 @@ impl AWSSetup {
         directory: String,
         url: String,
         asset: Asset,
+        state: PathBuf,
     ) -> Result<UploadedAsset> {
         println!("DEBUG: Uploading asset on AWS");
         println!("DEBUG: The asset path I am reading from: {:?}", asset.path);
 
         println!("DEBUG: The bucket is the following: {:?}", bucket);
 
-        // let content: Vec<u8> = vec![];
         let content = fs::read(&asset.path)?;
 
-        let path = Path::new(&directory).join(&asset.id);
+        let path = Path::new(&directory).join(&asset.name);
         let path_str = path.to_str().ok_or_else(|| {
             anyhow!("Failed to convert S3 bucket directory path to string.")
         })?;
@@ -131,8 +133,9 @@ impl AWSSetup {
         }
 
         let link = url::Url::parse(&url)?.join("/")?.join(path_str)?;
-
         println!("Successfully uploaded {} to S3 at {}", asset.id, link);
+
+        write_state(state, asset.id.clone(), link.to_string()).await?;
 
         Ok(UploadedAsset::new(asset.id.clone(), link.to_string()))
     }
@@ -147,13 +150,17 @@ impl Prepare for AWSSetup {
 
 #[async_trait]
 impl ParallelUploader for AWSSetup {
-    fn upload_asset(&self, asset: Asset) -> JoinHandle<Result<UploadedAsset>> {
+    fn upload_asset(
+        &self,
+        asset: Asset,
+        state: PathBuf,
+    ) -> JoinHandle<Result<UploadedAsset>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
 
         tokio::spawn(async move {
-            AWSSetup::write(bucket, directory, url, asset).await
+            AWSSetup::write(bucket, directory, url, asset, state).await
         })
     }
 }

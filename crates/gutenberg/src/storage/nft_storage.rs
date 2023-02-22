@@ -10,7 +10,8 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
 
-use super::{Asset, Prepare, StorageState, Uploader};
+use super::{Asset, Prepare, Uploader};
+use std::path::PathBuf;
 
 const NFT_STORAGE_API_URL: &str = "https://api.nft.storage";
 // const NFT_STORAGE_GATEWAY_URL: &str = "https://nftstorage.link/ipfs";
@@ -108,9 +109,10 @@ impl Uploader for NftStorageSetup {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        _state: &mut StorageState,
+        _state: PathBuf,
         _lazy: bool,
     ) -> Result<()> {
+        // TODO: Write state to metadata objects
         println!("We are in the upload phase");
         let mut batches: Vec<Vec<&Asset>> = Vec::new();
         let mut current: Vec<&Asset> = Vec::new();
@@ -160,8 +162,6 @@ impl Uploader for NftStorageSetup {
                     // .file_name(asset.name.clone())
                     .mime_str(asset.content_type.as_str())?;
                 form = form.part("file", file);
-
-                println!("Form: {:?}", form);
             }
 
             let response = self
