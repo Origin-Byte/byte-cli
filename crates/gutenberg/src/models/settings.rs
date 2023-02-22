@@ -464,7 +464,7 @@ impl MintPolicies {
                 MintType::Launchpad => {
                     args.push_str(
                         format!(
-                            "        warehouse: &mut Warehouse<{}>,",
+                            "        warehouse: &mut Warehouse<{}>,\n",
                             witness
                         )
                         .as_str(),
@@ -472,13 +472,13 @@ impl MintPolicies {
                     transfer
                         .push_str("warehouse::deposit_nft(warehouse, nft);");
                     fun_name.push_str("mint_to_launchpad");
-                    args.push_str("        ctx: &mut TxContext,\n");
+                    args.push_str("        ctx: &mut TxContext,");
                 }
                 _ => {
-                    args.push_str("        receiver: address,");
+                    args.push_str("        receiver: address,\n");
                     transfer.push_str("transfer::transfer(nft, receiver);");
                     fun_name.push_str("mint_to_address");
-                    args.push_str("        ctx: &mut TxContext,\n");
+                    args.push_str("        ctx: &mut TxContext,");
                 }
             }
 
@@ -510,7 +510,7 @@ impl MintPolicies {
             code = format!(
                 "\n
     {fun_type}fun {fun_name}(
-        {args}        ){return_type} {{
+        {args}    ){return_type} {{
         {build_nft}
         {domains}
         {transfer}
