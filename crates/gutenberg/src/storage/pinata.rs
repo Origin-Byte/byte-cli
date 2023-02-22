@@ -103,13 +103,16 @@ impl PinataSetup {
     }
 
     async fn write(setup: &Setup, asset: Asset) -> Result<UploadedAsset> {
+        // TODO: Each uplaod is creating their own CID, however, this
+        // should be shared accross the collection..
         let content = fs::read(&asset.path)?;
 
         let mut form = Form::new();
 
         let file = Part::bytes(content)
-            .file_name(asset.id.clone())
+            .file_name(asset.name.clone())
             .mime_str(asset.content_type.as_str())?;
+
         form = form
             .part("file", file)
             .text("pinataOptions", "{\"wrapWithDirectory\": true}");
@@ -126,11 +129,12 @@ impl PinataSetup {
         if status.is_success() {
             let body = response.json::<serde_json::Value>().await?;
             let Response { ipfs_hash } = serde_json::from_value(body)?;
+            println!("IPFS HASH {}", ipfs_hash);
 
             let uri = url::Url::parse(&setup.content_gateway)?
-                .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.id))?;
+                .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.name))?;
 
-            println!("Successfully uploaded {} to IPFS at {}", asset.id, uri);
+            println!("Successfully uploaded {} to IPFS at {}", asset.name, uri);
 
             Ok(UploadedAsset::new(asset.id.clone(), uri.to_string()))
         } else {

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use dotenv::dotenv;
 use glob::glob;
+use gutenberg::storage::PinataSetup;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -15,51 +16,45 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
 
     dotenv().ok();
 
-    println!("Storage Policy: {:?}", storage);
-
-    let mut files: Vec<String> = vec![];
+    let mut assets: Vec<Asset> = vec![];
 
     for e in glob(format!("{}*", assets_dir).as_str())
         .expect("Failed to read glob pattern")
     {
         let file_string = e?.file_name().unwrap().to_str().unwrap().to_string();
 
-        files.push(file_string);
-    }
-
-    if files.is_empty() {
-        panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
-    }
-
-    let mut assets: Vec<Asset> = vec![];
-
-    for file in files {
-        // TODO: Make this multi-threaded
         let path_string = format!(
-            "{assets_dir}/{file}",
+            "{assets_dir}{file}",
             assets_dir = assets_dir,
-            file = file
+            file = file_string
         );
 
         let path = Path::new(path_string.as_str());
-
         let file_name = path.file_stem().unwrap().to_str().unwrap();
+        let extension = path.extension().and_then(OsStr::to_str);
 
-        let extension = path
-            .extension()
-            .and_then(OsStr::to_str)
-            .expect("Failed to convert extension from unicode");
+        if extension.is_none() {
+            println!("Skipping File: {}", file_name);
+            continue;
+        }
+
+        let mut content_type = String::from("image/");
+        // Can safely unwrap as we have asserted that !is_none
+        content_type.push_str(extension.unwrap());
 
         let asset = Asset::new(
             String::from(file_name),
+            file_string,
             PathBuf::from(path),
-            String::from(extension),
+            content_type, // MIME content type
         );
 
         println!("File: {:?}", asset);
         assets.push(asset);
+    }
 
-        // aws::upload_file(&client, bucket_name.as_str(), path).await?;
+    if assets.is_empty() {
+        panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
     }
 
     let mut storage_state = StorageState::default();
@@ -75,7 +70,16 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
                 .upload(&mut assets, &mut storage_state, false)
                 .await?;
         }
-        Storage::Pinata(_config) => {}
+        Storage::Pinata(config) => {
+            let setup = PinataSetup::new(&config).await?;
+            let uploader = Box::new(setup) as Box<dyn Uploader>;
+
+            uploader.prepare(&assets).await?;
+
+            uploader
+                .upload(&mut assets, &mut storage_state, false)
+                .await?;
+        }
         Storage::NftStorage(_config) => {}
     }
 

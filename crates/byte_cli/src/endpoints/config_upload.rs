@@ -100,7 +100,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
         }
         "NftStorage" => {
             let auth_token = Input::with_theme(&theme)
-                .with_prompt("What is the authentication token=")
+                .with_prompt("What is the authentication token?")
                 .interact()
                 .unwrap();
 

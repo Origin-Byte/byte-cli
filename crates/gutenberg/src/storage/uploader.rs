@@ -15,6 +15,8 @@ pub const PARALLEL_LIMIT: usize = 45;
 pub struct Asset {
     /// Id of the asset
     pub id: String,
+    /// Id of the asset
+    pub name: String,
     /// File path of the asset
     pub path: PathBuf,
     /// MIME content type.
@@ -22,9 +24,15 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn new(id: String, path: PathBuf, content_type: String) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        path: PathBuf,
+        content_type: String,
+    ) -> Self {
         Asset {
             id,
+            name,
             path,
             content_type,
         }
@@ -50,7 +58,7 @@ pub trait Prepare {
 }
 
 #[async_trait]
-pub trait Uploader {
+pub trait Uploader: Prepare {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
@@ -81,7 +89,6 @@ impl<T: ParallelUploader> Uploader for T {
         _state: &mut StorageState,
         _lazy: bool,
     ) -> Result<()> {
-        println!("I am here...");
         let mut set = JoinSet::new();
 
         // TODO: Cache strategy - need to add fault tolerance and recovery strategy

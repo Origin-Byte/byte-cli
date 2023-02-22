@@ -9,9 +9,8 @@ use sui_json_rpc_types::{OwnedObjectRef, SuiObjectRead, SuiRawData};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{types::messages::Transaction, SuiClient};
 use sui_types::{
-    base_types::{random_object_ref, ObjectID},
-    intent::Intent,
-    messages::{ExecuteTransactionRequestType, TransactionData},
+    base_types::ObjectID, intent::Intent,
+    messages::ExecuteTransactionRequestType,
 };
 
 use crate::{
