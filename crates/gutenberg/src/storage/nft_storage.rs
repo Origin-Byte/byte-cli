@@ -1,12 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::{
-    fs,
-    path::Path,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::{fs, path::Path, sync::Arc};
 
 use async_trait::async_trait;
 use reqwest::{
@@ -81,7 +74,7 @@ impl NftStorageSetup {
                 Err(anyhow!("Invalid nft.storage authentication token."))
             }
             other_codes => Err(anyhow!(
-                "Error while initializing pinata client: {other_codes}"
+                "Error while initializing nft.storage client: {other_codes}"
             )),
         }
     }
@@ -118,6 +111,7 @@ impl Uploader for NftStorageSetup {
         _state: &mut StorageState,
         _lazy: bool,
     ) -> Result<()> {
+        println!("We are in the upload phase");
         let mut batches: Vec<Vec<&Asset>> = Vec::new();
         let mut current: Vec<&Asset> = Vec::new();
         let mut upload_size = 0;
@@ -149,9 +143,7 @@ impl Uploader for NftStorageSetup {
             batches.push(current);
         }
 
-        let interrupt = Arc::new(AtomicBool::new(false));
-
-        while !interrupt.load(Ordering::SeqCst) && !batches.is_empty() {
+        while !batches.is_empty() {
             let batch = batches.remove(0);
             let mut form = Form::new();
 
@@ -165,8 +157,11 @@ impl Uploader for NftStorageSetup {
 
                 let file = Part::bytes(data)
                     .file_name(asset.id.clone())
+                    // .file_name(asset.name.clone())
                     .mime_str(asset.content_type.as_str())?;
                 form = form.part("file", file);
+
+                println!("Form: {:?}", form);
             }
 
             let response = self

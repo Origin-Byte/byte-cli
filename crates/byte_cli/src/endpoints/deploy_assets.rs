@@ -1,7 +1,7 @@
 use anyhow::Result;
 use dotenv::dotenv;
 use glob::glob;
-use gutenberg::storage::PinataSetup;
+use gutenberg::storage::{NftStorageSetup, PinataSetup};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -49,7 +49,6 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
             content_type, // MIME content type
         );
 
-        println!("File: {:?}", asset);
         assets.push(asset);
     }
 
@@ -63,8 +62,6 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
         Storage::Aws(config) => {
             let setup = AWSSetup::new(&config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
-
-            // TODO: Missing uploader prepare
 
             uploader
                 .upload(&mut assets, &mut storage_state, false)
@@ -80,7 +77,16 @@ pub async fn deploy_assets(schema: &Schema, assets_dir: PathBuf) -> Result<()> {
                 .upload(&mut assets, &mut storage_state, false)
                 .await?;
         }
-        Storage::NftStorage(_config) => {}
+        Storage::NftStorage(config) => {
+            let setup = NftStorageSetup::new(&config).await?;
+            let uploader = Box::new(setup) as Box<dyn Uploader>;
+
+            uploader.prepare(&assets).await?;
+
+            uploader
+                .upload(&mut assets, &mut storage_state, false)
+                .await?;
+        }
     }
 
     Ok(())
