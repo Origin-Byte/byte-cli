@@ -8351,6 +8351,7 @@ dependencies = [
  "move-package 0.1.0 (git+https://github.com/move-language/move?rev=7343821f67c070d28dcdb5bf7d2e07ced046b52f)",
  "pretty_assertions",
  "serde 1.0.152",
+ "serde_json",
  "serde_yaml 0.9.17",
  "signature 1.6.4",
  "strfmt",

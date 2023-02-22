@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use crate::prelude::*;
 use byte_cli::utils::assert_no_unstable_features;
 use endpoints::*;
+use gutenberg::collection_state::CollectionState;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
@@ -127,6 +128,9 @@ async fn run() -> Result<()> {
             let mut file_path = project_path.clone();
             file_path.push("config.json");
 
+            let mut state_path = project_path.clone();
+            state_path.push("objects.json");
+
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
@@ -137,11 +141,14 @@ async fn run() -> Result<()> {
             }
 
             if let Some(_contract) = &schema.contract {
+                let state = CollectionState::try_read_config(&state_path)?;
+
                 mint_nfts::mint_nfts(
                     &schema,
                     gas_budget,
                     metadata_path,
                     warehouse_id,
+                    state.mint_cap.clone(),
                 )
                 .await?
             }

@@ -1,11 +1,13 @@
 use crate::{
     consts::NFT_PROTOCOL,
     err::{self, RustSdkError},
+    utils::MoveType,
 };
-use bevy_reflect::{Reflect, Struct};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use serde_json::json;
 use std::sync::Arc;
+use std::{collections::HashMap, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -15,33 +17,46 @@ use sui_sdk::{
     },
     SuiClient,
 };
-use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
-
+use sui_types::{intent::Intent, parse_sui_type_tag};
 use tokio::task::JoinHandle;
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NftData {
     pub name: Option<String>,
     pub description: Option<String>,
     pub url: Option<String>,
-    pub attribute_keys: Option<Vec<String>>,
-    pub attribute_values: Option<Vec<String>>,
+    pub attributes: Option<HashMap<String, String>>,
 }
 
 impl NftData {
-    pub fn to_map(&self) -> Vec<SuiJsonValue> {
-        let mut map: Vec<SuiJsonValue> = Vec::new();
+    pub fn to_map(&self) -> Result<Vec<SuiJsonValue>> {
+        let mut params: Vec<SuiJsonValue> = Vec::new();
 
-        for (_, value) in self.iter_fields().enumerate() {
-            if let Some(value_) = value.downcast_ref::<Option<String>>() {
-                let value =
-                    SuiJsonValue::from_str(value_.as_ref().unwrap()).unwrap();
-
-                map.push(value);
-            }
+        if let Some(value) = &self.name {
+            params.push(SuiJsonValue::from_str(value.as_str())?);
         }
-        map
+
+        if let Some(value) = &self.description {
+            params.push(SuiJsonValue::from_str(value.as_str())?);
+        }
+
+        if let Some(value) = &self.url {
+            params.push(SuiJsonValue::from_str(value.as_str())?);
+        }
+
+        if let Some(map) = &self.attributes {
+            let keys: Vec<String> = map.clone().into_keys().collect();
+            let values: Vec<String> = map.clone().into_values().collect();
+
+            let keys_arr = json!(keys);
+            let values_arr = json!(values);
+
+            params.push(SuiJsonValue::new(keys_arr)?);
+            params.push(SuiJsonValue::new(values_arr)?);
+        }
+
+        Ok(params)
     }
 }
 
@@ -50,9 +65,12 @@ pub async fn create_warehouse(
     keystore: &Keystore,
     // SuiAddress implements Copy
     sender: SuiAddress,
+    collection_type: MoveType,
 ) -> Result<String, RustSdkError> {
     let package_id = ObjectID::from_str(NFT_PROTOCOL)
         .map_err(|err| err::object_id(err, NFT_PROTOCOL))?;
+
+    let collection_type_ = collection_type.write_type();
 
     let call = sui
         .transaction_builder()
@@ -61,10 +79,10 @@ pub async fn create_warehouse(
             package_id,
             "warehouse",
             "init_warehouse",
-            vec![],
-            vec![],
-            None,  // Gas object, Node can pick on itself
-            10000, // Gas budget
+            vec![parse_sui_type_tag(collection_type_.as_str())?.into()], // type args
+            vec![], // call args
+            None,   // Gas object, Node can pick on itself
+            10000,  // Gas budget
         )
         .await?;
 
@@ -112,6 +130,7 @@ pub async fn handle_mint_nft(
     module_name: Arc<String>,
     gas_budget: Arc<u64>,
     sender: SuiAddress,
+    mint_cap: Arc<String>,
 ) -> JoinHandle<Result<ObjectID, RustSdkError>> {
     tokio::spawn(async move {
         mint_nft(
@@ -123,6 +142,7 @@ pub async fn handle_mint_nft(
             module_name,
             gas_budget,
             sender,
+            mint_cap,
         )
         .await
     })
@@ -138,17 +158,23 @@ pub async fn mint_nft(
     gas_budget: Arc<u64>,
     // SuiAddress implements Copy
     sender: SuiAddress,
+    mint_cap: Arc<String>,
 ) -> Result<ObjectID, RustSdkError> {
     println!("Minting NFT function");
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
-
     let warehouse_id = ObjectID::from_str(warehouse_id.as_str())
         .map_err(|err| err::object_id(err, warehouse_id.as_str()))?;
+    let mint_cap_id = ObjectID::from_str(mint_cap.as_str())
+        .map_err(|err| err::object_id(err, mint_cap.as_str()))?;
+    println!("Warehouse ID: {:?}", warehouse_id);
 
-    let mut args = nft_data.to_map();
+    println!("NFT Data: {:?}", nft_data);
+    let mut args = nft_data.to_map()?;
 
+    args.push(SuiJsonValue::from_object_id(mint_cap_id));
     args.push(SuiJsonValue::from_object_id(warehouse_id));
+    println!("Args are: {:?}", args);
 
     let call = sui
         .transaction_builder()
@@ -156,7 +182,7 @@ pub async fn mint_nft(
             sender,
             package_id,
             module_name.as_str(),
-            "mint_nft",
+            "mint_to_launchpad",
             vec![],
             args,
             None,        // Gas object, Node can pick on itself
