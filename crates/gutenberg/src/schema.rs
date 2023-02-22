@@ -2,6 +2,7 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use crate::consts::DEFAULT_ADDRESS;
 use crate::contract::modules::Imports;
 use crate::err::GutenError;
 use crate::models::settings::Settings;
@@ -68,7 +69,15 @@ impl Schema {
 
         // let init_listings = self.settings.write_init_listings();
 
-        let transfer_fns = self.settings.write_transfer_fns();
+        let default_address = DEFAULT_ADDRESS.to_string();
+
+        let first_creator = self
+            .collection
+            .creators
+            .first()
+            .unwrap_or_else(|| &default_address);
+
+        let transfer_fns = self.settings.write_transfer_fns(first_creator);
 
         format!(
             "{signature} {{
@@ -115,7 +124,7 @@ impl Schema {
         let module_name = self.module_name();
         let witness = self.witness_name();
 
-        let imports = Imports::from_schema(self).write_imports();
+        let imports = Imports::from_schema(self).write_imports(&self);
 
         let type_declarations = self.settings.write_type_declarations();
 

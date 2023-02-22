@@ -7,7 +7,7 @@ use super::Module;
 pub struct VecSet();
 
 impl Module for VecSet {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use sui::vec_set;\n".to_string()
     }
 }
@@ -17,7 +17,7 @@ impl Module for VecSet {
 pub struct VecMap();
 
 impl Module for VecMap {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use sui::vec_map;\n".to_string()
     }
 }
@@ -27,7 +27,7 @@ impl Module for VecMap {
 pub struct Url();
 
 impl Module for Url {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use sui::url;\n".to_string()
     }
 }
@@ -49,7 +49,7 @@ impl Url {
 pub struct Balance();
 
 impl Module for Balance {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use sui::balance;\n".to_string()
     }
 }
@@ -69,7 +69,7 @@ impl Balance {
 pub struct Transfer();
 
 impl Module for Transfer {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use sui::transfer;\n".to_string()
     }
 }
@@ -89,8 +89,12 @@ impl Transfer {
 pub struct TxContext();
 
 impl Module for TxContext {
-    fn import(&self) -> String {
-        "    use sui::tx_context::{Self, TxContext};\n".to_string()
+    fn import(&self, has_self: bool) -> String {
+        if has_self {
+            "    use sui::tx_context::{Self, TxContext};\n".to_string()
+        } else {
+            "    use sui::tx_context::TxContext;\n".to_string()
+        }
     }
 }
 

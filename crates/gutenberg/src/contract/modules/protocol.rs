@@ -9,7 +9,7 @@ use super::{sui::Url, Module};
 pub struct NftMod();
 
 impl Module for NftMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::nft::{Self, Nft};\n".to_string()
     }
 }
@@ -25,7 +25,7 @@ impl NftMod {
 pub struct TagsMod();
 
 impl Module for TagsMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::tags;\n".to_string()
     }
 }
@@ -63,7 +63,7 @@ impl TagsMod {
 pub struct RoyaltyMod();
 
 impl Module for RoyaltyMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::royalty;\n".to_string()
     }
 }
@@ -124,7 +124,7 @@ impl RoyaltyMod {
 pub struct DisplayMod();
 
 impl Module for DisplayMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::display;\n".to_string()
     }
 }
@@ -229,7 +229,7 @@ impl DisplayMod {
 pub struct WitnessMod();
 
 impl Module for WitnessMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::witness;\n".to_string()
     }
 }
@@ -245,7 +245,7 @@ impl WitnessMod {
 pub struct CreatorsMod();
 
 impl Module for CreatorsMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::creators;\n".to_string()
     }
 }
@@ -266,8 +266,12 @@ impl CreatorsMod {
 pub struct WarehouseMod();
 
 impl Module for WarehouseMod {
-    fn import(&self) -> String {
-        "    use nft_protocol::warehouse::{Self, Warehouse};\n".to_string()
+    fn import(&self, has_self: bool) -> String {
+        if has_self {
+            "    use nft_protocol::warehouse::{Self, Warehouse};\n".to_string()
+        } else {
+            "    use nft_protocol::warehouse::Warehouse;\n".to_string()
+        }
     }
 }
 
@@ -282,8 +286,13 @@ impl WarehouseMod {
 pub struct RoyaltiesMod();
 
 impl Module for RoyaltiesMod {
-    fn import(&self) -> String {
-        "    use nft_protocol::royalties::{Self, TradePayment};\n".to_string()
+    fn import(&self, has_self: bool) -> String {
+        if has_self {
+            "    use nft_protocol::royalties::{Self, TradePayment};\n"
+                .to_string()
+        } else {
+            "    use nft_protocol::royalties::TradePayment;\n".to_string()
+        }
     }
 }
 
@@ -302,8 +311,13 @@ impl RoyaltiesMod {
 pub struct CollectionMod();
 
 impl Module for CollectionMod {
-    fn import(&self) -> String {
-        "    use nft_protocol::collection::{Self, Collection};\n".to_string()
+    fn import(&self, has_self: bool) -> String {
+        if has_self {
+            "    use nft_protocol::collection::{Self, Collection};\n"
+                .to_string()
+        } else {
+            "    use nft_protocol::collection::Collection;\n".to_string()
+        }
     }
 }
 
@@ -329,8 +343,8 @@ impl CollectionMod {
 pub struct MintCapMod();
 
 impl Module for MintCapMod {
-    fn import(&self) -> String {
-        "    use nft_protocol::mint_cap::{MintCap};\n".to_string()
+    fn import(&self, _has_self: bool) -> String {
+        "    use nft_protocol::mint_cap::MintCap;\n".to_string()
     }
 }
 
@@ -339,7 +353,7 @@ impl Module for MintCapMod {
 pub struct ComposableNftMod();
 
 impl Module for ComposableNftMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::composable_nft::Self as c_nft;\n".to_string()
     }
 }
@@ -388,7 +402,7 @@ impl ComposableNftMod {
 pub struct TemplateMod();
 
 impl Module for TemplateMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::template;\n".to_string()
     }
 }
@@ -398,7 +412,7 @@ impl Module for TemplateMod {
 pub struct TemplatesMod();
 
 impl Module for TemplatesMod {
-    fn import(&self) -> String {
+    fn import(&self, _has_self: bool) -> String {
         "    use nft_protocol::templates;\n".to_string()
     }
 }

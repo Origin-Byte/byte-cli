@@ -67,8 +67,8 @@ impl FromPrompt for CollectionData {
             let address = loop {
                 let address = Input::with_theme(&theme)
                     .with_prompt(format!(
-                        "Please input address of the creator number {}?",
-                        i + 1
+                        "Please input address of the creator number {}{}:",
+                        i + 1, if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
                     ))
                     .default(TX_SENDER_ADDRESS.to_string())
                     .validate_with(address_validator)

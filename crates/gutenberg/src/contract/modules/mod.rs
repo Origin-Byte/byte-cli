@@ -13,7 +13,7 @@ pub use standard::StringMod;
 pub use sui::{Balance, Transfer, TxContext, Url, VecMap, VecSet};
 
 pub trait Module {
-    fn import(&self) -> String;
+    fn import(&self, has_self: bool) -> String;
 }
 
 pub struct Modules {
@@ -80,72 +80,73 @@ impl Imports {
         }
     }
 
-    pub fn write_imports(&mut self) -> String {
+    pub fn write_imports(&mut self, schema: &Schema) -> String {
         if self.modules.string {
-            self.write_import(StringMod::default());
+            self.write_import(StringMod::default(), true);
         }
         if self.modules.vec_set {
-            self.write_import(VecSet::default());
+            self.write_import(VecSet::default(), false);
         }
         if self.modules.vec_map {
-            self.write_import(VecMap::default());
+            self.write_import(VecMap::default(), false);
         }
         if self.modules.url {
-            self.write_import(Url::default());
+            self.write_import(Url::default(), false);
         }
         if self.modules.balance {
-            self.write_import(Balance::default());
+            self.write_import(Balance::default(), false);
         }
         if self.modules.transfer {
-            self.write_import(Transfer::default());
+            self.write_import(Transfer::default(), false);
         }
         if self.modules.tx_context {
-            self.write_import(TxContext::default());
+            let creator_is_sender = schema.collection.creators.is_empty();
+            self.write_import(TxContext::default(), creator_is_sender);
         }
         if self.modules.nft {
-            self.write_import(NftMod::default());
+            self.write_import(NftMod::default(), true);
         }
         if self.modules.witness {
-            self.write_import(WitnessMod::default());
+            self.write_import(WitnessMod::default(), true);
         }
         if self.modules.mint_cap {
-            self.write_import(MintCapMod::default());
+            self.write_import(MintCapMod::default(), false);
         }
         if self.modules.collection {
-            self.write_import(CollectionMod::default());
+            self.write_import(CollectionMod::default(), true);
         }
         if self.modules.tags {
-            self.write_import(TagsMod::default());
+            self.write_import(TagsMod::default(), true);
         }
         if self.modules.royalty {
-            self.write_import(RoyaltyMod::default());
+            self.write_import(RoyaltyMod::default(), true);
         }
         if self.modules.display {
-            self.write_import(DisplayMod::default());
+            self.write_import(DisplayMod::default(), true);
         }
         if self.modules.creators {
-            self.write_import(CreatorsMod::default());
+            self.write_import(CreatorsMod::default(), true);
         }
         if self.modules.warehouse {
-            self.write_import(WarehouseMod::default());
+            self.write_import(WarehouseMod::default(), true);
         }
         if self.modules.template {
-            self.write_import(TemplateMod::default());
+            self.write_import(TemplateMod::default(), true);
         }
         if self.modules.templates {
-            self.write_import(TemplatesMod::default());
+            self.write_import(TemplatesMod::default(), true);
         }
         if self.modules.composable_nft {
-            self.write_import(ComposableNftMod::default());
+            self.write_import(ComposableNftMod::default(), true);
         }
         if self.modules.royalties {
-            self.write_import(RoyaltiesMod::default());
+            self.write_import(RoyaltiesMod::default(), true);
         }
 
         self.code.clone()
     }
 
-    pub fn write_import(&mut self, module: impl Module) {
-        self.code.push_str(module.import().as_str());
+    pub fn write_import(&mut self, module: impl Module, has_self: bool) {
+        self.code.push_str(module.import(has_self).as_str());
     }
 }
