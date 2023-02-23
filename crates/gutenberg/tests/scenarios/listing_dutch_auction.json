@@ -1,0 +1,23 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "ListingDutchAuction"
+    },
+    "Settings": {
+        "listings": [
+            {
+                "admin": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d144",
+                "receiver": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d145",
+                "markets": [
+                    {
+                        "DutchAuction": {
+                            "token": "sui::sui::SUI",
+                            "reserve_price": 100,
+                            "is_whitelisted": false
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
