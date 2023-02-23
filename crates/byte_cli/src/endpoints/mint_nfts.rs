@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::Schema;
+use rust_sdk::collection_state::{CollectionState, ObjectType};
 use std::sync::Arc;
 use std::{fs::File, path::PathBuf};
 use std::{thread, time};
@@ -18,8 +19,8 @@ pub async fn mint_nfts(
     gas_budget: usize,
     metadata_path: PathBuf,
     mut warehouse_id: Option<String>,
-    mint_cap: String,
-) -> Result<()> {
+    mut state: CollectionState,
+) -> Result<CollectionState> {
     let contract_id = Arc::new(schema.contract.as_ref().unwrap().clone());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
@@ -28,7 +29,8 @@ pub async fn mint_nfts(
     let active_address = get_active_address(&keystore)?;
     let module_name = Arc::new(schema.module_name());
     let gas_budget_ref = Arc::new(gas_budget as u64);
-    let mint_cap_arc = Arc::new(mint_cap);
+    let mint_cap_arc =
+        Arc::new(state.mint_cap.as_ref().unwrap().clone().to_string());
 
     if warehouse_id.is_none() {
         println!("{} Creating warehouse", style("WIP").cyan().bold());
@@ -38,16 +40,20 @@ pub async fn mint_nfts(
             schema.collection.witness_name(),
         );
 
-        warehouse_id = Some(
-            mint::create_warehouse(
-                &client,
-                &keystore,
-                active_address,
-                collection_type,
-            )
-            .await
-            .unwrap(),
-        );
+        let warehouse_object_id = mint::create_warehouse(
+            &client,
+            &keystore,
+            active_address,
+            collection_type,
+        )
+        .await
+        .unwrap();
+
+        warehouse_id = Some(warehouse_object_id.to_string());
+
+        state
+            .warehouses
+            .push(ObjectType::Warehouse(warehouse_object_id));
 
         println!("{} Creating warehouse", style("DONE").green().bold());
     }
@@ -115,5 +121,5 @@ pub async fn mint_nfts(
         style(link).blue().bold().underlined(),
     );
 
-    Ok(())
+    Ok(state)
 }

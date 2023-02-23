@@ -21,8 +21,9 @@ pub const TAG_OPTIONS: [&str; 11] = [
     "License",
 ];
 
-// Smart contract invariants
+// Misc
 pub const TX_SENDER_ADDRESS: &str = "tx_context::sender(ctx)";
+pub const MAX_SYMBOL_LENGTH: u64 = 5;
 
 /// Default path for assets folder.
 pub const DEFAULT_FOLDER: &str = "";

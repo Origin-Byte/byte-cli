@@ -48,6 +48,13 @@ pub enum Commands {
     },
 
     /// Deploys NFT contract to Sui Blockchain
+    GenerateContract {
+        /// Path to the configuration folder
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
+    },
+
+    /// Deploys NFT contract to Sui Blockchain
     DeployContract {
         /// Path to the configuration folder
         #[clap(default_value = DEFAULT_FOLDER)]
@@ -55,6 +62,8 @@ pub enum Commands {
         /// Gas budget for running module initializers
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
+        #[clap(short, long, action)]
+        skip_generation: bool,
     },
 
     /// Mints NFTs by calling the deployed contract
@@ -64,6 +73,7 @@ pub enum Commands {
         /// Gas budget for minting an NFT
         #[clap(default_value_t = 60000)]
         gas_budget: usize,
+        #[clap(long, action)]
         warehouse_id: Option<String>,
     },
 }

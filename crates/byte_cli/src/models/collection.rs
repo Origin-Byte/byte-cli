@@ -1,7 +1,13 @@
 use std::collections::BTreeSet;
 
-use super::{address_validator, positive_integer_validator, FromPrompt};
-use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
+use super::{
+    address_validator, name_validator, positive_integer_validator,
+    symbol_validator, url_validator, FromPrompt,
+};
+use crate::{
+    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
+    prelude::get_dialoguer_theme,
+};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::{models::collection::CollectionData, Schema};
@@ -17,6 +23,7 @@ impl FromPrompt for CollectionData {
 
         let name = Input::with_theme(&theme)
             .with_prompt("What is the name of the Collection?")
+            .validate_with(name_validator)
             .interact()
             .unwrap();
 
@@ -30,9 +37,11 @@ impl FromPrompt for CollectionData {
         collection.set_description(description);
 
         let symbol = Input::with_theme(&theme)
-            .with_prompt(
-                "What is the symbol of the Collection? (Maximum of 5 letters)",
-            )
+            .with_prompt(format!(
+                "What is the symbol of the Collection? (Maximum of {} letters)",
+                MAX_SYMBOL_LENGTH
+            ))
+            .validate_with(symbol_validator)
             .interact()
             .unwrap();
 
@@ -46,6 +55,7 @@ impl FromPrompt for CollectionData {
         if has_url {
             let url = Input::with_theme(&theme)
                 .with_prompt("What is the URL of the Collection Website?")
+                .validate_with(url_validator)
                 .interact()
                 .unwrap();
 

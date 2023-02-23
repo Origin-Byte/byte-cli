@@ -66,7 +66,7 @@ pub async fn create_warehouse(
     // SuiAddress implements Copy
     sender: SuiAddress,
     collection_type: MoveType,
-) -> Result<String, RustSdkError> {
+) -> Result<ObjectID, RustSdkError> {
     let package_id = ObjectID::from_str(NFT_PROTOCOL)
         .map_err(|err| err::object_id(err, NFT_PROTOCOL))?;
 
@@ -112,7 +112,7 @@ pub async fn create_warehouse(
         .reference
         .object_id;
 
-    Ok(warehouse_id.to_string())
+    Ok(warehouse_id)
 }
 
 pub enum SuiArgType {

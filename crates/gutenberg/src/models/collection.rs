@@ -57,7 +57,7 @@ impl CollectionData {
     }
 
     pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
-        if name.chars().all(|c| matches!(c, 'a'..='z')) {
+        if !name.chars().all(|c| c.is_ascii_alphanumeric()) {
             return Err(GutenError::UnsupportedCollectionInput(format!(
                 "The collection name provided `{}` should only have alphanumeric characters.",
                 name
@@ -100,15 +100,24 @@ impl CollectionData {
     pub fn set_url(&mut self, url_string: String) -> Result<(), GutenError> {
         // Just here for validation
         // TODO: Add back this
-        //         let _ = url::Url::parse(&url_string).map_err(|err| {
-        //             GutenError::UnsupportedCollectionInput(format!(
-        //                 "The following error has occured: {}
-        // The Collection URL input `{}` is not valid.",
-        //                 err, url_string
-        //             ))
-        //         })?;
+        let mut url: String;
 
-        self.url = Some(url_string);
+        if url_string.starts_with("www.") {
+            url = String::from("http://");
+            url.push_str(url_string.split_at(4).0);
+        } else {
+            url = url_string;
+        }
+
+        let _ = url::Url::parse(&url).map_err(|err| {
+            GutenError::UnsupportedCollectionInput(format!(
+                "The following error has occured: {}
+        The Collection URL input `{}` is not valid.",
+                err, url
+            ))
+        })?;
+
+        self.url = Some(url);
 
         Ok(())
     }

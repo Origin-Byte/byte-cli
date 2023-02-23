@@ -46,22 +46,22 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut _schema = io::try_read_config(&file_path)?;
+            let mut schema = io::try_read_config(&file_path)?;
 
-            _schema =
-                config_collection::init_collection_config(_schema, complete)?;
+            schema =
+                config_collection::init_collection_config(schema, complete)?;
 
-            // io::write_config(&schema, &file_path)?;
+            io::write_config(&schema, &file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut _schema = io::try_read_config(&file_path)?;
+            let mut schema = io::try_read_config(&file_path)?;
 
-            _schema = config_upload::init_upload_config(_schema)?;
+            schema = config_upload::init_upload_config(schema)?;
 
-            // io::write_config(&schema, &file_path)?;
+            io::write_config(&schema, &file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -93,9 +93,28 @@ async fn run() -> Result<()> {
             deploy_assets::deploy_assets(&schema, assets_path, metadata_path)
                 .await?
         }
+        Commands::GenerateContract { project_dir } => {
+            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+            let mut file_path = project_path.clone();
+            file_path.push("config.json");
+
+            let schema = deploy_contract::parse_config(file_path.as_path())?;
+
+            // TODO: Remove this once all unstable features are completed
+            assert_no_unstable_features(&schema)?;
+
+            let mut contract_dir = project_path.clone();
+            contract_dir.push("contract/");
+
+            deploy_contract::generate_contract(
+                &schema,
+                contract_dir.as_path(),
+            )?;
+        }
         Commands::DeployContract {
             project_dir,
             gas_budget,
+            skip_generation,
         } => {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
             let mut file_path = project_path.clone();
@@ -112,10 +131,12 @@ async fn run() -> Result<()> {
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
 
-            deploy_contract::generate_contract(
-                &schema,
-                contract_dir.as_path(),
-            )?;
+            if skip_generation == false {
+                deploy_contract::generate_contract(
+                    &schema,
+                    contract_dir.as_path(),
+                )?;
+            }
 
             let state = deploy_contract::publish_contract(
                 &mut schema,
@@ -150,16 +171,18 @@ async fn run() -> Result<()> {
             }
 
             if let Some(_contract) = &schema.contract {
-                let state = CollectionState::try_read_config(&state_path)?;
+                let mut state = CollectionState::try_read_config(&state_path)?;
 
-                mint_nfts::mint_nfts(
+                state = mint_nfts::mint_nfts(
                     &schema,
                     gas_budget,
                     metadata_path,
                     warehouse_id,
-                    state.mint_cap.as_ref().unwrap().clone().to_string(),
+                    state,
                 )
-                .await?
+                .await?;
+
+                io::write_collection_state(&state, &state_path)?;
             }
         }
     }
