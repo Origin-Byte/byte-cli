@@ -40,17 +40,24 @@ pub struct Response {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PinataConfig {
     pub jwt: String,
-    pub gateway: String,
+    pub upload_gateway: String,
+    pub retrieval_gateway: String,
     // TODO: Reconsider this limit
     #[serde(default = "default_limit")]
     pub parallel_limit: u16,
 }
 
 impl PinataConfig {
-    pub fn new(jwt: String, gateway: String, parallel_limit: u16) -> Self {
+    pub fn new(
+        jwt: String,
+        upload_gateway: String,
+        retrieval_gateway: String,
+        parallel_limit: u16,
+    ) -> Self {
         Self {
             jwt,
-            gateway,
+            upload_gateway,
+            retrieval_gateway,
             parallel_limit,
         }
     }
@@ -60,6 +67,7 @@ pub struct Setup {
     pub client: Client,
     pub endpoint: url::Url,
     pub content_gateway: String,
+    pub retrieval_gateway: String,
     pub parallel_limit: u16,
 }
 
@@ -83,13 +91,14 @@ impl PinataSetup {
         match response.status() {
             StatusCode::OK => {
                 // Upload endpoint
-                let endpoint =
-                    url::Url::parse(&config.gateway)?.join(UPLOAD_ENDPOINT)?;
+                let endpoint = url::Url::parse(&config.upload_gateway)?
+                    .join(UPLOAD_ENDPOINT)?;
 
                 Ok(Self(Arc::new(Setup {
                     client,
                     endpoint,
-                    content_gateway: config.gateway.clone(),
+                    content_gateway: config.upload_gateway.clone(),
+                    retrieval_gateway: config.retrieval_gateway.clone(),
                     parallel_limit: config.parallel_limit,
                 })))
             }
@@ -133,12 +142,9 @@ impl PinataSetup {
         if status.is_success() {
             let body = response.json::<serde_json::Value>().await?;
             let Response { ipfs_hash } = serde_json::from_value(body)?;
-            println!("IPFS HASH {}", ipfs_hash);
 
-            let uri = url::Url::parse(&setup.content_gateway)?
+            let uri = url::Url::parse(&setup.retrieval_gateway)?
                 .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.name))?;
-
-            println!("Successfully uploaded {} to IPFS at {}", asset.name, uri);
 
             write_state(state, asset.id.clone(), uri.to_string()).await?;
 

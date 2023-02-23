@@ -6,8 +6,8 @@ use crate::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::Arc;
 use std::{collections::HashMap, str::FromStr};
+use std::{sync::Arc, thread, time};
 use sui_keys::keystore::{AccountKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -112,8 +112,6 @@ pub async fn create_warehouse(
         .reference
         .object_id;
 
-    println!("Created new warehouse, with the id : {}", warehouse_id);
-
     Ok(warehouse_id.to_string())
 }
 
@@ -161,50 +159,65 @@ pub async fn mint_nft(
     sender: SuiAddress,
     mint_cap: Arc<String>,
 ) -> Result<ObjectID, RustSdkError> {
-    println!("Minting NFT function");
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
     let warehouse_id = ObjectID::from_str(warehouse_id.as_str())
         .map_err(|err| err::object_id(err, warehouse_id.as_str()))?;
     let mint_cap_id = ObjectID::from_str(mint_cap.as_str())
         .map_err(|err| err::object_id(err, mint_cap.as_str()))?;
-    println!("Warehouse ID: {:?}", warehouse_id);
 
-    println!("NFT Data: {:?}", nft_data);
     let mut args = nft_data.to_map()?;
 
     args.push(SuiJsonValue::from_object_id(mint_cap_id));
     args.push(SuiJsonValue::from_object_id(warehouse_id));
-    println!("Args are: {:?}", args);
 
-    let call = sui
-        .transaction_builder()
-        .move_call(
-            sender,
-            package_id,
-            module_name.as_str(),
-            "mint_to_launchpad",
-            vec![],
-            args,
-            None,        // Gas object, Node can pick on itself
-            *gas_budget, // Gas budget
-        )
-        .await?;
+    let mut retry = 0;
+    let response = loop {
+        let call = sui
+            .transaction_builder()
+            .move_call(
+                sender,
+                package_id,
+                module_name.as_str(),
+                "mint_to_launchpad",
+                vec![],
+                args.clone(),
+                None,        // Gas object, Node can pick on itself
+                *gas_budget, // Gas budget
+            )
+            .await?;
 
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-    signatures.push(keystore.sign_secure(&sender, &call, Intent::default())?);
+        // Sign transaction.
+        let mut signatures: Vec<Signature> = vec![];
+        signatures.push(keystore.sign_secure(
+            &sender,
+            &call,
+            Intent::default(),
+        )?);
 
-    // Execute the transaction.
+        // Execute the transaction.
 
-    let response = sui
-        .quorum_driver()
-        .execute_transaction(
-            Transaction::from_data(call, Intent::default(), signatures)
-                .verify()?,
-            Some(ExecuteTransactionRequestType::WaitForLocalExecution),
-        )
-        .await?;
+        let response_ = sui
+            .quorum_driver()
+            .execute_transaction(
+                Transaction::from_data(call, Intent::default(), signatures)
+                    .verify()?,
+                Some(ExecuteTransactionRequestType::WaitForLocalExecution),
+            )
+            .await;
+
+        if retry == 3 {
+            break response_?;
+        }
+
+        if response_.is_err() {
+            let ten_millis = time::Duration::from_millis(1000);
+            thread::sleep(ten_millis);
+            retry += 1;
+            continue;
+        }
+        break response_?;
+    };
 
     assert!(response.confirmed_local_execution);
 

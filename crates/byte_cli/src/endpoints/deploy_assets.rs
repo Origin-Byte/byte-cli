@@ -1,4 +1,5 @@
 use anyhow::Result;
+use console::style;
 use dotenv::dotenv;
 use glob::glob;
 use gutenberg::storage::{NftStorageSetup, PinataSetup};
@@ -58,6 +59,7 @@ pub async fn deploy_assets(
         panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
     }
 
+    println!("{} Uploading images to storage", style("WIP").cyan().bold());
     match storage {
         Storage::Aws(config) => {
             let setup = AWSSetup::new(&config).await?;
@@ -82,6 +84,10 @@ pub async fn deploy_assets(
             uploader.upload(&mut assets, metadata_dir, false).await?;
         }
     }
+    println!(
+        "{} Uploading images to storage",
+        style("DONE").green().bold()
+    );
 
     Ok(())
 }

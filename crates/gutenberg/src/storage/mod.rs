@@ -81,8 +81,6 @@ pub async fn write_state(
 pub fn try_read_state(path_buf: &PathBuf) -> Result<NftState> {
     let f = File::open(path_buf);
 
-    println!("FILE PATH BUFFFF STATE: AHHH {:?}", path_buf);
-
     let data = match f {
         Ok(file) => match serde_json::from_reader(file) {
             Ok(data) => Ok(data),

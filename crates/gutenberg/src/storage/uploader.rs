@@ -101,8 +101,6 @@ impl<T: ParallelUploader> Uploader for T {
             res.unwrap().unwrap().unwrap();
         }
 
-        println!("SERVICE DONE");
-
         Ok(())
     }
 }

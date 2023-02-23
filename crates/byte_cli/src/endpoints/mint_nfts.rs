@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Result};
+use console::style;
 use gutenberg::Schema;
 use std::sync::Arc;
 use std::{fs::File, path::PathBuf};
+use std::{thread, time};
 use tokio::task::JoinSet;
 use walkdir::WalkDir;
 
@@ -18,7 +20,7 @@ pub async fn mint_nfts(
     mint_cap: String,
 ) -> Result<()> {
     let contract_id = Arc::new(schema.contract.as_ref().unwrap().clone());
-    println!("Initiliazing process on contract id: {:?}", contract_id);
+    println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let client = Arc::new(get_client().await.unwrap());
     let keystore = Arc::new(get_keystore().await.unwrap());
@@ -28,7 +30,7 @@ pub async fn mint_nfts(
     let mint_cap_arc = Arc::new(mint_cap);
 
     if warehouse_id.is_none() {
-        println!("Creating warehouse");
+        println!("{} Creating warehouse", style("WIP").cyan().bold());
         let collection_type = MoveType::new(
             schema.contract.as_ref().unwrap().clone(),
             schema.module_name(),
@@ -45,12 +47,14 @@ pub async fn mint_nfts(
             .await
             .unwrap(),
         );
+
+        println!("{} Creating warehouse", style("DONE").green().bold());
     }
-    println!("Built warehouse id: {:?}", warehouse_id);
+
     let warehouse_id_ref = Arc::new(warehouse_id.unwrap());
 
+    println!("{} Collecting NFT metadata", style("WIP").cyan().bold());
     let mut nft_data_vec: Vec<NftData> = vec![];
-
     for entry in WalkDir::new(metadata_path) {
         let path = entry.as_ref().unwrap().path();
 
@@ -65,30 +69,36 @@ pub async fn mint_nfts(
 
             nft_data_vec.push(nft_data);
         }
-
-        let mut set = JoinSet::new();
-
-        for nft_data in nft_data_vec.drain(..) {
-            set.spawn(
-                mint::handle_mint_nft(
-                    client.clone(),
-                    keystore.clone(),
-                    nft_data,
-                    contract_id.clone(),
-                    warehouse_id_ref.clone(),
-                    module_name.clone(),
-                    gas_budget_ref.clone(),
-                    active_address,
-                    mint_cap_arc.clone(),
-                )
-                .await,
-            );
-        }
-
-        while let Some(res) = set.join_next().await {
-            res.unwrap().unwrap().unwrap();
-        }
     }
+    println!("{} Collecting NFT metadata", style("DONE").green().bold());
+
+    let mut set = JoinSet::new();
+    println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
+    for nft_data in nft_data_vec.drain(..) {
+        let ten_millis = time::Duration::from_millis(1000);
+        thread::sleep(ten_millis);
+
+        set.spawn(
+            mint::handle_mint_nft(
+                client.clone(),
+                keystore.clone(),
+                nft_data,
+                contract_id.clone(),
+                warehouse_id_ref.clone(),
+                module_name.clone(),
+                gas_budget_ref.clone(),
+                active_address,
+                mint_cap_arc.clone(),
+            )
+            .await,
+        );
+    }
+
+    while let Some(res) = set.join_next().await {
+        res.unwrap().unwrap().unwrap();
+    }
+
+    println!("{} Minting NFTs on-chain", style("DONE").green().bold());
 
     Ok(())
 }

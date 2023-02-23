@@ -52,6 +52,11 @@ impl FromPrompt for CollectionData {
             collection.set_url(url)?;
         };
 
+        let _are_you_creator = Confirm::with_theme(&theme)
+            .with_prompt("Are you the creator?")
+            .interact()
+            .unwrap();
+
         let creators_num = Input::with_theme(&theme)
             .with_prompt("How many creator addresses are there?")
             .validate_with(positive_integer_validator)
@@ -67,8 +72,9 @@ impl FromPrompt for CollectionData {
             let address = loop {
                 let address = Input::with_theme(&theme)
                     .with_prompt(format!(
-                        "Please input address of the creator number {}{}:",
-                        i + 1, if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
+                        "Please input address of the creator number {}:",
+                        i + 1,
+                        // if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
                     ))
                     .default(TX_SENDER_ADDRESS.to_string())
                     .validate_with(address_validator)
