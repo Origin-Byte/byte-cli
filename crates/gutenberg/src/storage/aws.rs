@@ -85,11 +85,6 @@ impl AWSSetup {
         asset: Asset,
         state: PathBuf,
     ) -> Result<UploadedAsset> {
-        println!("DEBUG: Uploading asset on AWS");
-        println!("DEBUG: The asset path I am reading from: {:?}", asset.path);
-
-        println!("DEBUG: The bucket is the following: {:?}", bucket);
-
         let content = fs::read(&asset.path)?;
 
         let path = Path::new(&directory).join(&asset.name);
@@ -97,7 +92,6 @@ impl AWSSetup {
             anyhow!("Failed to convert S3 bucket directory path to string.")
         })?;
         let mut retry = MAX_RETRY;
-        println!("DEBUG: Putting object with content type: path -> {:?}, type -> {:?}", path_str, asset.content_type,);
 
         loop {
             match bucket
@@ -110,11 +104,9 @@ impl AWSSetup {
             {
                 Ok((_, code)) => match code {
                     200 => {
-                        println!("DEBUG: AWS returned ok with code {:}", code);
                         break;
                     }
                     _ => {
-                        println!("DEBUG: AWS returned err with code {:}", code);
                         return Err(anyhow!(
                             "Failed to upload {} to S3 with Http Code: {code}",
                             asset.id
@@ -122,7 +114,6 @@ impl AWSSetup {
                     }
                 },
                 Err(error) => {
-                    println!("DEBUG: AWS returned err with code {:?}", error);
                     if retry == 0 {
                         return Err(error.into());
                     }
@@ -133,7 +124,6 @@ impl AWSSetup {
         }
 
         let link = url::Url::parse(&url)?.join("/")?.join(path_str)?;
-        println!("Successfully uploaded {} to S3 at {}", asset.id, link);
 
         write_state(state, asset.id.clone(), link.to_string()).await?;
 

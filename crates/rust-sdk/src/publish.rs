@@ -27,7 +27,7 @@ pub async fn publish_contract(
     let keystore = get_keystore().await.unwrap();
     let active_address = get_active_address(&keystore).unwrap();
 
-    println!("{} Compiling contract.", style("WIP").cyan().bold());
+    println!("{} Compiling contract", style("WIP").cyan().bold());
     let compiled_modules_base_64 = BuildConfig::default()
         .build(package_dir.to_path_buf())?
         .get_package_base64(false);
@@ -37,9 +37,9 @@ pub async fn publish_contract(
         .map(|data| data.to_vec().map_err(|e| anyhow::anyhow!(e)))
         .collect::<Result<Vec<_>, _>>()?;
 
-    println!("{} Compiling contract.", style("DONE").green().bold());
+    println!("{} Compiling contract", style("DONE").green().bold());
 
-    println!("{} Preparing transaction.", style("WIP").cyan().bold());
+    println!("{} Preparing transaction", style("WIP").cyan().bold());
 
     let call = client
         .transaction_builder()

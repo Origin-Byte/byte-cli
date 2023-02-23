@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
 
-use rust_sdk::{publish, collection_state::CollectionState};
+use rust_sdk::{collection_state::CollectionState, publish};
 use std::fs::{self, File};
 
 pub fn parse_config(config_file: &Path) -> Result<Schema> {
@@ -25,7 +25,7 @@ Call `byte_cli init-collection-config to initialize the configuration file again
 }
 
 pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
-    println!("{} Generating contract.", style("WIP").cyan().bold());
+    println!("{} Generating contract", style("WIP").cyan().bold());
 
     let sources_dir = &contract_dir.join("sources");
     let _ = fs::remove_dir_all(sources_dir);
@@ -112,7 +112,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
         )
     })?;
 
-    println!("{} Generating contract.", style("DONE").green().bold());
+    println!("{} Generating contract", style("DONE").green().bold());
 
     Ok(())
 }
@@ -125,7 +125,8 @@ pub async fn publish_contract(
     let collection_state =
         publish::publish_contract(contract_dir, gas_budget as u64).await?;
 
-    schema.contract = Some(collection_state.contract.as_ref().unwrap().to_string());
+    schema.contract =
+        Some(collection_state.contract.as_ref().unwrap().to_string());
 
     Ok(collection_state)
 }

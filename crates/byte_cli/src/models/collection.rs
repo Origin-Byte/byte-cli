@@ -1,7 +1,13 @@
 use std::collections::BTreeSet;
 
-use super::{address_validator, positive_integer_validator, FromPrompt};
-use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
+use super::{
+    address_validator, name_validator, positive_integer_validator,
+    symbol_validator, url_validator, FromPrompt,
+};
+use crate::{
+    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
+    prelude::get_dialoguer_theme,
+};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::{
@@ -20,6 +26,7 @@ impl FromPrompt for CollectionData {
 
         let name = Input::with_theme(&theme)
             .with_prompt("What is the name of the Collection?")
+            .validate_with(name_validator)
             .interact()
             .unwrap();
 
@@ -33,9 +40,11 @@ impl FromPrompt for CollectionData {
         collection.set_description(description);
 
         let symbol = Input::with_theme(&theme)
-            .with_prompt(
-                "What is the symbol of the Collection? (Maximum of 5 letters)",
-            )
+            .with_prompt(format!(
+                "What is the symbol of the Collection? (Maximum of {} letters)",
+                MAX_SYMBOL_LENGTH
+            ))
+            .validate_with(symbol_validator)
             .interact()
             .unwrap();
 
@@ -49,11 +58,17 @@ impl FromPrompt for CollectionData {
         if has_url {
             let url = Input::with_theme(&theme)
                 .with_prompt("What is the URL of the Collection Website?")
+                .validate_with(url_validator)
                 .interact()
                 .unwrap();
 
             collection.set_url(url)?;
         };
+
+        let _are_you_creator = Confirm::with_theme(&theme)
+            .with_prompt("Are you the creator?")
+            .interact()
+            .unwrap();
 
         let creators_num = Input::with_theme(&theme)
             .with_prompt("How many creator addresses are there?")
@@ -70,8 +85,9 @@ impl FromPrompt for CollectionData {
             let address = loop {
                 let address = Input::with_theme(&theme)
                     .with_prompt(format!(
-                        "Please input address of the creator number {}{}:",
-                        i + 1, if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
+                        "Please input address of the creator number {}:",
+                        i + 1,
+                        // if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
                     ))
                     .default(TX_SENDER_ADDRESS.to_string())
                     .validate_with(address_validator)

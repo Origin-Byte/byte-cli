@@ -9,8 +9,7 @@ use gutenberg::{
     Schema,
 };
 
-const STORAGE_OPTIONS: [&str; 5] =
-    ["AWS", "Pinata", "NftStorage", "Bundlr", "SHDW"];
+const STORAGE_OPTIONS: [&str; 2] = ["AWS", "Pinata"];
 
 pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
     let theme = get_dialoguer_theme();
@@ -64,18 +63,17 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
         }
         "Pinata" => {
             let jwt = Password::with_theme(&theme)
-                .with_prompt("What is your Pinata JWT? (Keep this a secret")
+                .with_prompt("What is your Pinata JWT? (Keep this a secret)")
                 .interact()
                 .unwrap();
 
             let upload_gateway = Input::with_theme(&theme)
                 .with_prompt("Which gateway API will you use for upload? (Click enter for default gateway)")
-                .default(String::from("https://api.pinata.cloud"))
+                .default(String::from("https://api.pinata.cloud/"))
                 .interact()
                 .unwrap();
 
-            // TODO: Where is this used?
-            let _retrieval_gateway = Input::with_theme(&theme)
+            let retrieval_gateway = Input::with_theme(&theme)
                 .with_prompt("Which gateway API will you use for retrieval? (Click enter for default gateway)")
                 .default(String::from("https://gateway.pinata.cloud"))
                 .interact()
@@ -91,8 +89,12 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
                     .parse::<u16>()
                     .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.");
 
-            let config =
-                pinata::PinataConfig::new(jwt, upload_gateway, parallel_limit);
+            let config = pinata::PinataConfig::new(
+                jwt,
+                upload_gateway,
+                retrieval_gateway,
+                parallel_limit,
+            );
 
             schema.storage = Some(Storage::Pinata(config));
 

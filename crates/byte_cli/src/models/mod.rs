@@ -1,7 +1,10 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
 use gutenberg::Schema;
 
-use crate::{consts::TX_SENDER_ADDRESS, prelude::CliError};
+use crate::{
+    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
+    prelude::CliError,
+};
 
 pub mod collection;
 pub mod marketplace;
@@ -24,6 +27,66 @@ pub fn bps_validator(input: &String) -> Result<(), String> {
         if input.parse::<u64>().unwrap() > 10_000 {
             Err(format!(
                 "The Basis Points number {input} provided is above 100%."
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub fn url_validator(input: &String) -> Result<(), String> {
+    if input.parse::<String>().is_err() {
+        Err(format!("Couldn't parse '{input}' to a string."))
+    } else {
+        let url_ = input.parse::<String>().unwrap().to_string();
+        let mut url: String;
+
+        if url_.starts_with("www.") {
+            url = String::from("http://");
+            url.push_str(url_.split_at(4).0);
+        } else {
+            url = url_;
+        }
+
+        if url::Url::parse(&url).is_err() {
+            let err = url::Url::parse(&url);
+            Err(format!(
+                "The following error has occured: {:?}
+        The Collection URL input `{}` is not valid.",
+                err, url
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub fn name_validator(input: &String) -> Result<(), String> {
+    if input.parse::<String>().is_err() {
+        Err(format!("Couldn't parse '{input}' to a string."))
+    } else {
+        let name = input.parse::<String>().unwrap();
+
+        if !name.chars().all(|c| c.is_ascii_alphanumeric()) {
+            Err(format!(
+                "The collection name provided `{}` should only have alphanumeric characters.",
+                name
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub fn symbol_validator(input: &String) -> Result<(), String> {
+    if input.parse::<String>().is_err() {
+        Err(format!("Couldn't parse '{input}' to a string."))
+    } else {
+        let symbol = input.parse::<String>().unwrap();
+        if symbol.len() > MAX_SYMBOL_LENGTH as usize {
+            Err(format!(
+                "The symbol length {input} provided should not be bigger than {}.",
+                MAX_SYMBOL_LENGTH
             ))
         } else {
             Ok(())
