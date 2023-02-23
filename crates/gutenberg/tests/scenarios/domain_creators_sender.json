@@ -1,0 +1,12 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainCreatorsSender",
+        "creators": [
+            "sui::tx_context::sender(ctx)",
+            "0x64be9c21161c2305543e2bba67e056ebba8729e4"
+        ]
+    },
+    "Nft": {},
+    "Settings": {}
+}

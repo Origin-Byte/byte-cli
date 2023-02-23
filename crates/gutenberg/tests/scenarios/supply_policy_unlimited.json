@@ -1,0 +1,7 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "SupplyPolicyUnlimited",
+        "supply_policy": "Unlimited"
+    }
+}

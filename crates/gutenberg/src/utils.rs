@@ -1,10 +1,7 @@
-use crate::{
-    consts::DEFAULT_ADDRESS,
-    err::{self, GutenError},
-};
+use crate::err::{self, GutenError};
 
 pub fn validate_address(input: &String) -> Result<(), GutenError> {
-    if input == DEFAULT_ADDRESS {
+    if input == "sui::tx_context::sender(ctx)" {
         return Ok(());
     }
 

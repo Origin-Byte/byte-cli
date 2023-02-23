@@ -1,0 +1,12 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "SupplyPolicyLimitedFrozen",
+        "supply_policy": {
+            "limited": {
+                "limit": 1000,
+                "frozen": true
+            }
+        }
+    }
+}

@@ -10,10 +10,13 @@ use crate::{
 };
 
 use dialoguer::{Confirm, Input};
-use gutenberg::{models::collection::CollectionData, Schema};
+use gutenberg::{
+    models::{collection::CollectionData, supply_policy::SupplyPolicy},
+    Schema,
+};
 
 impl FromPrompt for CollectionData {
-    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -101,27 +104,11 @@ impl FromPrompt for CollectionData {
             creators.insert(address);
         }
 
-        collection.set_creators(creators)?;
+        collection.set_creators(creators.into_iter().collect())?;
+
+        collection
+            .set_supply_policy(SupplyPolicy::from_prompt(&schema)?.unwrap());
 
         Ok(Some(collection))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use dialoguer::Select;
-
-    use super::*;
-
-    #[test]
-    fn prompt_name() {
-        let name = "Suimarines";
-
-        let result: String = Input::new()
-            .with_post_completion_text("Suimarines")
-            .interact()
-            .unwrap();
-
-        assert_eq!(result, name);
     }
 }

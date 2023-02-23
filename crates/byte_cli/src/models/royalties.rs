@@ -152,7 +152,7 @@ Note: Shares remaining: {}, please make sure the end sum amounts to 100% (i.e. 1
     shares
 }
 
-pub fn royalty_shares(addresses: &BTreeSet<String>) -> Vec<u64> {
+pub fn royalty_shares(addresses: &Vec<String>) -> Vec<u64> {
     let theme = get_dialoguer_theme();
 
     let shares = addresses.iter().map(|address| {

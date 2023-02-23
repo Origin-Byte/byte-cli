@@ -1,0 +1,11 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainUrl",
+        "url": "https://originbyte.io/"
+    },
+    "Nft": {
+        "url": true
+    },
+    "Settings": {}
+}

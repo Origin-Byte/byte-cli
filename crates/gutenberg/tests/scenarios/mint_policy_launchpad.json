@@ -1,0 +1,11 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "MintPolicyLaunchpad"
+    },
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true
+        }
+    }
+}

@@ -31,12 +31,11 @@ pub enum Storage {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Item {
-    #[serde(default = "String::default")]
     pub hash: String,
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Default)]
 pub struct StorageState {
     pub batch_pointer: u64,
     pub uploaded_items: StorageItems,
@@ -47,7 +46,7 @@ pub struct StorageState {
 //     pub fn sync_state(&mut self, )
 // }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Default)]
 pub struct StorageItems(pub IndexMap<String, Item>);
 
 pub async fn upload_data(

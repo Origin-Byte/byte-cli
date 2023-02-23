@@ -2,8 +2,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
     contract::modules::{ComposableNftMod, DisplayMod},
-    err::{self, GutenError},
-    models::tags::Tags, consts::DEFAULT_ADDRESS,
+    err::GutenError,
+    models::tags::Tags,
 };
 
 use bevy_reflect::{Reflect, Struct};
@@ -14,16 +14,18 @@ use super::{
     marketplace::{Listing, Listings},
     nft::NftData,
     royalties::RoyaltyPolicy,
+    supply_policy::SupplyPolicy,
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
+    #[serde(default)]
     pub mint_policies: MintPolicies,
     pub composability: Option<Composability>,
+    #[serde(default)]
     pub loose: bool,
-    pub supply_policy: SupplyPolicy,
     pub listings: Option<Listings>,
 }
 
@@ -34,7 +36,6 @@ impl Settings {
         mint_policies: MintPolicies,
         composability: Option<Composability>,
         loose: bool,
-        supply_policy: SupplyPolicy,
         listings: Option<Listings>,
     ) -> Settings {
         Settings {
@@ -43,7 +44,6 @@ impl Settings {
             mint_policies,
             composability,
             loose,
-            supply_policy,
             listings,
         }
     }
@@ -54,7 +54,6 @@ impl Settings {
             && self.mint_policies.is_empty()
             && self.composability.is_none()
             && !self.loose
-            && self.supply_policy.is_empty()
             && self.listings.is_none()
     }
 
@@ -76,10 +75,6 @@ impl Settings {
 
     pub fn set_loose(&mut self, is_loose: bool) {
         self.loose = is_loose;
-    }
-
-    pub fn set_supply_policy(&mut self, supply: SupplyPolicy) {
-        self.supply_policy = supply;
     }
 
     pub fn set_listings(&mut self, listings: Listings) {
@@ -112,18 +107,6 @@ impl Settings {
             code.push_str(self.write_loose(collection).as_str());
         }
 
-        match self.supply_policy {
-            SupplyPolicy::Limited { max: _, frozen: _ } => code.push_str(
-                self.supply_policy
-                    .write_domain()
-                    // It's safe to unwrap we are checking
-                    // that the policy is Limited
-                    .unwrap()
-                    .as_str(),
-            ),
-            _ => {}
-        }
-
         code
     }
 
@@ -138,24 +121,30 @@ impl Settings {
         code.join("\n")
     }
 
-    pub fn write_transfer_fns(&self, receiver: &String) -> String {
-        let receiver_ = if receiver != DEFAULT_ADDRESS {
-            format!("@{}", receiver)
-        } else {
-            DEFAULT_ADDRESS.to_string()
+    pub fn write_transfer_fns(&self, receiver: Option<&String>) -> String {
+        let receiver = match receiver {
+            Some(address) => {
+                if address == "sui::tx_context::sender(ctx)" {
+                    address.clone()
+                } else {
+                    format!("@{address}")
+                }
+            }
+            None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
-
         let mut code = format!(
-            "transfer::transfer(mint_cap, {});
-        transfer::share_object(collection);\n",
-        receiver_
+            "
+        sui::transfer::transfer(mint_cap, {receiver});
+        sui::transfer::share_object(collection);\n"
         );
 
         if self.loose {
             code.push_str(
-                format!("        transfer::transfer(templates, {});", receiver_)
-                    .as_str(),
+                format!(
+                    "        sui::transfer::transfer(templates, {receiver});"
+                )
+                .as_str(),
             )
         }
 
@@ -293,71 +282,24 @@ pub enum MintType {
     Launchpad,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum SupplyPolicy {
-    Unlimited,
-    Limited { max: u64, frozen: bool },
-    Undefined,
-}
-
-impl Default for SupplyPolicy {
-    fn default() -> Self {
-        SupplyPolicy::Undefined
-    }
-}
-
-impl SupplyPolicy {
-    pub fn new(
-        input: &str,
-        max: Option<u64>,
-        frozen: Option<bool>,
-    ) -> Result<SupplyPolicy, GutenError> {
-        match input {
-            "Unlimited" => Ok(SupplyPolicy::Unlimited),
-            "Limited" => {
-                let max = max.unwrap();
-                let frozen = frozen.unwrap();
-                Ok(SupplyPolicy::Limited { max, frozen })
-            }
-            other => Err(GutenError::UnsupportedSettings(format!(
-                "Unsupported supply policy `{}`",
-                other
-            ))),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        matches!(self, SupplyPolicy::Undefined)
-    }
-
-    pub fn write_domain(&self) -> Result<String, GutenError> {
-        match self {
-            SupplyPolicy::Limited { max, frozen } => {
-                Ok(format!(
-                    "supply_domain::regulate(
-                        delegated_witness,
-                        &mut collection
-                        {max},
-                        {frozen},
-                        ctx,
-                    );\n",
-                    max = max,
-                    frozen = frozen,
-                ))
-            },
-            _ => Err(err::contextualize(
-                "Error: Trying to write Supply domain when supply policy is not limited".to_string())
-            ),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default, Reflect)]
+#[derive(Debug, Deserialize, Serialize, Reflect)]
 pub struct MintPolicies {
+    #[serde(default)]
     pub launchpad: bool,
+    #[serde(default)]
     pub airdrop: bool,
+    #[serde(default)]
     pub direct: bool,
+}
+
+impl Default for MintPolicies {
+    fn default() -> Self {
+        Self {
+            launchpad: false,
+            airdrop: true,
+            direct: false,
+        }
+    }
 }
 
 impl MintPolicies {
@@ -433,95 +375,142 @@ impl MintPolicies {
 
     pub fn write_mint_fn(
         &self,
-        witness: &str,
-        mint_policy: Option<MintType>,
+        collection: &CollectionData,
         nft: &NftData,
+        mint_policy: Option<MintType>,
     ) -> String {
         let code: String;
+        let witness = collection.witness_name();
 
-        let mut fun_name = String::new();
-        let mut fun_type = String::new();
         let mut return_type = String::new();
         let mut args = String::new();
         let mut domains = String::new();
         let mut params = String::new();
         let mut transfer = String::new();
 
+        // Name and URL are mandatory as they are static display fields on the NFT
+        args.push_str("        name: std::string::String,\n");
+        params.push_str("            name,\n");
+
+        args.push_str("        url: vector<u8>,\n");
+        params.push_str("            url,\n");
+
         if nft.display {
-            args.push_str(DisplayMod::add_display_args().as_str());
-            domains.push_str(DisplayMod::add_nft_display().as_str());
-            params.push_str(DisplayMod::add_display_params().as_str());
+            args.push_str(DisplayMod::add_display_args());
+            domains.push_str(DisplayMod::add_nft_display());
+            params.push_str(DisplayMod::add_display_params());
         }
         if nft.url {
-            args.push_str(DisplayMod::add_url_args().as_str());
-            domains.push_str(DisplayMod::add_nft_url().as_str());
-            params.push_str(DisplayMod::add_url_params().as_str());
+            domains.push_str(DisplayMod::add_nft_url());
         }
         if nft.attributes {
-            args.push_str(DisplayMod::add_attributes_args().as_str());
-            domains.push_str(DisplayMod::add_nft_attributes().as_str());
-            params.push_str(DisplayMod::add_attributes_params().as_str());
+            args.push_str(DisplayMod::add_attributes_args());
+            domains.push_str(DisplayMod::add_nft_attributes());
+            params.push_str(DisplayMod::add_attributes_params());
         }
 
-        args.push_str("        mint_cap: &MintCap<SUIMARINES>,\n");
+        let mint_cap = match collection.supply_policy {
+            SupplyPolicy::Unlimited => format!(
+                "        mint_cap: &nft_protocol::mint_cap::UnregulatedMintCap<{witness}>,\n"
+            ),
+            SupplyPolicy::Limited { .. } => format!(
+                "        mint_cap: &mut nft_protocol::mint_cap::RegulatedMintCap<{witness}>,\n"
+            ),
+            SupplyPolicy::Undefined => format!(
+                "        mint_cap: &nft_protocol::mint_cap::MintCap<{witness}>,\n"
+            ),
+        };
+        args.push_str(&mint_cap);
 
         params.push_str("            mint_cap,\n");
         params.push_str("            ctx,");
 
         if let Some(mint_policy) = mint_policy {
+            let mut fun_name = String::new();
+
             match mint_policy {
                 MintType::Launchpad => {
                     args.push_str(
                         format!(
-                            "        warehouse: &mut Warehouse<{}>,\n",
+                            "        warehouse: &mut nft_protocol::warehouse::Warehouse<{}>,\n",
                             witness
                         )
                         .as_str(),
                     );
-                    transfer
-                        .push_str("warehouse::deposit_nft(warehouse, nft);");
+                    transfer.push_str(
+                        "nft_protocol::warehouse::deposit_nft(warehouse, nft);",
+                    );
                     fun_name.push_str("mint_to_launchpad");
-                    args.push_str("        ctx: &mut TxContext,");
+                    args.push_str(
+                        "        ctx: &mut sui::tx_context::TxContext,",
+                    );
                 }
-                _ => {
+                MintType::Airdrop => {
                     args.push_str("        receiver: address,\n");
-                    transfer.push_str("transfer::transfer(nft, receiver);");
+                    transfer
+                        .push_str("sui::transfer::transfer(nft, receiver);");
                     fun_name.push_str("mint_to_address");
-                    args.push_str("        ctx: &mut TxContext,");
+                    args.push_str(
+                        "        ctx: &mut sui::tx_context::TxContext,",
+                    );
                 }
+                MintType::Direct => unimplemented!(),
             }
-
-            fun_type.push_str("public entry ");
 
             code = format!(
                 "\n
-    {fun_type}fun {fun_name}(
-        {args}
+    public entry fun {fun_name}(
+{args}
     ){return_type} {{
         let nft = mint(
-            {params}
+{params}
         );
 
         {transfer}
     }}"
             );
         } else {
-            fun_name.push_str("mint");
-            return_type.push_str(format!(": Nft<{}>", witness).as_str());
+            return_type.push_str(
+                format!(": nft_protocol::nft::Nft<{}>", witness).as_str(),
+            );
             transfer.push_str("nft");
 
-            // TODO: Code should be encpasulated
-            let build_nft = "let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
-        let delegated_witness = witness::from_witness(&Witness {});\n";
+            args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
-            args.push_str("        ctx: &mut TxContext,\n");
+            let nft = match collection.supply_policy {
+                SupplyPolicy::Unlimited => format!(
+                    "let nft = nft_protocol::nft::from_unregulated(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );"
+                ),
+                SupplyPolicy::Limited { .. } => format!(
+                    "let nft = nft_protocol::nft::from_regulated(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );"
+                ),
+                SupplyPolicy::Undefined => format!(
+                    "let nft = nft_protocol::nft::from_mint_cap(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );"
+                ),
+            };
 
             code = format!(
                 "\n
-    {fun_type}fun {fun_name}(
-        {args}    ){return_type} {{
-        {build_nft}
-        {domains}
+    fun mint(
+{args}    ){return_type} {{
+        {nft}
+        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
+{domains}
         {transfer}
     }}"
             );
@@ -530,27 +519,31 @@ impl MintPolicies {
         code
     }
 
-    pub fn write_mint_fns(&self, witness: &str, nft_data: &NftData) -> String {
+    pub fn write_mint_fns(
+        &self,
+        collection: &CollectionData,
+        nft_data: &NftData,
+    ) -> String {
         let mut mint_fns = String::new();
 
         if self.launchpad {
             mint_fns.push_str(&self.write_mint_fn(
-                witness,
-                Some(MintType::Launchpad),
+                collection,
                 nft_data,
+                Some(MintType::Launchpad),
             ));
         }
 
         // TODO: For now the flow are indistinguishable
         if self.airdrop || self.direct {
             mint_fns.push_str(&self.write_mint_fn(
-                witness,
-                Some(MintType::Airdrop),
+                collection,
                 nft_data,
+                Some(MintType::Airdrop),
             ));
         }
 
-        mint_fns.push_str(&self.write_mint_fn(witness, None, nft_data));
+        mint_fns.push_str(&self.write_mint_fn(collection, nft_data, None));
 
         mint_fns
     }

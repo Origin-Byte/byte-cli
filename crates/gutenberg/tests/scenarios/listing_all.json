@@ -1,0 +1,50 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "ListingAll"
+    },
+    "Settings": {
+        "listings": [
+            {
+                "admin": "sui::tx_context::sender(ctx)",
+                "receiver": "sui::tx_context::sender(ctx)",
+                "markets": [
+                    {
+                        "FixedPrice": {
+                            "token": "sui::sui::SUI",
+                            "price": 100,
+                            "is_whitelisted": true
+                        }
+                    },
+                    {
+                        "DutchAuction": {
+                            "token": "sui::sui::SUI",
+                            "reserve_price": 200,
+                            "is_whitelisted": true
+                        }
+                    }
+                ]
+            },
+            {
+                "admin": "sui::tx_context::sender(ctx)",
+                "receiver": "sui::tx_context::sender(ctx)",
+                "markets": [
+                    {
+                        "FixedPrice": {
+                            "token": "sui::sui::SUI",
+                            "price": 100,
+                            "is_whitelisted": true
+                        }
+                    },
+                    {
+                        "DutchAuction": {
+                            "token": "sui::sui::SUI",
+                            "reserve_price": 200,
+                            "is_whitelisted": true
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

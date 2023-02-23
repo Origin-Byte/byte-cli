@@ -1,0 +1,8 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainSymbol",
+        "symbol": "GIUT"
+    },
+    "Settings": {}
+}

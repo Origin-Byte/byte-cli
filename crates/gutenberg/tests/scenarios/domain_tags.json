@@ -1,0 +1,19 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainTags",
+        "tags": [
+            "Art",
+            "ProfilePicture"
+        ]
+    },
+    "Nft": {
+        "tags": true
+    },
+    "Settings": {
+        "tags": [
+            "Art",
+            "ProfilePicture"
+        ]
+    }
+}

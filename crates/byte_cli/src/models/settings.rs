@@ -5,7 +5,8 @@ use gutenberg::{
     models::{
         marketplace::Listings,
         royalties::RoyaltyPolicy,
-        settings::{Composability, MintPolicies, Settings, SupplyPolicy},
+        settings::{Composability, MintPolicies, Settings},
+        supply_policy::SupplyPolicy,
         tags::Tags,
     },
     Schema,
@@ -69,9 +70,6 @@ impl FromPrompt for Settings {
         if features.contains(&String::from("loose")) {
             settings.set_loose(true);
         }
-
-        settings
-            .set_supply_policy(SupplyPolicy::from_prompt(&schema)?.unwrap());
 
         if settings.mint_policies.launchpad {
             let listings = Listings::from_prompt(&schema)?.unwrap();

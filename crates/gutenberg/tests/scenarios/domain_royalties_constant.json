@@ -1,0 +1,23 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainRoyaltiesConstant"
+    },
+    "Settings": {
+        "royalties": {
+            "Constant": {
+                "shares": [
+                    {
+                        "address": "sui::tx_context::sender(ctx)",
+                        "share": 5000
+                    },
+                    {
+                        "address": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d144",
+                        "share": 5000
+                    }
+                ],
+                "fee": 100
+            }
+        }
+    }
+}

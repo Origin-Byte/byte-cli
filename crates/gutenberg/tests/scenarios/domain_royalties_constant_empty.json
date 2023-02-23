@@ -1,0 +1,14 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainRoyaltiesConstantEmpty"
+    },
+    "Settings": {
+        "royalties": {
+            "Constant": {
+                "shares": [],
+                "fee": 100
+            }
+        }
+    }
+}

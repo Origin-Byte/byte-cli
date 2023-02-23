@@ -1,0 +1,10 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainAttributes"
+    },
+    "Nft": {
+        "attributes": true
+    },
+    "Settings": {}
+}

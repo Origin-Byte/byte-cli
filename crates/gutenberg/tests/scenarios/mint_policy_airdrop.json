@@ -1,0 +1,11 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "MintPolicyAirdrop"
+    },
+    "Settings": {
+        "mint_policies": {
+            "airdrop": true
+        }
+    }
+}
