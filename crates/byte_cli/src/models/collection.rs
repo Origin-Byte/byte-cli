@@ -96,22 +96,3 @@ impl FromPrompt for CollectionData {
         Ok(Some(collection))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use dialoguer::Select;
-
-    use super::*;
-
-    #[test]
-    fn prompt_name() {
-        let name = "Suimarines";
-
-        let result: String = Input::new()
-            .with_post_completion_text("Suimarines")
-            .interact()
-            .unwrap();
-
-        assert_eq!(result, name);
-    }
-}
