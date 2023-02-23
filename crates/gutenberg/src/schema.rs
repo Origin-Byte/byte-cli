@@ -2,7 +2,6 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::contract::modules::Imports;
 use crate::err::GutenError;
 use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
@@ -23,6 +22,7 @@ pub struct Schema {
     pub collection: CollectionData,
     #[serde(default)]
     pub nft: NftData,
+    #[serde(default)]
     pub settings: Settings,
     /// Creates a new marketplace with the collection
     // pub marketplace: Option<Marketplace>,
@@ -69,7 +69,7 @@ impl Schema {
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {{}});
+        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
 {domains}{feature_domains}{transfer_fns}    }}",
             witness = self.witness_name()
         )
@@ -103,8 +103,6 @@ impl Schema {
     ) -> Result<(), GutenError> {
         let module_name = self.module_name();
         let witness = self.witness_name();
-
-        let imports = Imports::from_schema(self).write_imports(&self);
 
         let type_declarations = self.settings.write_type_declarations();
 
@@ -154,7 +152,6 @@ impl Schema {
         }
 
         vars.insert("module_name", &module_name);
-        vars.insert("imports", &imports);
         vars.insert("witness", &witness);
         vars.insert("type_declarations", &type_declarations);
         vars.insert("init_function", &init_fn);

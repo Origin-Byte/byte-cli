@@ -1,17 +1,4 @@
 module gutenberg::domainall {
-    use std::string::{Self, String};
-    use sui::vec_set;
-    use sui::url;
-    use sui::transfer;
-    use sui::tx_context::TxContext;
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness;
-    use nft_protocol::mint_cap::MintCap;
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::tags;
-    use nft_protocol::display;
-    use nft_protocol::creators;
-
     /// One time witness is only instantiated in the init method
     struct DOMAINALL has drop {}
 
@@ -22,7 +9,7 @@ module gutenberg::domainall {
 
     fun init(witness: DOMAINALL, ctx: &mut sui::tx_context::TxContext) {
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let delegated_witness = nft_protocol::witness::from_witness<DOMAINALL, Witness>(&Witness {});
 
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143);
@@ -31,7 +18,7 @@ module gutenberg::domainall {
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_creators<DOMAINALL, Witness>(
+            nft_protocol::creators::from_creators<DOMAINALL, Witness>(
                 &Witness {}, creators,
             ),
         );
@@ -69,48 +56,54 @@ module gutenberg::domainall {
         sui::transfer::share_object(collection);
     }
 
-
     public entry fun mint_to_address(
-        name: String,
-        description: String,
+        name: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
-        mint_cap: &MintCap<SUIMARINES>,
+        description: std::string::String,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINALL>,
         receiver: address,
-        ctx: &mut TxContext,
+        ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
             name,
-            description,
             url,
+            description,
             attribute_keys,
             attribute_values,
             mint_cap,
             ctx,
         );
 
-        transfer::transfer(nft, receiver);
+        sui::transfer::transfer(nft, receiver);
     }
 
     fun mint(
-        name: String,
-        description: String,
+        name: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
-        mint_cap: &MintCap<SUIMARINES>,
-        ctx: &mut TxContext,
-    ): Nft<DOMAINALL> {
-        let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
+        description: std::string::String,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINALL>,
+        ctx: &mut sui::tx_context::TxContext,
+    ): nft_protocol::nft::Nft<DOMAINALL> {
+        let nft = nft_protocol::nft::from_mint_cap(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+        let delegated_witness = nft_protocol::witness::from_witness<DOMAINALL, Witness>(&Witness {});
 
         nft_protocol::display::add_display_domain(
             delegated_witness, &mut nft, name, description,
         );
+
         nft_protocol::display::add_url_domain(
-            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url),
+            delegated_witness, &mut nft, sui::url::new_unsafe_from_bytes(url),
         );
+
         nft_protocol::display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values,
         );

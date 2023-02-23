@@ -463,23 +463,31 @@ impl MintPolicies {
         let mut params = String::new();
         let mut transfer = String::new();
 
+        // Name and URL are mandatory as they are static display fields on the NFT
+        args.push_str("        name: std::string::String,\n");
+        params.push_str("            name,\n");
+
+        args.push_str("        url: vector<u8>,\n");
+        params.push_str("            url,\n");
+
         if nft.display {
-            args.push_str(DisplayMod::add_display_args().as_str());
-            domains.push_str(DisplayMod::add_nft_display().as_str());
-            params.push_str(DisplayMod::add_display_params().as_str());
+            args.push_str(DisplayMod::add_display_args());
+            domains.push_str(DisplayMod::add_nft_display());
+            params.push_str(DisplayMod::add_display_params());
         }
         if nft.url {
-            args.push_str(DisplayMod::add_url_args().as_str());
-            domains.push_str(DisplayMod::add_nft_url().as_str());
-            params.push_str(DisplayMod::add_url_params().as_str());
+            domains.push_str(DisplayMod::add_nft_url());
         }
         if nft.attributes {
-            args.push_str(DisplayMod::add_attributes_args().as_str());
-            domains.push_str(DisplayMod::add_nft_attributes().as_str());
-            params.push_str(DisplayMod::add_attributes_params().as_str());
+            args.push_str(DisplayMod::add_attributes_args());
+            domains.push_str(DisplayMod::add_nft_attributes());
+            params.push_str(DisplayMod::add_attributes_params());
         }
 
-        args.push_str("        mint_cap: &MintCap<SUIMARINES>,\n");
+        let mint_cap = format!(
+            "        mint_cap: &nft_protocol::mint_cap::MintCap<{witness}>,\n"
+        );
+        args.push_str(&mint_cap);
 
         params.push_str("            mint_cap,\n");
         params.push_str("            ctx,");
@@ -497,25 +505,30 @@ impl MintPolicies {
                     transfer
                         .push_str("warehouse::deposit_nft(warehouse, nft);");
                     fun_name.push_str("mint_to_launchpad");
-                    args.push_str("        ctx: &mut TxContext,");
+                    args.push_str(
+                        "        ctx: &mut sui::tx_context::TxContext,",
+                    );
                 }
                 _ => {
                     args.push_str("        receiver: address,\n");
-                    transfer.push_str("transfer::transfer(nft, receiver);");
+                    transfer
+                        .push_str("sui::transfer::transfer(nft, receiver);");
                     fun_name.push_str("mint_to_address");
-                    args.push_str("        ctx: &mut TxContext,");
+                    args.push_str(
+                        "        ctx: &mut sui::tx_context::TxContext,",
+                    );
                 }
             }
 
             fun_type.push_str("public entry ");
 
             code = format!(
-                "\n
+                "
     {fun_type}fun {fun_name}(
-        {args}
+{args}
     ){return_type} {{
         let nft = mint(
-            {params}
+{params}
         );
 
         {transfer}
@@ -523,21 +536,25 @@ impl MintPolicies {
             );
         } else {
             fun_name.push_str("mint");
-            return_type.push_str(format!(": Nft<{}>", witness).as_str());
+            return_type.push_str(
+                format!(": nft_protocol::nft::Nft<{}>", witness).as_str(),
+            );
             transfer.push_str("nft");
 
-            // TODO: Code should be encpasulated
-            let build_nft = "let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
-        let delegated_witness = witness::from_witness(&Witness {});\n";
-
-            args.push_str("        ctx: &mut TxContext,\n");
+            args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
             code = format!(
                 "\n
     {fun_type}fun {fun_name}(
-        {args}    ){return_type} {{
-        {build_nft}
-        {domains}
+{args}    ){return_type} {{
+        let nft = nft_protocol::nft::from_mint_cap(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
+{domains}
         {transfer}
     }}"
             );

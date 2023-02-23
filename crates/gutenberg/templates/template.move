@@ -1,5 +1,4 @@
 module {module_alias}::{module_name} {{
-{imports}
     /// One time witness is only instantiated in the init method
     struct {witness} has drop {{}}
 

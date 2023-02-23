@@ -169,7 +169,7 @@ The Collection URL input `{}` is not valid.",
             }
 
             format!(
-                "creators::from_creators<{witness}, Witness>(
+                "nft_protocol::creators::from_creators<{witness}, Witness>(
                 &Witness {{}}, creators,
             )",
                 witness = self.witness_name()

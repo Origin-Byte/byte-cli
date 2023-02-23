@@ -16,7 +16,7 @@ impl Module for NftMod {
 
 impl NftMod {
     pub fn new_to_sender() -> String {
-        "let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);".to_string()
+        "let nft = nft_protocol::nft::from_mint_cap(mint_cap, name, sui::url::new_unsafe_from_bytes(url), ctx);".to_string()
     }
 }
 
@@ -176,57 +176,51 @@ impl DisplayMod {
         })
     }
 
-    pub fn add_nft_display() -> String {
-        "nft_protocol::display::add_display_domain(
+    pub fn add_nft_display() -> &'static str {
+        "
+        nft_protocol::display::add_display_domain(
             delegated_witness, &mut nft, name, description,
         );\n"
-            .to_string()
     }
 
-    pub fn add_nft_url() -> String {
-        "        nft_protocol::display::add_url_domain(
-            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url),
+    pub fn add_nft_url() -> &'static str {
+        "
+        nft_protocol::display::add_url_domain(
+            delegated_witness, &mut nft, sui::url::new_unsafe_from_bytes(url),
         );\n"
-            .to_string()
     }
 
-    pub fn add_nft_attributes() -> String {
-        "        nft_protocol::display::add_attributes_domain_from_vec(
+    pub fn add_nft_attributes() -> &'static str {
+        "
+        nft_protocol::display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values,
         );\n"
-            .to_string()
     }
 
-    pub fn add_display_args() -> String {
-        "name: String,
-        description: String,\n"
-            .to_string()
+    pub fn add_display_args() -> &'static str {
+        "        description: std::string::String,\n"
     }
 
-    pub fn add_url_args() -> String {
-        "        url: vector<u8>,\n".to_string()
+    pub fn add_url_args() -> &'static str {
+        "        url: vector<u8>,\n"
     }
 
-    pub fn add_attributes_args() -> String {
-        "        attribute_keys: vector<String>,
-        attribute_values: vector<String>,\n"
-            .to_string()
+    pub fn add_attributes_args() -> &'static str {
+        "        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,\n"
     }
 
-    pub fn add_display_params() -> String {
-        "name,
-            description,\n"
-            .to_string()
+    pub fn add_display_params() -> &'static str {
+        "            description,\n"
     }
 
-    pub fn add_url_params() -> String {
-        "            url,\n".to_string()
+    pub fn add_url_params() -> &'static str {
+        "            url,\n"
     }
 
-    pub fn add_attributes_params() -> String {
+    pub fn add_attributes_params() -> &'static str {
         "            attribute_keys,
             attribute_values,\n"
-            .to_string()
     }
 }
 

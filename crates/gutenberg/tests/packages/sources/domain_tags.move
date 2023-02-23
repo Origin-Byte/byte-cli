@@ -1,14 +1,4 @@
 module gutenberg::domaintags {
-    use std::string::{Self, String};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness;
-    use nft_protocol::mint_cap::MintCap;
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::tags;
-    use nft_protocol::creators;
-
     /// One time witness is only instantiated in the init method
     struct DOMAINTAGS has drop {}
 
@@ -19,7 +9,7 @@ module gutenberg::domaintags {
 
     fun init(witness: DOMAINTAGS, ctx: &mut sui::tx_context::TxContext) {
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let delegated_witness = nft_protocol::witness::from_witness<DOMAINTAGS, Witness>(&Witness {});
 
         nft_protocol::collection::add_domain(
             delegated_witness,
@@ -43,28 +33,37 @@ module gutenberg::domaintags {
         sui::transfer::share_object(collection);
     }
 
-
     public entry fun mint_to_address(
-                mint_cap: &MintCap<SUIMARINES>,
+        name: std::string::String,
+        url: vector<u8>,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINTAGS>,
         receiver: address,
-        ctx: &mut TxContext,
+        ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-                        mint_cap,
+            name,
+            url,
+            mint_cap,
             ctx,
         );
 
-        transfer::transfer(nft, receiver);
+        sui::transfer::transfer(nft, receiver);
     }
 
     fun mint(
-                mint_cap: &MintCap<SUIMARINES>,
-        ctx: &mut TxContext,
-    ): Nft<DOMAINTAGS> {
-        let nft = nft::from_mint_cap(mint_cap, name, url::new_unsafe_from_bytes(url), ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
+        name: std::string::String,
+        url: vector<u8>,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINTAGS>,
+        ctx: &mut sui::tx_context::TxContext,
+    ): nft_protocol::nft::Nft<DOMAINTAGS> {
+        let nft = nft_protocol::nft::from_mint_cap(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+        let delegated_witness = nft_protocol::witness::from_witness<DOMAINTAGS, Witness>(&Witness {});
 
-        
         nft
     }
 }
