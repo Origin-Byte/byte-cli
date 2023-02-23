@@ -19,14 +19,14 @@ module gutenberg::supplypolicylimited {
             ),
         );
 
-        supply_domain::regulate(
+        nft_protocol::supply_domain::regulate(
             delegated_witness,
             &mut collection,
             1000,
             false,
         );
 
-        supply_domain::delegate_and_transfer(
+        nft_protocol::supply_domain::delegate_and_transfer(
             &mint_cap,
             &mut collection,
             1000,
@@ -40,7 +40,7 @@ module gutenberg::supplypolicylimited {
     public entry fun mint_to_address(
         name: std::string::String,
         url: vector<u8>,
-        mint_cap: &nft_protocol::mint_cap::RegulatedMintCap<SUPPLYPOLICYLIMITED>,
+        mint_cap: &mut nft_protocol::mint_cap::RegulatedMintCap<SUPPLYPOLICYLIMITED>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -57,10 +57,10 @@ module gutenberg::supplypolicylimited {
     fun mint(
         name: std::string::String,
         url: vector<u8>,
-        mint_cap: &nft_protocol::mint_cap::RegulatedMintCap<SUPPLYPOLICYLIMITED>,
+        mint_cap: &mut nft_protocol::mint_cap::RegulatedMintCap<SUPPLYPOLICYLIMITED>,
         ctx: &mut sui::tx_context::TxContext,
     ): nft_protocol::nft::Nft<SUPPLYPOLICYLIMITED> {
-        let nft = nft_protocol::nft::from_mint_cap(
+        let nft = nft_protocol::nft::from_regulated(
             mint_cap,
             name,
             sui::url::new_unsafe_from_bytes(url),

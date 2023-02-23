@@ -1,0 +1,14 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "DomainRoyaltiesProportionalEmpty"
+    },
+    "Settings": {
+        "royalties": {
+            "Proportional": {
+                "shares": [],
+                "bps": 100
+            }
+        }
+    }
+}

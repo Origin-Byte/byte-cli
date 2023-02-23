@@ -48,7 +48,7 @@ impl SupplyPolicy {
         match self {
             SupplyPolicy::Unlimited => format!(
                 "
-        supply_domain::delegate_unregulated_and_transfer(
+        nft_protocol::supply_domain::delegate_unregulated_and_transfer(
             &mint_cap,
             &mut collection,
             ctx,
@@ -56,14 +56,14 @@ impl SupplyPolicy {
             ),
             SupplyPolicy::Limited { limit, frozen } => format!(
                 "
-        supply_domain::regulate(
+        nft_protocol::supply_domain::regulate(
             delegated_witness,
             &mut collection,
             {limit},
             {frozen},
         );
 
-        supply_domain::delegate_and_transfer(
+        nft_protocol::supply_domain::delegate_and_transfer(
             &mint_cap,
             &mut collection,
             {limit},

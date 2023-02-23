@@ -19,7 +19,7 @@ module gutenberg::supplypolicyunlimited {
             ),
         );
 
-        supply_domain::delegate_unregulated_and_transfer(
+        nft_protocol::supply_domain::delegate_unregulated_and_transfer(
             &mint_cap,
             &mut collection,
             ctx,
@@ -52,7 +52,7 @@ module gutenberg::supplypolicyunlimited {
         mint_cap: &nft_protocol::mint_cap::UnregulatedMintCap<SUPPLYPOLICYUNLIMITED>,
         ctx: &mut sui::tx_context::TxContext,
     ): nft_protocol::nft::Nft<SUPPLYPOLICYUNLIMITED> {
-        let nft = nft_protocol::nft::from_mint_cap(
+        let nft = nft_protocol::nft::from_unregulated(
             mint_cap,
             name,
             sui::url::new_unsafe_from_bytes(url),

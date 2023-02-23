@@ -81,14 +81,14 @@ impl RoyaltyPolicy {
             RoyaltyPolicy::Proportional { shares, bps } => (
                 shares.clone(),
                 format!(
-                    "        royalty::add_proportional_royalty(&mut royalty, {});\n",
+                    "        nft_protocol::royalty::add_proportional_royalty(&mut royalty, {});\n",
                     bps
                 ),
             ),
             RoyaltyPolicy::Constant { shares, fee } => (
                 shares.clone(),
                 format!(
-                    "        royalty::add_constant_royalty(&mut royalty, {});\n",
+                    "        nft_protocol::royalty::add_constant_royalty(&mut royalty, {});\n",
                     fee
                 ),
             ),
@@ -96,12 +96,13 @@ impl RoyaltyPolicy {
 
         let mut code = if royalty_shares.len() == 1 {
             format!(
-                "let royalty = royalty::from_address({address}, ctx);\n",
+                "let royalty = nft_protocol::royalty::from_address({address}, ctx);\n",
                 address = royalty_shares.first().unwrap().address,
             )
         } else {
-            let mut vecmap =
-                String::from("\n        let royalty_map = vec_map::empty();\n");
+            let mut vecmap = String::from(
+                "\n        let royalty_map = sui::vec_map::empty();\n",
+            );
 
             royalty_shares
                 .iter()
@@ -115,7 +116,7 @@ impl RoyaltyPolicy {
 
                     vecmap.push_str(
                         format!(
-                        "        vec_map::insert(&mut royalty_map, {address}, {share});\n",
+                        "        sui::vec_map::insert(&mut royalty_map, {address}, {share});\n",
                         share = share.share
                     )
                         .as_str(),
@@ -125,13 +126,13 @@ impl RoyaltyPolicy {
 
             vecmap.push_str("\n");
             vecmap.push_str(
-                "        let royalty = royalty::from_shares(royalty_map, ctx);\n",
+                "        let royalty = nft_protocol::royalty::from_shares(royalty_map, ctx);\n",
             );
 
             vecmap
         };
 
-        let add_domain = "        royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
+        let add_domain = "        nft_protocol::royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
 
         code.push_str(royalty_strategy.as_str());
         code.push_str(add_domain);
@@ -142,7 +143,7 @@ impl RoyaltyPolicy {
     pub fn write_entry_fn(&self, witness: &String) -> String {
         let domain = match self {
             RoyaltyPolicy::Proportional { shares: _, bps: _ } => {
-                "calculate_proportional_royalty(domain, balance::value(b))"
+                "calculate_proportional_royalty(domain, sui::balance::value(b))"
             }
             RoyaltyPolicy::Constant { shares: _, fee: _ } => {
                 "calculate_constant_royalty(domain)"
@@ -150,23 +151,22 @@ impl RoyaltyPolicy {
         };
 
         format!(
-            "    /// Calculates and transfers royalties to the `RoyaltyDomain`
+            "\n
+    /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<{witness}, FT>,
-        collection: &mut Collection<{witness}>,
-        ctx: &mut TxContext,
+        payment: &mut nft_protocol::royalties::TradePayment<{witness}, FT>,
+        collection: &mut nft_protocol::collection::Collection<{witness}>,
+        ctx: &mut sui::tx_context::TxContext,
     ) {{
-        let b = royalties::balance_mut(Witness {{}}, payment);
+        let b = nft_protocol::royalties::balance_mut(Witness {{}}, payment);
 
-        let domain = royalty::royalty_domain(collection);
+        let domain = nft_protocol::royalty::royalty_domain(collection);
         let royalty_owed =
-            royalty::{domain};
+            nft_protocol::royalty::{domain};
 
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
-    }}\n",
-            witness = witness,
-            domain = domain,
+        nft_protocol::royalty::collect_royalty(collection, b, royalty_owed);
+        nft_protocol::royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
+    }}"
         )
     }
 }

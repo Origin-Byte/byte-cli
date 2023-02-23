@@ -414,7 +414,7 @@ impl MintPolicies {
                 "        mint_cap: &nft_protocol::mint_cap::UnregulatedMintCap<{witness}>,\n"
             ),
             SupplyPolicy::Limited { .. } => format!(
-                "        mint_cap: &nft_protocol::mint_cap::RegulatedMintCap<{witness}>,\n"
+                "        mint_cap: &mut nft_protocol::mint_cap::RegulatedMintCap<{witness}>,\n"
             ),
             SupplyPolicy::Undefined => format!(
                 "        mint_cap: &nft_protocol::mint_cap::MintCap<{witness}>,\n"
@@ -477,16 +477,38 @@ impl MintPolicies {
 
             args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
-            code = format!(
-                "\n
-    fun mint(
-{args}    ){return_type} {{
-        let nft = nft_protocol::nft::from_mint_cap(
+            let nft = match collection.supply_policy {
+                SupplyPolicy::Unlimited => format!(
+                    "let nft = nft_protocol::nft::from_unregulated(
             mint_cap,
             name,
             sui::url::new_unsafe_from_bytes(url),
             ctx,
-        );
+        );"
+                ),
+                SupplyPolicy::Limited { .. } => format!(
+                    "let nft = nft_protocol::nft::from_regulated(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );"
+                ),
+                SupplyPolicy::Undefined => format!(
+                    "let nft = nft_protocol::nft::from_mint_cap(
+            mint_cap,
+            name,
+            sui::url::new_unsafe_from_bytes(url),
+            ctx,
+        );"
+                ),
+            };
+
+            code = format!(
+                "\n
+    fun mint(
+{args}    ){return_type} {{
+        {nft}
         let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
 {domains}
         {transfer}
