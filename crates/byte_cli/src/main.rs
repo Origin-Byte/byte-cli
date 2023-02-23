@@ -46,22 +46,22 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_config(&file_path)?;
+            let mut _schema = io::try_read_config(&file_path)?;
 
-            schema =
-                config_collection::init_collection_config(schema, complete)?;
+            _schema =
+                config_collection::init_collection_config(_schema, complete)?;
 
-            io::write_config(&schema, &file_path)?;
+            // io::write_config(&schema, &file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_config(&file_path)?;
+            let mut _schema = io::try_read_config(&file_path)?;
 
-            schema = config_upload::init_upload_config(schema)?;
+            _schema = config_upload::init_upload_config(_schema)?;
 
-            io::write_config(&schema, &file_path)?;
+            // io::write_config(&schema, &file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));

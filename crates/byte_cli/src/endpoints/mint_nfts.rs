@@ -4,6 +4,7 @@ use gutenberg::Schema;
 use std::sync::Arc;
 use std::{fs::File, path::PathBuf};
 use std::{thread, time};
+use terminal_link::Link;
 use tokio::task::JoinSet;
 use walkdir::WalkDir;
 
@@ -99,6 +100,20 @@ pub async fn mint_nfts(
     }
 
     println!("{} Minting NFTs on-chain", style("DONE").green().bold());
+
+    println!("Warehouse object ID: {}", warehouse_id_ref.clone());
+
+    let explorer_link = format!(
+        "https://explorer.sui.io/object/{}?network=devnet",
+        warehouse_id_ref.clone()
+    );
+
+    let link = Link::new("Sui Explorer", explorer_link.as_str());
+
+    println!(
+        "You can now find your NFTs on the {}",
+        style(link).blue().bold().underlined(),
+    );
 
     Ok(())
 }

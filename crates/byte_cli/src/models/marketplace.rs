@@ -112,7 +112,7 @@ impl FromPrompt for Listings {
 
         let number = Input::with_theme(&theme)
             .with_prompt(
-                "How many listings do you plan on having? Click [here](https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing) to learn more about listings.",
+                "How many listings do you plan on having? Click https://docs.originbyte.io/origin-byte/about-our-programs/launchpad#listing to learn more about listings.",
             )
             .default("1".to_string())
             .validate_with(number_validator)

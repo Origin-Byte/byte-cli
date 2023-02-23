@@ -9,8 +9,7 @@ use gutenberg::{
     Schema,
 };
 
-const STORAGE_OPTIONS: [&str; 5] =
-    ["AWS", "Pinata", "NftStorage", "Bundlr", "SHDW"];
+const STORAGE_OPTIONS: [&str; 2] = ["AWS", "Pinata"];
 
 pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
     let theme = get_dialoguer_theme();
@@ -64,7 +63,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
         }
         "Pinata" => {
             let jwt = Password::with_theme(&theme)
-                .with_prompt("What is your Pinata JWT? (Keep this a secret")
+                .with_prompt("What is your Pinata JWT? (Keep this a secret)")
                 .interact()
                 .unwrap();
 
