@@ -162,9 +162,15 @@ The Collection URL input `{}` is not valid.",
                 "
         let creators = sui::vec_set::empty();\n",
             );
-            for addr in self.creators.iter() {
+            for address in self.creators.iter() {
+                let address = if address == "sui::tx_context::sender(ctx)" {
+                    address.clone()
+                } else {
+                    format!("@{address}")
+                };
+
                 code.push_str(&format!(
-                    "        sui::vec_set::insert(&mut creators, @{addr});\n"
+                    "        sui::vec_set::insert(&mut creators, {address});\n"
                 ));
             }
 

@@ -1,0 +1,13 @@
+{
+    "ModuleAlias": "gutenberg",
+    "Collection": {
+        "name": "MintPolicyAll"
+    },
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true,
+            "direct": false
+        }
+    }
+}

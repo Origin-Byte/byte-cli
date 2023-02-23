@@ -143,7 +143,13 @@ impl Settings {
 
     pub fn write_transfer_fns(&self, receiver: Option<&String>) -> String {
         let receiver = match receiver {
-            Some(address) => format!("@{address}"),
+            Some(address) => {
+                if address == "sui::tx_context::sender(ctx)" {
+                    address.clone()
+                } else {
+                    format!("@{address}")
+                }
+            }
             None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
@@ -455,8 +461,6 @@ impl MintPolicies {
     ) -> String {
         let code: String;
 
-        let mut fun_name = String::new();
-        let mut fun_type = String::new();
         let mut return_type = String::new();
         let mut args = String::new();
         let mut domains = String::new();
@@ -493,23 +497,26 @@ impl MintPolicies {
         params.push_str("            ctx,");
 
         if let Some(mint_policy) = mint_policy {
+            let mut fun_name = String::new();
+
             match mint_policy {
                 MintType::Launchpad => {
                     args.push_str(
                         format!(
-                            "        warehouse: &mut Warehouse<{}>,\n",
+                            "        warehouse: &mut nft_protocol::warehouse::Warehouse<{}>,\n",
                             witness
                         )
                         .as_str(),
                     );
-                    transfer
-                        .push_str("warehouse::deposit_nft(warehouse, nft);");
+                    transfer.push_str(
+                        "nft_protocol::warehouse::deposit_nft(warehouse, nft);",
+                    );
                     fun_name.push_str("mint_to_launchpad");
                     args.push_str(
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
                 }
-                _ => {
+                MintType::Airdrop => {
                     args.push_str("        receiver: address,\n");
                     transfer
                         .push_str("sui::transfer::transfer(nft, receiver);");
@@ -518,13 +525,12 @@ impl MintPolicies {
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
                 }
+                MintType::Direct => unimplemented!(),
             }
 
-            fun_type.push_str("public entry ");
-
             code = format!(
-                "
-    {fun_type}fun {fun_name}(
+                "\n
+    public entry fun {fun_name}(
 {args}
     ){return_type} {{
         let nft = mint(
@@ -535,7 +541,6 @@ impl MintPolicies {
     }}"
             );
         } else {
-            fun_name.push_str("mint");
             return_type.push_str(
                 format!(": nft_protocol::nft::Nft<{}>", witness).as_str(),
             );
@@ -545,7 +550,7 @@ impl MintPolicies {
 
             code = format!(
                 "\n
-    {fun_type}fun {fun_name}(
+    fun mint(
 {args}    ){return_type} {{
         let nft = nft_protocol::nft::from_mint_cap(
             mint_cap,

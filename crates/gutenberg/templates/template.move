@@ -7,6 +7,5 @@ module {module_alias}::{module_name} {{
     /// serves as an auth token.
     struct Witness has drop {{}}
 {type_declarations}
-{init_function}
-{entry_functions}
+{init_function}{entry_functions}
 }}
