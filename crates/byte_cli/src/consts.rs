@@ -22,7 +22,7 @@ pub const TAG_OPTIONS: [&str; 11] = [
 ];
 
 // Smart contract invariants
-pub const TX_SENDER_ADDRESS: &str = "tx_context::sender(ctx)";
+pub const TX_SENDER_ADDRESS: &str = "sui::tx_context::sender(ctx)";
 
 /// Default path for assets folder.
 pub const DEFAULT_FOLDER: &str = "";

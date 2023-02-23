@@ -54,11 +54,11 @@ impl RoyaltyPolicy {
 
     pub fn add_beneficiary_vecs(
         &mut self,
-        creators_vec: &BTreeSet<String>,
+        creators_vec: &Vec<String>,
         shares_vec: &Vec<u64>,
     ) {
         let push_creator =
-            |creators_vec: &BTreeSet<String>, shares: &mut BTreeSet<Share>| {
+            |creators_vec: &Vec<String>, shares: &mut BTreeSet<Share>| {
                 creators_vec
                     .iter()
                     .zip(shares_vec.iter())

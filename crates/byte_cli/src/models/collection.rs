@@ -4,10 +4,13 @@ use super::{address_validator, positive_integer_validator, FromPrompt};
 use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::{models::collection::CollectionData, Schema};
+use gutenberg::{
+    models::{collection::CollectionData, supply_policy::SupplyPolicy},
+    Schema,
+};
 
 impl FromPrompt for CollectionData {
-    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
     where
         Self: Sized,
     {
@@ -85,7 +88,10 @@ impl FromPrompt for CollectionData {
             creators.insert(address);
         }
 
-        collection.set_creators(creators)?;
+        collection.set_creators(creators.into_iter().collect())?;
+
+        collection
+            .set_supply_policy(SupplyPolicy::from_prompt(&schema)?.unwrap());
 
         Ok(Some(collection))
     }

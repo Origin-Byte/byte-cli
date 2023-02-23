@@ -11,6 +11,8 @@ use crate::{
     utils::validate_address,
 };
 
+use super::supply_policy::SupplyPolicy;
+
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct CollectionData {
@@ -25,6 +27,8 @@ pub struct CollectionData {
     #[serde(default)]
     /// The addresses of creators
     pub creators: Vec<String>,
+    #[serde(default)]
+    pub supply_policy: SupplyPolicy,
 }
 
 impl CollectionData {
@@ -34,6 +38,7 @@ impl CollectionData {
         symbol: Option<String>,
         url: Option<String>,
         creators: Vec<String>,
+        supply_policy: SupplyPolicy,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -41,7 +46,16 @@ impl CollectionData {
             symbol,
             url,
             creators,
+            supply_policy,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.name.is_empty()
+            && self.description.is_none()
+            && self.symbol.is_none()
+            && self.url.is_none()
+            && self.creators.is_empty()
     }
 
     pub fn witness_name(&self) -> String {
@@ -127,6 +141,10 @@ The Collection URL input `{}` is not valid.",
         Ok(())
     }
 
+    pub fn set_supply_policy(&mut self, supply_policy: SupplyPolicy) {
+        self.supply_policy = supply_policy;
+    }
+
     pub fn write_domains(&self) -> String {
         let mut code = String::new();
 
@@ -142,6 +160,10 @@ The Collection URL input `{}` is not valid.",
 
         if let Some(url) = DisplayMod::add_collection_url(self) {
             code.push_str(&url);
+        }
+
+        if !matches!(self.supply_policy, SupplyPolicy::Undefined) {
+            code.push_str(&self.supply_policy.write_domain())
         }
 
         code

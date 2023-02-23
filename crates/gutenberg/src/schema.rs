@@ -86,7 +86,7 @@ impl Schema {
         let mint_fns = self
             .settings
             .mint_policies
-            .write_mint_fns(&self.witness_name(), &self.nft);
+            .write_mint_fns(&self.collection, &self.nft);
 
         code.push_str(mint_fns.as_str());
 
