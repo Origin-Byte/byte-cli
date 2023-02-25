@@ -24,8 +24,8 @@ use tokio::task::JoinHandle;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NftData {
     pub name: Option<String>,
-    pub description: Option<String>,
     pub url: Option<String>,
+    pub description: Option<String>,
     pub attributes: Option<HashMap<String, String>>,
 }
 
@@ -37,11 +37,11 @@ impl NftData {
             params.push(SuiJsonValue::from_str(value.as_str())?);
         }
 
-        if let Some(value) = &self.description {
+        if let Some(value) = &self.url {
             params.push(SuiJsonValue::from_str(value.as_str())?);
         }
 
-        if let Some(value) = &self.url {
+        if let Some(value) = &self.description {
             params.push(SuiJsonValue::from_str(value.as_str())?);
         }
 
