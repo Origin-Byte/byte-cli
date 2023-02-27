@@ -30,6 +30,25 @@ module gutenberg::domaindisplay {
         sui::transfer::share_object(collection);
     }
 
+    public entry fun mint_to_launchpad(
+        name: std::string::String,
+        url: vector<u8>,
+        description: std::string::String,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINDISPLAY>,
+        warehouse: &mut nft_protocol::warehouse::Warehouse<DOMAINDISPLAY>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let nft = mint(
+            name,
+            url,
+            description,
+            mint_cap,
+            ctx,
+        );
+
+        nft_protocol::warehouse::deposit_nft(warehouse, nft);
+    }
+
     public entry fun mint_to_address(
         name: std::string::String,
         url: vector<u8>,

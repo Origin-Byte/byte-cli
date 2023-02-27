@@ -23,11 +23,11 @@ module gutenberg::listingfixedprice {
         sui::transfer::share_object(collection);
     }
 
-    public entry fun mint_to_address(
+    public entry fun mint_to_launchpad(
         name: std::string::String,
         url: vector<u8>,
         mint_cap: &nft_protocol::mint_cap::MintCap<LISTINGFIXEDPRICE>,
-        receiver: address,
+        warehouse: &mut nft_protocol::warehouse::Warehouse<LISTINGFIXEDPRICE>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
@@ -37,7 +37,7 @@ module gutenberg::listingfixedprice {
             ctx,
         );
 
-        sui::transfer::transfer(nft, receiver);
+        nft_protocol::warehouse::deposit_nft(warehouse, nft);
     }
 
     fun mint(

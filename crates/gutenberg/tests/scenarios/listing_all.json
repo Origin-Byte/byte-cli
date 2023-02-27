@@ -4,6 +4,9 @@
         "name": "ListingAll"
     },
     "Settings": {
+        "mint_policies": {
+            "launchpad": true
+        },
         "listings": [
             {
                 "admin": "sui::tx_context::sender(ctx)",

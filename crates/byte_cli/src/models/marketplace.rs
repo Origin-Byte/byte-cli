@@ -11,9 +11,7 @@ use console::style;
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
     models::launchpad::{
-        listing::{Listing, Listings},
-        market::Market,
-        marketplace::Marketplace,
+        listing::Listing, market::Market, marketplace::Marketplace,
     },
     Schema,
 };
@@ -57,7 +55,7 @@ impl FromPrompt for Marketplace {
             .parse::<u64>()
             .unwrap();
 
-        let marketplace = Marketplace::new(admin, receiver, default_fee);
+        let marketplace = Marketplace::new(admin, receiver, default_fee)?;
 
         println!(
             "{}",

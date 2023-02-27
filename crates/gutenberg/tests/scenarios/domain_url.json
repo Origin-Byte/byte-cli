@@ -7,5 +7,10 @@
     "Nft": {
         "url": true
     },
-    "Settings": {}
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
+    }
 }

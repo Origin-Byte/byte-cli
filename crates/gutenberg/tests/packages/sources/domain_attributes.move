@@ -23,6 +23,27 @@ module gutenberg::domainattributes {
         sui::transfer::share_object(collection);
     }
 
+    public entry fun mint_to_launchpad(
+        name: std::string::String,
+        url: vector<u8>,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
+        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINATTRIBUTES>,
+        warehouse: &mut nft_protocol::warehouse::Warehouse<DOMAINATTRIBUTES>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let nft = mint(
+            name,
+            url,
+            attribute_keys,
+            attribute_values,
+            mint_cap,
+            ctx,
+        );
+
+        nft_protocol::warehouse::deposit_nft(warehouse, nft);
+    }
+
     public entry fun mint_to_address(
         name: std::string::String,
         url: vector<u8>,

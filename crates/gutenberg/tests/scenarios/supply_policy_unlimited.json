@@ -3,5 +3,11 @@
     "Collection": {
         "name": "SupplyPolicyUnlimited",
         "supply_policy": "Unlimited"
+    },
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
     }
 }

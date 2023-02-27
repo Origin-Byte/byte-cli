@@ -2,11 +2,7 @@ pub mod listing;
 pub mod market;
 pub mod marketplace;
 
-use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
-
-use crate::utils::validate_address;
-use std::{collections::BTreeSet, str::FromStr};
 
 use self::{
     listing::{Listing, Listings},

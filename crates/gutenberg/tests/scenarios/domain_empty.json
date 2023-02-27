@@ -2,5 +2,11 @@
     "ModuleAlias": "gutenberg",
     "Collection": {
         "name": "DomainEmpty"
+    },
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
     }
 }

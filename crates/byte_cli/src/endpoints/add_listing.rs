@@ -2,9 +2,7 @@ use crate::models::FromPrompt;
 
 use console::style;
 use gutenberg::{
-    models::launchpad::{
-        listing::Listing, marketplace::Marketplace, Launchpad,
-    },
+    models::launchpad::{listing::Listing, Launchpad},
     Schema,
 };
 

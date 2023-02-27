@@ -9,7 +9,6 @@ use crate::{
     prelude::get_dialoguer_theme,
 };
 
-use console::style;
 use dialoguer::{Confirm, Input};
 use gutenberg::{
     models::collection::{supply::SupplyPolicy, CollectionData},

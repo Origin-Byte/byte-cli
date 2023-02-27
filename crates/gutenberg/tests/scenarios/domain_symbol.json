@@ -4,5 +4,10 @@
         "name": "DomainSymbol",
         "symbol": "GIUT"
     },
-    "Settings": {}
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
+    }
 }

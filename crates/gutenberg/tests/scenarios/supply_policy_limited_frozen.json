@@ -8,5 +8,11 @@
                 "frozen": true
             }
         }
+    },
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
     }
 }

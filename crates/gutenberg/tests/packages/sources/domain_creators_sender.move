@@ -27,23 +27,6 @@ module gutenberg::domaincreatorssender {
         sui::transfer::share_object(collection);
     }
 
-    public entry fun mint_to_address(
-        name: std::string::String,
-        url: vector<u8>,
-        mint_cap: &nft_protocol::mint_cap::MintCap<DOMAINCREATORSSENDER>,
-        receiver: address,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let nft = mint(
-            name,
-            url,
-            mint_cap,
-            ctx,
-        );
-
-        sui::transfer::transfer(nft, receiver);
-    }
-
     fun mint(
         name: std::string::String,
         url: vector<u8>,

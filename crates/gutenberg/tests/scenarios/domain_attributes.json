@@ -6,5 +6,10 @@
     "Nft": {
         "attributes": true
     },
-    "Settings": {}
+    "Settings": {
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true
+        }
+    }
 }

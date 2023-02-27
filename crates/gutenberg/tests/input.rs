@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 use gutenberg::models::{
     collection::CollectionData,
-    launchpad::market::Market,
+    launchpad::{listing::Listing, market::Market},
     settings::{Composability, Settings},
 };
 
@@ -14,6 +14,16 @@ use anyhow::Result;
 // Input name: fail on non alpha-numeric
 // Input creators: non addresses, hexadecimals with wrong lenghts, lack of 0x, empty vectors, etc.
 // Listings > Markets > The token string field is currenly not being validated
+// Schema should not write Move if no mintpolicy is selected..
+
+// Base tests
+// name
+// description
+// symbol
+// url
+// creators
+// composability
+// listing
 
 #[test]
 fn input_name() -> Result<()> {
@@ -119,9 +129,7 @@ fn input_composability() -> Result<()> {
 }
 
 #[test]
-fn input_listings() {
-    let mut settings = Settings::default();
-
+fn input_listing() {
     let admin = String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143");
     let receiver = String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143");
 
@@ -130,40 +138,28 @@ fn input_listings() {
     let price = 100;
     let is_whitelisted = false;
 
-    markets.push(Market::FixedPrice {
+    let market_1 = Market::FixedPrice {
         token: "sui::sui::SUI".to_string(),
         price,
         is_whitelisted,
-    });
+    };
+
+    markets.push(market_1.clone());
 
     let reserve_price = 500;
     let is_whitelisted = true;
-
-    markets.push(Market::DutchAuction {
+    let market_2 = Market::DutchAuction {
         token: "sui::sui::SUI".to_string(),
         reserve_price,
         is_whitelisted,
-    });
+    };
 
-    // TODO
-    // let listing = Listing::new(admin, receiver, markets);
+    markets.push(market_2.clone());
+
+    let listing = Listing::new(admin.clone(), receiver.clone(), markets);
+
+    assert_eq!(listing.admin, admin);
+    assert_eq!(listing.receiver, receiver);
+    assert_eq!(listing.markets[0], market_1);
+    assert_eq!(listing.markets[1], market_2);
 }
-
-// LISTINGS
-// admin: String,
-// receiver: String,
-
-// pub enum Market {
-//     FixedPrice {
-//         /// Fully qualified fungible token in which price is denominated
-//         token: String,
-//         price: u64,
-//         is_whitelisted: bool,
-//     },
-//     DutchAuction {
-//         /// Fully qualified fungible token in which price is denominated
-//         token: String,
-//         reserve_price: u64,
-//         is_whitelisted: bool,
-//     },
-// }

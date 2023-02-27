@@ -8,20 +8,9 @@ pub use minting::MintPolicies;
 pub use royalties::RoyaltyPolicy;
 pub use tags::Tags;
 
-use std::collections::{BTreeSet, HashMap, HashSet};
-
-use crate::{
-    contract::modules::{ComposableNftMod, DisplayMod},
-    err::GutenError,
-};
-
-use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
-use super::{
-    collection::{supply::SupplyPolicy, CollectionData},
-    nft::NftData,
-};
+use super::collection::CollectionData;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {

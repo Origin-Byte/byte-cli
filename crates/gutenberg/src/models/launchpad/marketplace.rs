@@ -5,7 +5,7 @@
 //! OriginByte protocol.
 use serde::{Deserialize, Serialize};
 
-use crate::utils::validate_address;
+use crate::{err::GutenError, utils::validate_address};
 
 use super::default_admin;
 
@@ -21,15 +21,19 @@ pub struct Marketplace {
 }
 
 impl Marketplace {
-    pub fn new(admin: String, receiver: String, default_fee: u64) -> Self {
-        validate_address(&admin);
-        validate_address(&receiver);
+    pub fn new(
+        admin: String,
+        receiver: String,
+        default_fee: u64,
+    ) -> Result<Self, GutenError> {
+        validate_address(&admin)?;
+        validate_address(&receiver)?;
         // TODO: Validate default fee basis points
 
-        Marketplace {
+        Ok(Marketplace {
             admin,
             receiver,
             default_fee,
-        }
+        })
     }
 }
