@@ -5,13 +5,14 @@ use super::{
     symbol_validator, url_validator, FromPrompt,
 };
 use crate::{
-    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
+    consts::{DEFAULT_SENDER_MSG, MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
     prelude::get_dialoguer_theme,
 };
 
+use console::style;
 use dialoguer::{Confirm, Input};
 use gutenberg::{
-    models::{collection::CollectionData, supply_policy::SupplyPolicy},
+    models::collection::{supply::SupplyPolicy, CollectionData},
     Schema,
 };
 
@@ -25,7 +26,7 @@ impl FromPrompt for CollectionData {
         let mut collection = CollectionData::default();
 
         let name = Input::with_theme(&theme)
-            .with_prompt("What is the name of the Collection?")
+            .with_prompt("Please provide the name of the Collection:")
             .validate_with(name_validator)
             .interact()
             .unwrap();
@@ -33,7 +34,7 @@ impl FromPrompt for CollectionData {
         collection.set_name(name)?;
 
         let description = Input::with_theme(&theme)
-            .with_prompt("What is the description of the Collection?")
+            .with_prompt("Please provide the description of the Collection:")
             .interact()
             .unwrap();
 
@@ -41,7 +42,7 @@ impl FromPrompt for CollectionData {
 
         let symbol = Input::with_theme(&theme)
             .with_prompt(format!(
-                "What is the symbol of the Collection? (Maximum of {} letters)",
+                "Please provide the symbol of the Collection? (Maximum of {} letters)",
                 MAX_SYMBOL_LENGTH
             ))
             .validate_with(symbol_validator)
@@ -51,24 +52,19 @@ impl FromPrompt for CollectionData {
         collection.set_symbol(symbol)?;
 
         let has_url = Confirm::with_theme(&theme)
-            .with_prompt("Do you want to add a URL to your Collection Website?")
+            .with_prompt("Do you want to add a URL to your project's website?")
             .interact()
             .unwrap();
 
         if has_url {
             let url = Input::with_theme(&theme)
-                .with_prompt("What is the URL of the Collection Website?")
+                .with_prompt("What is the URL of the project's website?")
                 .validate_with(url_validator)
                 .interact()
                 .unwrap();
 
             collection.set_url(url)?;
         };
-
-        let _are_you_creator = Confirm::with_theme(&theme)
-            .with_prompt("Are you the creator?")
-            .interact()
-            .unwrap();
 
         let creators_num = Input::with_theme(&theme)
             .with_prompt("How many creator addresses are there?")
@@ -83,16 +79,20 @@ impl FromPrompt for CollectionData {
         for i in 0..creators_num {
             // Loop checks if address is not duplicated
             let address = loop {
-                let address = Input::with_theme(&theme)
+                let mut address = Input::with_theme(&theme)
                     .with_prompt(format!(
                         "Please input address of the creator number {}:",
                         i + 1,
                         // if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
                     ))
-                    .default(TX_SENDER_ADDRESS.to_string())
+                    .default(DEFAULT_SENDER_MSG.to_string())
                     .validate_with(address_validator)
                     .interact()
                     .unwrap();
+
+                if address == DEFAULT_SENDER_MSG.to_string() {
+                    address = TX_SENDER_ADDRESS.to_string();
+                }
 
                 if creators.contains(&address) {
                     println!("The address {} has already been added, please provide a different one.", address)

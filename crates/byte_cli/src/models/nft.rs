@@ -1,5 +1,8 @@
 use super::{map_indices, FromPrompt};
-use crate::{prelude::get_dialoguer_theme, consts::FIELD_OPTIONS};
+use crate::{
+    consts::{FIELD_OPTIONS, FIELD_OPTIONS_},
+    prelude::get_dialoguer_theme,
+};
 
 use dialoguer::MultiSelect;
 use gutenberg::{models::nft::NftData, Schema};
@@ -13,12 +16,12 @@ impl FromPrompt for NftData {
 
         // TODO: The fields attribute is incompatible with tradeable traits.. or its undefined..
         let nft_field_indices = MultiSelect::with_theme(&theme)
-            .with_prompt("Which NFT fields do you want the NFTs to have? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
+            .with_prompt("Which NFT fields should the NFT have? (use [SPACEBAR] to select options)")
             .items(&FIELD_OPTIONS)
             .interact()
             .unwrap();
 
-        let mut nft_fields = map_indices(nft_field_indices, &FIELD_OPTIONS);
+        let mut nft_fields = map_indices(nft_field_indices, &FIELD_OPTIONS_);
 
         if let Some(_tags) = &schema.settings.tags {
             nft_fields.push(String::from("tags"));

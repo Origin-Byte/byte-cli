@@ -185,6 +185,34 @@ async fn run() -> Result<()> {
                 io::write_collection_state(&state, &state_path)?;
             }
         }
+        Commands::ConfigMarketplace { project_dir } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("config.json");
+
+            let mut schema = io::try_read_config(&file_path)?;
+
+            // TODO: Remove this once all unstable features are completed
+            assert_no_unstable_features(&schema)?;
+
+            schema = config_marketplace::init_marketplace_config(schema)?;
+
+            io::write_config(&schema, &file_path)?;
+        }
+        Commands::AddListingConfig {
+            project_dir,
+            skip_marketplace: _,
+        } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("config.json");
+
+            let mut schema = io::try_read_config(&file_path)?;
+            // TODO: Remove this once all unstable features are completed
+            assert_no_unstable_features(&schema)?;
+
+            schema = add_listing::add_listing_config(schema)?;
+
+            io::write_config(&schema, &file_path)?;
+        }
     }
 
     Ok(())

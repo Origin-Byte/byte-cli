@@ -146,17 +146,18 @@ fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
 pub fn multi_select<'a>(
     theme: &ColorfulTheme,
     prompt: &str,
-    options: &[&'a str],
+    option_fields: &[&'a str],
+    option_values: &[&'a str],
 ) -> anyhow::Result<Vec<String>> {
     let indexes = MultiSelect::with_theme(theme)
         .with_prompt(prompt)
-        .items(options)
+        .items(option_fields)
         .interact()
         .unwrap();
 
     let borrowed = indexes
         .iter()
-        .map(|i| options[*i].to_string())
+        .map(|i| option_values[*i].to_string())
         .collect::<Vec<_>>();
 
     Ok(borrowed)
@@ -165,13 +166,16 @@ pub fn multi_select<'a>(
 fn get_options<'a>(
     theme: &ColorfulTheme,
     prompt: &str,
-    options: &[&'a str],
+    options_fields: &[&'a str],
+    options_values: &[&'a str],
 ) -> anyhow::Result<Vec<String>> {
-    let mut chosen_opts = multi_select(theme, prompt, options)?;
+    let mut chosen_opts =
+        multi_select(theme, prompt, options_fields, options_values)?;
 
     while chosen_opts.len() == 0 {
         println!("You have to select at least one option.");
-        chosen_opts = multi_select(theme, prompt, options)?;
+        chosen_opts =
+            multi_select(theme, prompt, options_fields, options_values)?;
     }
 
     Ok(chosen_opts)

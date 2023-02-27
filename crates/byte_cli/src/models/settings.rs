@@ -3,18 +3,21 @@ use std::collections::BTreeSet;
 use dialoguer::{Confirm, Input, MultiSelect, Select};
 use gutenberg::{
     models::{
-        marketplace::Listings,
-        royalties::RoyaltyPolicy,
-        settings::{Composability, MintPolicies, Settings},
-        supply_policy::SupplyPolicy,
-        tags::Tags,
+        collection::supply::SupplyPolicy,
+        settings::{
+            composability::Composability, minting::MintPolicies,
+            royalties::RoyaltyPolicy, tags::Tags, Settings,
+        },
     },
     Schema,
 };
 
 use super::{get_options, map_indices, number_validator, FromPrompt};
 use crate::{
-    consts::{FEATURE_OPTIONS, MINTING_OPTIONS, SUPPLY_OPTIONS, TAG_OPTIONS},
+    consts::{
+        FEATURE_OPTIONS, MINTING_OPTIONS, MINTING_OPTIONS_, SUPPLY_OPTIONS,
+        TAG_OPTIONS,
+    },
     prelude::get_dialoguer_theme,
 };
 
@@ -35,14 +38,15 @@ impl FromPrompt for Settings {
 
         let mint_policies = get_options(
             &theme,
-            "Which minting policies do you plan on using? Choose at least one (use [SPACEBAR] to select options you want and hit [ENTER] when done)",
-            &MINTING_OPTIONS
+            "Which minting policies should the collection adhere to? Choose at least one (use [SPACEBAR] to select options)",
+            &MINTING_OPTIONS,
+            &MINTING_OPTIONS_,
         )?;
 
         settings.set_mint_policies(MintPolicies::new(mint_policies)?);
 
         let nft_features_indices = MultiSelect::with_theme(&theme)
-            .with_prompt("Which NFT features do you want the NFTs to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
+            .with_prompt("Which NFT features do you want the NFTs to add? (use [SPACEBAR] to select options)")
             .items(&FEATURE_OPTIONS)
             .interact()
             .unwrap();
@@ -71,12 +75,6 @@ impl FromPrompt for Settings {
             settings.set_loose(true);
         }
 
-        if settings.mint_policies.launchpad {
-            let listings = Listings::from_prompt(&schema)?.unwrap();
-
-            settings.listings = Some(listings);
-        }
-
         Ok(Some(settings))
     }
 }
@@ -89,7 +87,7 @@ impl FromPrompt for Composability {
         let theme = get_dialoguer_theme();
 
         let traits_num = Input::with_theme(&theme)
-            .with_prompt("How many NFT traits/types will your collection have? (e.g. In tradeable traits, each trait is considered an NFT type, including the core avatar)")
+            .with_prompt("How many NFT traits will your collection have? (e.g. In tradeable traits, each trait is considered an NFT type, including the core avatar)")
             .validate_with(number_validator)
             .interact()
             .unwrap()

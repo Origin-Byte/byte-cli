@@ -76,6 +76,18 @@ pub enum Commands {
         #[clap(long, action)]
         warehouse_id: Option<String>,
     },
+    /// Creates an on-chain marketplace configuration
+    ConfigMarketplace {
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
+    },
+    /// Creates a listing
+    AddListingConfig {
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
+        #[clap(short, long, action)]
+        skip_marketplace: bool,
+    },
 }
 
 pub fn get_dialoguer_theme() -> ColorfulTheme {

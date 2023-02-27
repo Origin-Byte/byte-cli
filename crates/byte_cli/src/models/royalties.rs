@@ -4,13 +4,13 @@ use anyhow::Result;
 
 use super::{address_validator, bps_validator, number_validator, FromPrompt};
 use crate::{
-    consts::{ROYALTY_OPTIONS, TX_SENDER_ADDRESS},
+    consts::{ROYALTY_OPTIONS, ROYALTY_OPTIONS_, TX_SENDER_ADDRESS},
     prelude::get_dialoguer_theme,
 };
 
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
-    models::royalties::{RoyaltyPolicy, Share},
+    models::settings::royalties::{RoyaltyPolicy, Share},
     Schema,
 };
 
@@ -47,7 +47,7 @@ pub fn get_policy_type() -> Result<Option<RoyaltyPolicy>, anyhow::Error> {
         .interact()
         .unwrap();
 
-    match ROYALTY_OPTIONS[policy_index] {
+    match ROYALTY_OPTIONS_[policy_index] {
         "Proportional" => {
             // TODO: Check that the basis points do not surpass 100%
             let bps = Input::with_theme(&theme)
