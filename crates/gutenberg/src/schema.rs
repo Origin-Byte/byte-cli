@@ -3,6 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
+use crate::models::launchpad::Launchpad;
 use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 use crate::storage::*;
@@ -24,8 +25,7 @@ pub struct Schema {
     pub nft: NftData,
     #[serde(default)]
     pub settings: Settings,
-    /// Creates a new marketplace with the collection
-    // pub marketplace: Option<Marketplace>,
+    pub launchpad: Option<Launchpad>,
     pub contract: Option<String>,
     pub storage: Option<Storage>,
 }
@@ -35,6 +35,7 @@ impl Schema {
         collection: CollectionData,
         nft: NftData,
         settings: Settings,
+        launchpad: Option<Launchpad>,
         contract: Option<String>,
         storage: Option<Storage>,
     ) -> Schema {
@@ -43,6 +44,7 @@ impl Schema {
             collection,
             nft,
             settings,
+            launchpad,
             contract,
             storage,
         }

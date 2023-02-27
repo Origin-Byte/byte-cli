@@ -1,5 +1,9 @@
 use crate::err::{self, GutenError};
 
+fn default_admin() -> String {
+    "tx_context::sender(ctx)".to_string()
+}
+
 pub fn validate_address(input: &String) -> Result<(), GutenError> {
     if input == "sui::tx_context::sender(ctx)" {
         return Ok(());

@@ -2,6 +2,8 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+pub mod supply;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -11,7 +13,7 @@ use crate::{
     utils::validate_address,
 };
 
-use super::supply_policy::SupplyPolicy;
+use supply::SupplyPolicy;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -81,7 +83,7 @@ impl CollectionData {
     }
 
     pub fn set_symbol(&mut self, mut symbol: String) -> Result<(), GutenError> {
-        if symbol.chars().all(|c| matches!(c, 'a'..='z')) {
+        if !symbol.chars().all(|c| c.is_ascii_alphanumeric()) {
             return Err(GutenError::UnsupportedCollectionInput(format!(
                 "The collection symbol provided `{}` should only have alphanumeric characters.",
                 symbol
@@ -104,13 +106,11 @@ impl CollectionData {
     }
 
     pub fn set_url(&mut self, url_string: String) -> Result<(), GutenError> {
-        // Just here for validation
-        // TODO: Add back this
         let mut url: String;
 
         if url_string.starts_with("www.") {
             url = String::from("http://");
-            url.push_str(url_string.split_at(4).0);
+            url.push_str(url_string.split_at(4).1);
         } else {
             url = url_string;
         }

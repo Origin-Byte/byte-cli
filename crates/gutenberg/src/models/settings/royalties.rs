@@ -1,6 +1,5 @@
-use std::{collections::BTreeSet, str::FromStr};
-
 use serde::{Deserialize, Serialize};
+use std::{collections::BTreeSet, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RoyaltyPolicy {
