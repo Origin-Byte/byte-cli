@@ -9,10 +9,6 @@ use self::{
     marketplace::Marketplace,
 };
 
-fn default_admin() -> String {
-    "tx_context::sender(ctx)".to_string()
-}
-
 /// Contains the market configurations of the marketplace
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]

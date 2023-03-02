@@ -17,15 +17,9 @@ use gutenberg::{
 // empty vectors, etc. Listings > Markets > The token string field is currenly
 // not being validated Schema should not write Move if no mintpolicy is
 // selected..
-
-// Base tests
-// name
-// description
-// symbol
-// url
-// creators
-// composability
-// listing
+// Input sanitation from the CLI >> avoid code injection
+// Input creators: empty vectors
+// Listings > Markets > The token string field is currenly not being validated
 
 #[test]
 fn input_name() -> Result<(), GutenError> {
@@ -98,7 +92,12 @@ fn input_creators() -> Result<(), GutenError> {
     )];
 
     collection.set_creators(creators.clone())?;
-    assert_eq!(collection.creators, creators);
+
+    let creators_ = vec![Address::new(
+        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string(),
+    )?];
+
+    assert_eq!(collection.creators, creators_);
 
     let creators = vec![
         String::from("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"),
@@ -107,7 +106,13 @@ fn input_creators() -> Result<(), GutenError> {
     ];
 
     collection.set_creators(creators.clone())?;
-    assert_eq!(collection.creators, creators);
+
+    let creators_ = vec![
+        Address::new("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string())?,
+        Address::new("0xa7e29665a1c2600a439de3316b76e0c8a7531916".to_string())?,
+        Address::new("0x755a088ca3847eebc66103e1dea89845e306fe46".to_string())?,
+    ];
+    assert_eq!(collection.creators, creators_);
 
     Ok(())
 }
@@ -133,13 +138,11 @@ fn input_composability() -> Result<(), GutenError> {
 }
 
 #[test]
-fn input_listing() {
-    let admin = String::from(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
-    );
-    let receiver = String::from(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
-    );
+fn input_listing() -> Result<()> {
+    let admin =
+        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?;
+    let receiver =
+        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?;
 
     let mut markets = Vec::new();
 
@@ -170,4 +173,53 @@ fn input_listing() {
     assert_eq!(listing.receiver, receiver);
     assert_eq!(listing.markets[0], market_1);
     assert_eq!(listing.markets[1], market_2);
+
+    Ok(())
+}
+
+#[test]
+fn err_input_name_if_non_alphanumeric() -> Result<()> {
+    let mut collection = CollectionData::default();
+
+    assert!(collection.set_name(String::from("Suimarine$")).is_err());
+    assert!(collection.set_name(String::from("Suimarine#")).is_err());
+    assert!(collection.set_name(String::from("Suimarine&")).is_err());
+    assert!(collection.set_name(String::from("Suimarine/")).is_err());
+    assert!(collection.set_name(String::from("Suimarine>")).is_err());
+    assert!(collection.set_name(String::from("Suimarine<")).is_err());
+    assert!(collection.set_name(String::from("Suimarine.")).is_err());
+    assert!(collection.set_name(String::from("Suimarine_")).is_err());
+    assert!(collection.set_name(String::from("Suimarine~")).is_err());
+    assert!(collection.set_name(String::from("Suimarine^")).is_err());
+    assert!(collection.set_name(String::from("Suimarine|")).is_err());
+
+    Ok(())
+}
+
+#[test]
+fn input_addresses() -> Result<()> {
+    // In converting a string to an address the function should be
+    // able to handle hexadecimals with or without 0x prefix.
+    let address = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string();
+    let address_2 = "d8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string();
+
+    assert_eq!(Address::new(address)?, Address::new(address_2)?);
+
+    Ok(())
+}
+
+#[test]
+fn err_input_incorrect_addresses() -> Result<()> {
+    assert!(Address::new(
+        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d1432144152".to_string()
+    )
+    .is_err());
+    assert!(Address::new(
+        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d1437d58fdc2eb880".to_string()
+    )
+    .is_err());
+    assert!(Address::new("0xd8fb1b0".to_string()).is_err());
+    assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
+
+    Ok(())
 }

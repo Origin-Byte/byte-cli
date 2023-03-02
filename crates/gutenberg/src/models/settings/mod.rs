@@ -12,8 +12,9 @@ pub use royalties::RoyaltyPolicy;
 
 use serde::{Deserialize, Serialize};
 
-use super::collection::CollectionData;
+use crate::err::GutenError;
 
+use super::{collection::CollectionData, Address};
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {

@@ -51,11 +51,11 @@ impl Schema {
         self.module_name().to_uppercase()
     }
 
-    pub fn write_init_fn(&self) -> String {
+    pub fn write_init_fn(&self) -> Result<String, GutenError> {
         let domains = self.collection.write_domains();
 
         let feature_domains =
-            self.settings.write_feature_domains(&self.collection);
+            self.settings.write_feature_domains(&self.collection)?;
 
         let transfer_fns = self.settings.write_transfer_fns();
 
@@ -188,7 +188,7 @@ impl Schema {
 
         let type_declarations = self.settings.write_type_declarations();
 
-        let init_fn = self.write_init_fn();
+        let init_fn = self.write_init_fn()?;
 
         let entry_fns = self.write_entry_fns();
 
@@ -203,7 +203,6 @@ impl Schema {
         } else {
             vars.insert("package_name", &module_name);
         }
-
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("type_declarations", &type_declarations);
@@ -211,10 +210,6 @@ impl Schema {
         vars.insert("entry_functions", &entry_fns);
         vars.insert("nft_struct", &nft_struct);
         vars.insert("tests", &tests);
-
-        // Marketplace and Listing objects
-        // vars.insert("init_marketplace", &init_marketplace);
-        // vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars
             .into_iter()

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, str::FromStr};
 
+use crate::models::Address;
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RoyaltyPolicy {
@@ -16,12 +18,12 @@ pub enum RoyaltyPolicy {
 )]
 #[serde(rename_all = "camelCase")]
 pub struct Share {
-    pub address: String,
+    pub address: Address,
     pub share_bps: u64,
 }
 
 impl Share {
-    pub fn new(address: String, share: u64) -> Share {
+    pub fn new(address: Address, share: u64) -> Share {
         Share {
             address,
             share_bps: share,
@@ -104,13 +106,6 @@ impl RoyaltyPolicy {
             royalty_shares
                 .iter()
                 .map(|share| {
-                    // TODO: Check if valid address instead
-                    let address = if share.address == "sui::tx_context::sender(ctx)" {
-                        share.address.clone()
-                    } else {
-                        format!("@{address}", address = share.address)
-                    };
-
                     vecmap.push_str(
                         format!(
                         "        sui::vec_map::insert(&mut royalty_map, {address}, {share});\n",
