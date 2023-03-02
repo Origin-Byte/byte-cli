@@ -5,6 +5,5 @@ pub mod models;
 pub mod package;
 pub mod schema;
 pub mod storage;
-pub mod utils;
 
 pub use schema::Schema;

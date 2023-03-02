@@ -58,23 +58,23 @@ impl Schema {
         self.collection.name.to_uppercase().replace(' ', "")
     }
 
-    pub fn write_init_fn(&self) -> String {
+    pub fn write_init_fn(&self) -> Result<String, GutenError> {
         let domains = self.collection.write_domains();
 
         let feature_domains =
-            self.settings.write_feature_domains(&self.collection);
+            self.settings.write_feature_domains(&self.collection)?;
 
         let transfer_fns = self
             .settings
-            .write_transfer_fns(self.collection.creators.first());
+            .write_transfer_fns(self.collection.creators.first().unwrap())?;
 
-        format!(
+        Ok(format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
 {domains}{feature_domains}{transfer_fns}    }}",
             witness = self.witness_name()
-        )
+        ))
     }
 
     pub fn write_entry_fns(&self) -> String {
@@ -108,42 +108,9 @@ impl Schema {
 
         let type_declarations = self.settings.write_type_declarations();
 
-        let init_fn = self.write_init_fn();
+        let init_fn = self.write_init_fn()?;
 
         let entry_fns = self.write_entry_fns();
-
-        // let init_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::init)
-        //     .unwrap_or_else(String::new);
-
-        // // Collate list of objects that need to be shared
-        // // TODO: Use Marketplace::init and Listing::init functions to avoid
-        // // explicit share
-        // let share_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::share)
-        //     .unwrap_or_default();
-
-        // module {module_name}::{module_name} {{
-        //     {imports}
-
-        //     /// One time witness is only instantiated in the init method
-        //     struct {witness} has drop {{}}
-
-        //     /// Can be used for authorization of other actions post-creation. It is
-        //     /// vital that this struct is not freely given to any contract, because it
-        //     /// serves as an auth token.
-        //     struct Witness has drop {{}}
-
-        //     {type_declarations}
-
-        //     {init_function}
-
-        //     {entry_functions}
-        // }}
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
@@ -152,16 +119,11 @@ impl Schema {
         } else {
             vars.insert("module_alias", &module_name);
         }
-
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("type_declarations", &type_declarations);
         vars.insert("init_function", &init_fn);
         vars.insert("entry_functions", &entry_fns);
-
-        // Marketplace and Listing objects
-        // vars.insert("init_marketplace", &init_marketplace);
-        // vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars
             .into_iter()

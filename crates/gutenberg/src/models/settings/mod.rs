@@ -10,7 +10,9 @@ pub use tags::Tags;
 
 use serde::{Deserialize, Serialize};
 
-use super::collection::CollectionData;
+use crate::err::GutenError;
+
+use super::{collection::CollectionData, Address};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
@@ -68,7 +70,12 @@ impl Settings {
         self.loose = is_loose;
     }
 
-    pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
+    pub fn write_feature_domains(
+        &self,
+        collection: &CollectionData,
+    ) -> Result<String, GutenError> {
+        // self.assert_has_mint_policy()?;
+
         let mut code = String::new();
 
         if let Some(_tags) = &self.tags {
@@ -87,37 +94,30 @@ impl Settings {
             code.push_str(self.write_loose(collection).as_str());
         }
 
-        code
+        Ok(code)
     }
 
-    pub fn write_transfer_fns(&self, receiver: Option<&String>) -> String {
-        let receiver = match receiver {
-            Some(address) => {
-                if address == "sui::tx_context::sender(ctx)" {
-                    address.clone()
-                } else {
-                    format!("@{address}")
-                }
-            }
-            None => "sui::tx_context::sender(ctx)".to_string(),
-        };
-
+    pub fn write_transfer_fns(
+        &self,
+        receiver: &Address,
+    ) -> Result<String, GutenError> {
+        // self.assert_has_mint_policy()?;
         let mut code = format!(
             "
-        sui::transfer::transfer(mint_cap, {receiver});
+        sui::transfer::transfer(mint_cap, @{receiver});
         sui::transfer::share_object(collection);\n"
         );
 
         if self.loose {
             code.push_str(
                 format!(
-                    "        sui::transfer::transfer(templates, {receiver});"
+                    "        sui::transfer::transfer(templates, @{receiver});"
                 )
                 .as_str(),
             )
         }
 
-        code
+        Ok(code)
     }
 
     pub fn write_tags(&self) -> String {

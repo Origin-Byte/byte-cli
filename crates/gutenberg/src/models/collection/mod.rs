@@ -10,10 +10,11 @@ use crate::{
     consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
     contract::modules::DisplayMod,
     err::GutenError,
-    utils::validate_address,
 };
 
 use supply::SupplyPolicy;
+
+use super::Address;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -28,7 +29,7 @@ pub struct CollectionData {
     pub url: Option<String>,
     #[serde(default)]
     /// The addresses of creators
-    pub creators: Vec<String>,
+    pub creators: Vec<Address>,
     #[serde(default)]
     pub supply_policy: SupplyPolicy,
 }
@@ -39,7 +40,7 @@ impl CollectionData {
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,
-        creators: Vec<String>,
+        creators: Vec<Address>,
         supply_policy: SupplyPolicy,
     ) -> CollectionData {
         CollectionData {
@@ -130,7 +131,7 @@ impl CollectionData {
 
     pub fn set_creators(
         &mut self,
-        creators: Vec<String>,
+        mut creators: Vec<String>,
     ) -> Result<(), GutenError> {
         if creators.len() > MAX_CREATORS_LENGTH {
             return Err(GutenError::UnsupportedCollectionInput(format!(
@@ -140,13 +141,13 @@ impl CollectionData {
         }
 
         // Guarantees that creator addresses are valid
-        creators
-            .iter()
-            .map(|creator| validate_address(creator))
-            .collect::<Result<(), GutenError>>()?;
+        let creator_addresses = creators
+            .drain(..)
+            .map(|creator| Address::new(creator))
+            .collect::<Result<Vec<Address>, GutenError>>()?;
 
         // Validate that creator strings are addresses
-        self.creators = creators;
+        self.creators = creator_addresses;
 
         Ok(())
     }
@@ -195,14 +196,8 @@ impl CollectionData {
         let creators = sui::vec_set::empty();\n",
             );
             for address in self.creators.iter() {
-                let address = if address == "sui::tx_context::sender(ctx)" {
-                    address.clone()
-                } else {
-                    format!("@{address}")
-                };
-
                 code.push_str(&format!(
-                    "        sui::vec_set::insert(&mut creators, {address});\n"
+                    "        sui::vec_set::insert(&mut creators, @{address});\n"
                 ));
             }
 
