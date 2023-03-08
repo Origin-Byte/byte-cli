@@ -1,0 +1,9 @@
+{
+    "name": "Submarine #1",
+    "url": "https://gateway.pinata.cloud/ipfs/QmbVEqm35oHyWbqg5ibdEVwXMraM63y2fa6k2BFk3L1sXP/1.png",
+    "description": "A submarine with blue neon lights and with a red background.",
+    "attributes": {
+        "lights": "Cyan",
+        "background": "Red"
+    }
+}

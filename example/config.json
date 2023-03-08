@@ -1,0 +1,85 @@
+{
+    "Collection": {
+        "name": "suimarines",
+        "description": "A collection of submarines on Sui",
+        "symbol": "SUIM",
+        "url": "http://originbyte.io",
+        "creators": [
+            "0xa7e29665a1c2600a439de3316b76e0c8a7531916",
+            "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143"
+        ],
+        "supply_policy": "Unlimited"
+    },
+    "Nft": {
+        "display": true,
+        "url": true,
+        "attributes": true,
+        "tags": false
+    },
+    "Settings": {
+        "tags": [
+            "Art",
+            "ProfilePicture"
+        ],
+        "royalties": {
+            "Proportional": {
+                "shares": [
+                    {
+                        "address": "0xa7e29665a1c2600a439de3316b76e0c8a7531916",
+                        "share": 5000
+                    },
+                    {
+                        "address": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143",
+                        "share": 5000
+                    }
+                ],
+                "bps": 100
+            }
+        },
+        "mint_policies": {
+            "launchpad": true,
+            "airdrop": true,
+            "direct": false
+        },
+        "composability": null,
+        "loose": false
+    },
+    "Launchpad": {
+        "marketplace": {
+            "admin": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143",
+            "receiver": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143",
+            "default_fee": 100
+        },
+        "listings": [
+            {
+                "admin": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143",
+                "receiver": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143",
+                "markets": [
+                    {
+                        "FixedPrice": {
+                            "token": "sui::sui::SUI",
+                            "price": 100,
+                            "is_whitelisted": false
+                        }
+                    },
+                    {
+                        "DutchAuction": {
+                            "token": "sui::sui::SUI",
+                            "reserve_price": 200,
+                            "is_whitelisted": true
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "Contract": "0xfa6d0aae5a07ace373eba528dc3f053cd59638c0",
+    "Storage": {
+        "Pinata": {
+            "jwt": "",
+            "upload_gateway": "https://api.pinata.cloud/",
+            "retrieval_gateway": "https://gateway.pinata.cloud",
+            "parallel_limit": 45
+        }
+    }
+}
