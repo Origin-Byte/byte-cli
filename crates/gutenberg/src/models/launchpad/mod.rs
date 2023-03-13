@@ -33,12 +33,12 @@ impl Launchpad {
 
     // TODO: To deprecate. The creation of listins will be done at runtime
     // in atomic transactions instead of being bundled up in the init funciton
-    pub fn write_init_listings(&self) -> String {
+    pub fn write_init_listings(&self, witness: &str) -> String {
         let code = self
             .listings
             .0
             .iter()
-            .map(Listing::write_init)
+            .map(|listing| listing.write_init(witness))
             .collect::<Vec<_>>();
 
         code.join("\n")

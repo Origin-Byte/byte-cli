@@ -19,7 +19,6 @@ use sui_sdk::{
 };
 use sui_types::{crypto::Signature, messages::ExecuteTransactionRequestType};
 use sui_types::{intent::Intent, parse_sui_type_tag};
-use tokio::task::JoinHandle;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NftData {
@@ -118,33 +117,6 @@ pub async fn create_warehouse(
 pub enum SuiArgType {
     StringSlice,
     ObjectId,
-}
-
-pub async fn handle_mint_nft(
-    sui: Arc<SuiClient>,
-    keystore: Arc<Keystore>,
-    nft_data: NftData,
-    package_id: Arc<String>,
-    warehouse_id: Arc<String>,
-    module_name: Arc<String>,
-    gas_budget: Arc<u64>,
-    sender: SuiAddress,
-    mint_cap: Arc<String>,
-) -> JoinHandle<Result<ObjectID, RustSdkError>> {
-    tokio::spawn(async move {
-        mint_nft(
-            sui,
-            keystore,
-            nft_data,
-            package_id,
-            warehouse_id,
-            module_name,
-            gas_budget,
-            sender,
-            mint_cap,
-        )
-        .await
-    })
 }
 
 pub async fn mint_nft(

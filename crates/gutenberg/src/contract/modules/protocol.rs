@@ -70,7 +70,8 @@ impl Module for RoyaltyMod {
 
 impl RoyaltyMod {
     pub fn from_sender_address() -> String {
-        "royalty::from_address(tx_context::sender(ctx), ctx);\n".to_string()
+        "royalty::from_address(sui::tx_context::sender(ctx), ctx);\n"
+            .to_string()
     }
 
     pub fn add_proportional(bps: u64) -> String {
@@ -254,7 +255,7 @@ impl CreatorsMod {
     pub fn from_sender_address(otw: &str) -> String {
         format!(
             "creators::from_address<{otw}, Witness>(
-            &Witness {{}}, tx_context::sender(ctx), ctx,
+            &Witness {{}}, sui::tx_context::sender(ctx), ctx,
         ),",
             otw = otw
         )

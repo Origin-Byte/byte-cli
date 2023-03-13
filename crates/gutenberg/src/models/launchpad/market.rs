@@ -31,7 +31,7 @@ impl Market {
         }
     }
 
-    pub fn init(&self) -> String {
+    pub fn init(&self, witness: &str) -> String {
         match self {
             Market::FixedPrice {
                 token,
@@ -39,9 +39,9 @@ impl Market {
                 is_whitelisted,
             } => format!(
                 "
-        nft_protocol::fixed_price::create_market_on_listing<{token}>(
+        nft_protocol::fixed_price::init_venue<{witness}, {token}>(
             &mut listing,
-            venue_id,
+            inventory_id,
             {is_whitelisted},
             {price},
             ctx,
@@ -54,9 +54,9 @@ impl Market {
                 is_whitelisted,
             } => format!(
                 "
-        nft_protocol::dutch_auction::create_market_on_listing<{token}>(
+        nft_protocol::dutch_auction::init_venue<{witness}, {token}>(
             &mut listing,
-            venue_id,
+            inventory_id,
             {is_whitelisted},
             {reserve_price},
             ctx,

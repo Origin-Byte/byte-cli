@@ -6,7 +6,9 @@
     "Settings": {
         "mint_policies": {
             "launchpad": true
-        },
+        }
+    },
+    "Launchpad": {
         "listings": [
             {
                 "admin": "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d144",

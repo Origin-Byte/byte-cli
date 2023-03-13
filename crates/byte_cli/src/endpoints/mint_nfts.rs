@@ -85,33 +85,28 @@ pub async fn mint_nfts(
         let ten_millis = time::Duration::from_millis(1000);
         thread::sleep(ten_millis);
 
-        set.spawn(
-            mint::handle_mint_nft(
-                client.clone(),
-                keystore.clone(),
-                nft_data,
-                contract_id.clone(),
-                warehouse_id_ref.clone(),
-                module_name.clone(),
-                gas_budget_ref.clone(),
-                active_address,
-                mint_cap_arc.clone(),
-            )
-            .await,
-        );
+        set.spawn(mint::mint_nft(
+            client.clone(),
+            keystore.clone(),
+            nft_data,
+            contract_id.clone(),
+            warehouse_id_ref.clone(),
+            module_name.clone(),
+            gas_budget_ref.clone(),
+            active_address,
+            mint_cap_arc.clone(),
+        ));
     }
 
     while let Some(res) = set.join_next().await {
-        res.unwrap().unwrap().unwrap();
+        res.unwrap().unwrap();
     }
 
     println!("{} Minting NFTs on-chain", style("DONE").green().bold());
-
-    println!("Warehouse object ID: {}", warehouse_id_ref.clone());
+    println!("Warehouse object ID: {warehouse_id_ref}");
 
     let explorer_link = format!(
-        "https://explorer.sui.io/object/{}?network=devnet",
-        warehouse_id_ref.clone()
+        "https://explorer.sui.io/object/{warehouse_id_ref}?network=devnet"
     );
 
     let link = Link::new("Sui Explorer", explorer_link.as_str());

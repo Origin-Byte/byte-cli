@@ -76,7 +76,10 @@ impl Module for Transfer {
 
 impl Transfer {
     pub fn tranfer_to_sender(obj: &str) -> String {
-        format!("transfer::transfer({}, tx_context::sender(ctx));\n", obj)
+        format!(
+            "transfer::transfer({}, sui::tx_context::sender(ctx));\n",
+            obj
+        )
     }
 
     pub fn share(obj: &str) -> String {
@@ -100,6 +103,6 @@ impl Module for TxContext {
 
 impl TxContext {
     pub fn sender(_obj: &str) -> String {
-        "tx_context::sender(ctx)".to_string()
+        "sui::tx_context::sender(ctx)".to_string()
     }
 }

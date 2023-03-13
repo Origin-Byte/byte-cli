@@ -40,7 +40,7 @@ impl Listing {
         }
     }
 
-    pub fn write_init(&self) -> String {
+    pub fn write_init(&self, witness: &str) -> String {
         let mut string = String::new();
 
         string.push_str(&format!(
@@ -51,15 +51,16 @@ impl Listing {
             ctx,
         );
 
-        let venue_id =
-            nft_protocol::listing::create_venue(&mut listing, ctx);
+        let inventory_id = nft_protocol::listing::create_warehouse<{witness}>(
+            delegated_witness, &mut listing, ctx
+        );
 ",
             admin = self.write_admin(),
             receiver = self.write_receiver(),
         ));
 
         for market in self.markets.iter() {
-            string.push_str(&market.init());
+            string.push_str(&market.init(witness));
         }
 
         string.push_str(self.share());
@@ -69,7 +70,7 @@ impl Listing {
 
     fn share(&self) -> &'static str {
         "
-        transfer::share_object(listing);
+        sui::transfer::share_object(listing);
 "
     }
 }

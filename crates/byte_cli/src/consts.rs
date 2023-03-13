@@ -36,7 +36,7 @@ pub const MINTING_OPTIONS_: [&str; 2] = ["launchpad", "airdrop"];
 pub const MARKET_OPTIONS_: [&str; 2] = ["Fixed price", "Dutch auction"];
 
 // Misc
-pub const TX_SENDER_ADDRESS: &str = "tx_context::sender(ctx)";
+pub const TX_SENDER_ADDRESS: &str = "sui::tx_context::sender(ctx)";
 pub const MAX_SYMBOL_LENGTH: u64 = 5;
 
 /// Default path for assets folder.

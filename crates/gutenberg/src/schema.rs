@@ -19,6 +19,8 @@ use std::collections::HashMap;
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
     /// The named address that the module is published under
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     module_alias: Option<String>,
     pub collection: CollectionData,
     #[serde(default)]
@@ -59,10 +61,17 @@ impl Schema {
     }
 
     pub fn write_init_fn(&self) -> String {
+        let witness = self.witness_name();
         let domains = self.collection.write_domains();
 
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
+
+        let listings = self
+            .launchpad
+            .as_ref()
+            .map(|launchpad| launchpad.write_init_listings(&witness))
+            .unwrap_or_default();
 
         let transfer_fns = self
             .settings
@@ -72,8 +81,7 @@ impl Schema {
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
-{domains}{feature_domains}{transfer_fns}    }}",
-            witness = self.witness_name()
+{domains}{feature_domains}{listings}{transfer_fns}    }}",
         )
     }
 

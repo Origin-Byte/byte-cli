@@ -19,6 +19,63 @@ module gutenberg::listingall {
             ),
         );
 
+        let listing = nft_protocol::listing::new(
+            sui::tx_context::sender(ctx),
+            sui::tx_context::sender(ctx),
+            ctx,
+        );
+
+        let inventory_id = nft_protocol::listing::create_warehouse<LISTINGALL>(
+            delegated_witness, &mut listing, ctx
+        );
+
+        nft_protocol::fixed_price::init_venue<LISTINGALL, sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
+            true,
+            100,
+            ctx,
+        );
+
+        nft_protocol::dutch_auction::init_venue<LISTINGALL, sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
+            true,
+            200,
+            ctx,
+        );
+
+        sui::transfer::share_object(listing);
+
+
+        let listing = nft_protocol::listing::new(
+            sui::tx_context::sender(ctx),
+            sui::tx_context::sender(ctx),
+            ctx,
+        );
+
+        let inventory_id = nft_protocol::listing::create_warehouse<LISTINGALL>(
+            delegated_witness, &mut listing, ctx
+        );
+
+        nft_protocol::fixed_price::init_venue<LISTINGALL, sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
+            true,
+            100,
+            ctx,
+        );
+
+        nft_protocol::dutch_auction::init_venue<LISTINGALL, sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
+            true,
+            200,
+            ctx,
+        );
+
+        sui::transfer::share_object(listing);
+
         sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::share_object(collection);
     }

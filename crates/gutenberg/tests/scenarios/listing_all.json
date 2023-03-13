@@ -6,7 +6,9 @@
     "Settings": {
         "mint_policies": {
             "launchpad": true
-        },
+        }
+    },
+    "Launchpad": {
         "listings": [
             {
                 "admin": "sui::tx_context::sender(ctx)",

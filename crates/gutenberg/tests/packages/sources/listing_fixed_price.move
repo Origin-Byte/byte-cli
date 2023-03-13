@@ -19,6 +19,26 @@ module gutenberg::listingfixedprice {
             ),
         );
 
+        let listing = nft_protocol::listing::new(
+            @0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d144,
+            @0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d145,
+            ctx,
+        );
+
+        let inventory_id = nft_protocol::listing::create_warehouse<LISTINGFIXEDPRICE>(
+            delegated_witness, &mut listing, ctx
+        );
+
+        nft_protocol::fixed_price::init_venue<LISTINGFIXEDPRICE, sui::sui::SUI>(
+            &mut listing,
+            inventory_id,
+            false,
+            100,
+            ctx,
+        );
+
+        sui::transfer::share_object(listing);
+
         sui::transfer::transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::share_object(collection);
     }

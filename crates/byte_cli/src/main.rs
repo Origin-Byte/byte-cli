@@ -7,7 +7,10 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::prelude::*;
 use byte_cli::utils::assert_no_unstable_features;
@@ -51,6 +54,10 @@ async fn run() -> Result<()> {
             schema =
                 config_collection::init_collection_config(schema, complete)?;
 
+            if let Some(parent_path) = file_path.as_path().parent() {
+                fs::create_dir_all(parent_path)
+                    .expect("Could not create configuration file directo`ry");
+            }
             io::write_config(&schema, &file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
