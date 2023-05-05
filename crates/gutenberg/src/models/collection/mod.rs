@@ -207,12 +207,10 @@ impl CollectionData {
                 ));
             }
 
-            format!(
-                "nft_protocol::creators::from_creators<{witness}, Witness>(
-                &Witness {{}}, creators,
-            )",
-                witness = self.witness_name()
-            )
+            "nft_protocol::creators::new(
+                creators
+            )"
+            .to_string()
         };
 
         code.push_str(&format!(
