@@ -16,7 +16,7 @@ use std::collections::HashMap;
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
 #[derive(Debug, Serialize, Deserialize, Default)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
@@ -70,7 +70,8 @@ impl Schema {
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
+        let sender = sui::tx_context::sender(ctx);
+        let (mint_cap, collection) = nft_protocol::collection::create_with_mint_cap<{witness}(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
 {domains}{feature_domains}{transfer_fns}    }}",
             witness = self.witness_name()

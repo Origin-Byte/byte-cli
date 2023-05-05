@@ -17,6 +17,7 @@ use supply::SupplyPolicy;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
     pub name: String,

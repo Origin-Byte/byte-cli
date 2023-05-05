@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::collection::CollectionData;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
