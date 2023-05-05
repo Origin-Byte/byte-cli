@@ -91,16 +91,17 @@ fn input_url() -> Result<()> {
 fn input_creators() -> Result<()> {
     let mut collection = CollectionData::default();
 
-    let creators =
-        vec![String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143")];
+    let creators = vec![String::from(
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
+    )];
 
     collection.set_creators(creators.clone())?;
     assert_eq!(collection.creators, creators);
 
     let creators = vec![
-        String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143"),
-        String::from("0xa7e29665a1c2600a439de3316b76e0c8a7531916"),
-        String::from("0x755a088ca3847eebc66103e1dea89845e306fe46"),
+        String::from("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"),
+        String::from("0x582547ac2b368b17409a3f3672fe2eea9767b80830497fb2e31a15bc492f5516"),
+        String::from("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"),
     ];
 
     collection.set_creators(creators.clone())?;
@@ -130,8 +131,12 @@ fn input_composability() -> Result<()> {
 
 #[test]
 fn input_listing() {
-    let admin = String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143");
-    let receiver = String::from("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143");
+    let admin = String::from(
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
+    );
+    let receiver = String::from(
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
+    );
 
     let mut markets = Vec::new();
 

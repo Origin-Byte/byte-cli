@@ -128,7 +128,7 @@ pub fn address_validator(input: &String) -> Result<(), CliError> {
 
     let hexa_str = input.strip_prefix("0x").unwrap_or(input);
     let hexa = hex::decode(hexa_str)?;
-    if hexa.len() != 20 {
+    if hexa.len() != 32 {
         Err(CliError::InvalidAddressLength)
     } else {
         Ok(())
