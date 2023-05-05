@@ -50,7 +50,7 @@ impl Modules {
             string: true,
             vec_set: !schema.collection.creators.is_empty(),
             vec_map: schema.settings.royalties.is_some(),
-            url: schema.collection.url.is_some() || schema.nft.url,
+            url: true,
             balance: schema.settings.royalties.is_some(),
             transfer: true,
             tx_context: true,
@@ -60,7 +60,7 @@ impl Modules {
             collection: true,
             tags: schema.settings.tags.is_some(),
             royalty: schema.settings.royalties.is_some(),
-            display: schema.nft.has_display_domains(),
+            display: true,
             creators: true,
             warehouse: schema.settings.mint_policies.launchpad
                 && !schema.settings.loose,

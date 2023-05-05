@@ -21,7 +21,6 @@ pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
     pub collection: CollectionData,
-    #[serde(default)]
     pub nft: NftData,
     #[serde(default)]
     pub settings: Settings,
@@ -86,10 +85,8 @@ impl Schema {
             code.push_str(royalties_fn.as_str());
         }
 
-        let mint_fns = self
-            .settings
-            .mint_policies
-            .write_mint_fns(&self.collection, &self.nft);
+        let mint_fns =
+            self.settings.mint_policies.write_mint_fns(&self.collection);
 
         code.push_str(mint_fns.as_str());
 
@@ -112,6 +109,8 @@ impl Schema {
         let init_fn = self.write_init_fn();
 
         let entry_fns = self.write_entry_fns();
+
+        let nft_struct = self.nft.write_struct();
 
         // let init_marketplace = self
         //     .marketplace
@@ -159,6 +158,7 @@ impl Schema {
         vars.insert("type_declarations", &type_declarations);
         vars.insert("init_function", &init_fn);
         vars.insert("entry_functions", &entry_fns);
+        vars.insert("nft_struct", &nft_struct);
 
         // Marketplace and Listing objects
         // vars.insert("init_marketplace", &init_marketplace);
