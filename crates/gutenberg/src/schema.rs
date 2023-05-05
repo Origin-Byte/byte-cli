@@ -70,10 +70,18 @@ impl Schema {
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let sender = sui::tx_context::sender(ctx);
-        let (mint_cap, collection) = nft_protocol::collection::create_with_mint_cap<{witness}(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
+
+        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {type_name}>(
+            &witness, option::none(), ctx
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(witness, ctx);
+
+        let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{transfer_fns}    }}",
-            witness = self.witness_name()
+            witness = self.witness_name(),
+            type_name = self.nft.type_name
         )
     }
 
