@@ -10,11 +10,14 @@ sui-json = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e2
 sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-keys = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-types = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
+sui-move-build = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-adapter = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-framework = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-config = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-source-validation = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
+shared-crypto = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
+move-core-types = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 # move-package = { git = "https://github.com/move-language/move", rev = "7343821f67c070d28dcdb5bf7d2e07ced046b52f" }
 
 proc-macro2 = "1.0.51"

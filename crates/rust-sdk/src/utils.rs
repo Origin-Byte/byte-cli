@@ -1,10 +1,20 @@
 use anyhow::{anyhow, Result};
-// use sui_keys::keystore::AccountKeystore;
-// use sui_keys::keystore::{FileBasedKeystore, Keystore};
-// use sui_sdk::{SuiClient, SuiClientBuilder};
-// use sui_types::base_types::SuiAddress;
+use sui_config::{sui_config_dir, SUI_CLIENT_CONFIG};
+use sui_keys::keystore::AccountKeystore;
+use sui_keys::keystore::{FileBasedKeystore, Keystore};
+use sui_sdk::wallet_context::WalletContext;
+use sui_sdk::{SuiClient, SuiClientBuilder};
+use sui_types::base_types::SuiAddress;
 
 use crate::err::RustSdkError;
+
+pub async fn get_context() -> Result<WalletContext, RustSdkError> {
+    let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);
+
+    let ctx = WalletContext::new(&config_path, None).await?;
+
+    Ok(ctx)
+}
 
 pub async fn get_client() -> Result<SuiClient, RustSdkError> {
     let client_builder = SuiClientBuilder::default();

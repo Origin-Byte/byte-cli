@@ -13,10 +13,9 @@ use crate::prelude::*;
 use byte_cli::utils::assert_no_unstable_features;
 use endpoints::*;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Parser;
 use console::style;
-use rust_sdk::collection_state::CollectionState;
 
 #[tokio::main]
 async fn main() {
@@ -150,40 +149,41 @@ async fn run() -> Result<()> {
             io::write_collection_state(&state, &state_path)?;
         }
         Commands::MintNfts {
-            project_dir,
-            gas_budget,
-            warehouse_id,
+            project_dir: _,
+            gas_budget: _,
+            warehouse_id: _,
         } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            let mut file_path = project_path.clone();
-            file_path.push("config.json");
+            // TODO: Add back endpoint
+            // let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+            // let mut file_path = project_path.clone();
+            // file_path.push("config.json");
 
-            let mut state_path = project_path.clone();
-            state_path.push("objects.json");
+            // let mut state_path = project_path.clone();
+            // state_path.push("objects.json");
 
-            let mut metadata_path = project_path.clone();
-            metadata_path.push("metadata/");
+            // let mut metadata_path = project_path.clone();
+            // metadata_path.push("metadata/");
 
-            let schema = deploy_contract::parse_config(file_path.as_path())?;
+            // let schema = deploy_contract::parse_config(file_path.as_path())?;
 
-            if schema.contract.is_none() {
-                return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-            }
+            // if schema.contract.is_none() {
+            //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+            // }
 
-            if let Some(_contract) = &schema.contract {
-                let mut state = CollectionState::try_read_config(&state_path)?;
+            // if let Some(_contract) = &schema.contract {
+            //     let mut state = CollectionState::try_read_config(&state_path)?;
 
-                state = mint_nfts::mint_nfts(
-                    &schema,
-                    gas_budget,
-                    metadata_path,
-                    warehouse_id,
-                    state,
-                )
-                .await?;
+            //     state = mint_nfts::mint_nfts(
+            //         &schema,
+            //         gas_budget,
+            //         metadata_path,
+            //         warehouse_id,
+            //         state,
+            //     )
+            //     .await?;
 
-                io::write_collection_state(&state, &state_path)?;
-            }
+            //     io::write_collection_state(&state, &state_path)?;
+            // }
         }
         Commands::ConfigMarketplace { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
