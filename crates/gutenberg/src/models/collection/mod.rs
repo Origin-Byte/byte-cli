@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
-    contract::modules::DisplayMod,
+    contract::modules::DisplayInfoMod,
     err::GutenError,
     utils::validate_address,
 };
@@ -161,15 +161,16 @@ impl CollectionData {
 
         code.push_str(self.write_creators().as_str());
 
-        if let Some(display) = DisplayMod::add_collection_display(self) {
+        if let Some(display) = DisplayInfoMod::add_collection_display_info(self)
+        {
             code.push_str(&display);
         }
 
-        if let Some(symbol) = DisplayMod::add_collection_symbol(self) {
+        if let Some(symbol) = DisplayInfoMod::add_collection_symbol(self) {
             code.push_str(&symbol);
         }
 
-        if let Some(url) = DisplayMod::add_collection_url(self) {
+        if let Some(url) = DisplayInfoMod::add_collection_url(self) {
             code.push_str(&url);
         }
 

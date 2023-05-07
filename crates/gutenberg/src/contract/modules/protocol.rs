@@ -121,26 +121,28 @@ impl RoyaltyMod {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct DisplayMod();
+pub struct DisplayInfoMod();
 
-impl Module for DisplayMod {
+impl Module for DisplayInfoMod {
     fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::display;\n".to_string()
+        "    use nft_protocol::display_info;\n".to_string()
     }
 }
 
-impl DisplayMod {
-    pub fn add_collection_display(
+impl DisplayInfoMod {
+    pub fn add_collection_display_info(
         collection: &CollectionData,
     ) -> Option<String> {
         collection.description.as_ref().map(|description| {
             format!(
                 "
-        nft_protocol::display::add_collection_display_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            std::string::utf8(b\"{collection_name}\"),
-            std::string::utf8(b\"{description}\"),
+            display_info::new(
+                std::string::utf8(b\"{collection_name}\"),
+                std::string::utf8(b\"{description}\"),
+            ),
         );\n",
                 collection_name = collection.name
             )

@@ -5,7 +5,7 @@ pub mod standard;
 pub mod sui;
 
 pub use protocol::{
-    CollectionMod, ComposableNftMod, CreatorsMod, DisplayMod, MintCapMod,
+    CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, MintCapMod,
     NftMod, RoyaltiesMod, RoyaltyMod, TagsMod, TemplateMod, TemplatesMod,
     WarehouseMod, WitnessMod,
 };
@@ -122,7 +122,7 @@ impl Imports {
             self.write_import(RoyaltyMod::default(), true);
         }
         if self.modules.display {
-            self.write_import(DisplayMod::default(), true);
+            self.write_import(DisplayInfoMod::default(), true);
         }
         if self.modules.creators {
             self.write_import(CreatorsMod::default(), true);

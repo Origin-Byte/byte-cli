@@ -4,7 +4,7 @@ use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    contract::modules::DisplayMod,
+    contract::modules::DisplayInfoMod,
     err::GutenError,
     models::collection::{supply::SupplyPolicy, CollectionData},
 };
@@ -127,15 +127,15 @@ impl MintPolicies {
         args.push_str("        url: vector<u8>,\n");
         params.push_str("            url,\n");
 
-        args.push_str(DisplayMod::add_display_args());
-        domains.push_str(DisplayMod::add_nft_display());
-        params.push_str(DisplayMod::add_display_params());
+        args.push_str(DisplayInfoMod::add_display_args());
+        domains.push_str(DisplayInfoMod::add_nft_display());
+        params.push_str(DisplayInfoMod::add_display_params());
 
-        domains.push_str(DisplayMod::add_nft_url());
+        domains.push_str(DisplayInfoMod::add_nft_url());
 
-        args.push_str(DisplayMod::add_attributes_args());
-        domains.push_str(DisplayMod::add_nft_attributes());
-        params.push_str(DisplayMod::add_attributes_params());
+        args.push_str(DisplayInfoMod::add_attributes_args());
+        domains.push_str(DisplayInfoMod::add_nft_attributes());
+        params.push_str(DisplayInfoMod::add_attributes_params());
 
         let mint_cap = match collection.supply_policy {
             SupplyPolicy::Unlimited => format!(
