@@ -58,8 +58,6 @@ impl Schema {
     }
 
     pub fn write_init_fn(&self) -> String {
-        let domains = self.collection.write_domains();
-
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
@@ -79,7 +77,7 @@ impl Schema {
         let publisher = sui::package::claim(witness, ctx);
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{transfer_fns}    }}",
+{feature_domains}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )

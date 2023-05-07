@@ -174,10 +174,6 @@ impl CollectionData {
             code.push_str(&url);
         }
 
-        if !matches!(self.supply_policy, SupplyPolicy::Undefined) {
-            code.push_str(&self.supply_policy.write_domain())
-        }
-
         code
     }
 
