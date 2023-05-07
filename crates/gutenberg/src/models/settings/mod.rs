@@ -71,10 +71,6 @@ impl Settings {
     pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
         let mut code = String::new();
 
-        if let Some(_tags) = &self.tags {
-            code.push_str(self.write_tags().as_str());
-        }
-
         if let Some(_royalties) = &self.royalties {
             code.push_str(self.write_royalties().as_str());
         }

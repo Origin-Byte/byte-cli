@@ -13,6 +13,8 @@ use strfmt::strfmt;
 
 use std::collections::HashMap;
 
+use crate::contract::modules::sui::Display;
+
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -65,6 +67,9 @@ impl Schema {
             .settings
             .write_transfer_fns(self.collection.creators.first());
 
+        let tags = self.settings.write_tags();
+        let display = Display::write_display(&self.nft.type_name);
+
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let sender = sui::tx_context::sender(ctx);
@@ -75,6 +80,12 @@ impl Schema {
 
         // Init Publisher
         let publisher = sui::package::claim(witness, ctx);
+
+        // Init Tags
+        {tags}
+
+        // Init Display
+        {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
 {feature_domains}{transfer_fns}    }}",

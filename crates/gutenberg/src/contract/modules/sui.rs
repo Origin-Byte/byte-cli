@@ -112,13 +112,13 @@ impl TxContext {
 pub struct Display();
 
 impl Display {
-    pub fn write_display(type_name: String) -> String {
-        format!("let display = display::new<{type_name}>(&publisher, ctx);
-        display::add(&mut display, string::utf8(b\"name\"), string::utf8(b\"{{name}}\"));
-        display::add(&mut display, string::utf8(b\"description\"), string::utf8(b\"{{description}}\"));
-        display::add(&mut display, string::utf8(b\"image_url\"), string::utf8(b\"{{url}}\"));
-        display::add(&mut display, string::utf8(b\"attributes\"), string::utf8(b\"{{attributes}}\"));
-        display::add(&mut display, string::utf8(b\"tags\"), ob_display::from_vec(tags));
-        display::update_version(&mut display);")
+    pub fn write_display(type_name: &String) -> String {
+        format!("let display = sui::display::new<{type_name}>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b\"name\"), std::string::utf8(b\"{{name}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"description\"), std::string::utf8(b\"{{description}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"image_url\"), std::string::utf8(b\"{{url}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);")
     }
 }
