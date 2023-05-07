@@ -118,39 +118,6 @@ impl Schema {
 
         let nft_struct = self.nft.write_struct();
 
-        // let init_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::init)
-        //     .unwrap_or_else(String::new);
-
-        // // Collate list of objects that need to be shared
-        // // TODO: Use Marketplace::init and Listing::init functions to avoid
-        // // explicit share
-        // let share_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::share)
-        //     .unwrap_or_default();
-
-        // module {module_name}::{module_name} {{
-        //     {imports}
-
-        //     /// One time witness is only instantiated in the init method
-        //     struct {witness} has drop {{}}
-
-        //     /// Can be used for authorization of other actions post-creation. It is
-        //     /// vital that this struct is not freely given to any contract, because it
-        //     /// serves as an auth token.
-        //     struct Witness has drop {{}}
-
-        //     {type_declarations}
-
-        //     {init_function}
-
-        //     {entry_functions}
-        // }}
-
         let mut vars = HashMap::<&'static str, &str>::new();
 
         if let Some(module_alias) = &self.module_alias {
