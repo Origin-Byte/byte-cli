@@ -170,10 +170,6 @@ impl CollectionData {
             code.push_str(&symbol);
         }
 
-        if let Some(url) = DisplayInfoMod::add_collection_url(self) {
-            code.push_str(&url);
-        }
-
         code
     }
 
