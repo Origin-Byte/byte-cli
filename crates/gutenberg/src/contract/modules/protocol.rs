@@ -22,44 +22,6 @@ impl NftMod {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct TagsMod();
-
-impl Module for TagsMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::tags;\n".to_string()
-    }
-}
-
-impl TagsMod {
-    pub fn init_tags() -> String {
-        "let tags = nft_protocol::tags::empty(ctx);\n".to_string()
-    }
-
-    pub fn add_tag(tag: &str) -> String {
-        format!("nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::{}());\n", tag)
-    }
-
-    pub fn add_collection_domain() -> &'static str {
-        "
-        nft_protocol::tags::add_collection_tag_domain(
-            delegated_witness,
-            &mut collection,
-            tags,
-        );\n"
-    }
-
-    pub fn add_nft_domain() -> &'static str {
-        "
-        nft_protocol::tags::add_tag_domain(
-            delegated_witness,
-            &mut nft,
-            tags,
-        );\n"
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
 pub struct RoyaltyMod();
 
 impl Module for RoyaltyMod {

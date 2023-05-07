@@ -6,8 +6,8 @@ pub mod sui;
 
 pub use protocol::{
     CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, MintCapMod,
-    NftMod, RoyaltiesMod, RoyaltyMod, TagsMod, TemplateMod, TemplatesMod,
-    WarehouseMod, WitnessMod,
+    NftMod, RoyaltiesMod, RoyaltyMod, TemplateMod, TemplatesMod, WarehouseMod,
+    WitnessMod,
 };
 pub use standard::StringMod;
 pub use sui::{Balance, Transfer, TxContext, Url, VecMap, VecSet};
@@ -28,7 +28,6 @@ pub struct Modules {
     witness: bool,
     mint_cap: bool,
     collection: bool,
-    tags: bool,
     royalty: bool,
     display: bool,
     creators: bool,
@@ -114,9 +113,6 @@ impl Imports {
         }
         if self.modules.collection {
             self.write_import(CollectionMod::default(), true);
-        }
-        if self.modules.tags {
-            self.write_import(TagsMod::default(), true);
         }
         if self.modules.royalty {
             self.write_import(RoyaltyMod::default(), true);
