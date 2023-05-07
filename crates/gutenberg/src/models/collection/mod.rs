@@ -207,10 +207,7 @@ impl CollectionData {
                 ));
             }
 
-            "nft_protocol::creators::new(
-                creators
-            )"
-            .to_string()
+            "nft_protocol::creators::new(creators)".to_string()
         };
 
         code.push_str(&format!(
