@@ -94,12 +94,6 @@ impl Tags {
             ));
         }
 
-        if is_collection {
-            code.push_str(TagsMod::add_collection_domain());
-        } else {
-            code.push_str(TagsMod::add_nft_domain());
-        }
-
         code
     }
 
