@@ -60,6 +60,8 @@ impl Schema {
     }
 
     pub fn write_init_fn(&self) -> String {
+        let domains = self.collection.write_domains();
+
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
@@ -88,7 +90,7 @@ impl Schema {
         {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{feature_domains}{transfer_fns}    }}",
+{domains}{feature_domains}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )
