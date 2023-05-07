@@ -9,15 +9,15 @@ pub struct NftData {
 
 impl NftData {
     pub fn write_struct(&self) -> String {
+        let type_name = self.type_name;
         format!(
-            "struct {} has key, store {{
+            "struct {type_name} has key, store {{
                 id: UID,
                 name: String,
                 description: String,
                 url: Url,
                 attributes: Attributes,
-            }}",
-            self.type_name
+            }}"
         )
     }
 }
