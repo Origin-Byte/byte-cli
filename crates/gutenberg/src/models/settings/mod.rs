@@ -124,7 +124,7 @@ impl Settings {
         self.tags
             .as_ref()
             .expect("No collection tags setup found")
-            .write_tags()
+            .write_tags_vec()
     }
 
     pub fn write_royalties(&self) -> String {

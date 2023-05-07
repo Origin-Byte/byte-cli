@@ -57,7 +57,6 @@ impl Modules {
             witness: true,
             mint_cap: true,
             collection: true,
-            tags: schema.settings.tags.is_some(),
             royalty: schema.settings.royalties.is_some(),
             display: true,
             creators: true,
