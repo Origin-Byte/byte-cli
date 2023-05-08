@@ -107,8 +107,18 @@ module gnomes::gnomes {
         ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
             &allowlist_cap, &mut allowlist,
         );
-        sui::transfer::transfer(mint_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
-        sui::transfer::share_object(collection);
+        // Setup Transfers
+        sui::transfer::public_transfer(publisher, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(mint_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(allowlist_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(allowlist);
+        sui::transfer::public_share_object(collection);
+        
+        sui::transfer::public_transfer(transfer_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(transfer_policy);
+
+        sui::transfer::public_transfer(borrow_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(borrow_policy);
     }
 
     public entry fun mint_to_launchpad(

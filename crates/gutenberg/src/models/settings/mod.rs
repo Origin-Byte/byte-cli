@@ -71,11 +71,36 @@ impl Settings {
             None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
-        format!(
+        let mut code = String::new();
+
+        code.push_str(&format!(
             "
-        sui::transfer::transfer(mint_cap, {receiver});
-        sui::transfer::share_object(collection);\n"
-        )
+        // Setup Transfers
+        sui::transfer::public_transfer(publisher, {receiver});
+        sui::transfer::public_transfer(mint_cap, {receiver});
+        sui::transfer::public_transfer(allowlist_cap, {receiver});
+        sui::transfer::public_share_object(allowlist);
+        sui::transfer::public_share_object(collection);
+        "
+        ));
+
+        if self.request_policies.transfer {
+            code.push_str(&format!(
+                "
+        sui::transfer::public_transfer(transfer_policy_cap, {receiver});
+        sui::transfer::public_share_object(transfer_policy);\n"
+            ));
+        }
+
+        if self.request_policies.borrow {
+            code.push_str(&format!(
+                "
+        sui::transfer::public_transfer(borrow_policy_cap, {receiver});
+        sui::transfer::public_share_object(borrow_policy);\n"
+            ));
+        }
+
+        code
     }
 
     pub fn write_tags(&self) -> String {
