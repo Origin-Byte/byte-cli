@@ -8,19 +8,8 @@ pub enum RequestType {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestPolicies {
-    #[serde(default)]
     pub transfer: bool,
-    #[serde(default)]
     pub borrow: bool,
-}
-
-impl Default for RequestPolicies {
-    fn default() -> Self {
-        Self {
-            transfer: false,
-            borrow: false,
-        }
-    }
 }
 
 impl RequestPolicies {
