@@ -22,3 +22,4 @@ The CLI has the following commands:
 
 ```cargo run --bin byte_cli mint-nfts <PROJECT_FOLDER>```
 
+```cargo run --bin byte_cli generate-contract <PROJECT_FOLDER>```

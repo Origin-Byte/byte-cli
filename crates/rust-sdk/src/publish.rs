@@ -3,29 +3,37 @@ use std::{path::Path, sync::mpsc::Sender};
 use terminal_link::Link;
 use tokio::task::JoinSet;
 
+use shared_crypto::intent::Intent;
 use std::sync::mpsc::channel;
-use sui_framework_build::compiled_package::BuildConfig;
-use sui_json_rpc_types::{OwnedObjectRef, SuiObjectRead, SuiRawData};
+use sui_json_rpc_types::SuiTransactionBlockEffects;
+use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
 use sui_keys::keystore::AccountKeystore;
+use sui_move_build::BuildConfig;
 use sui_sdk::{types::messages::Transaction, SuiClient};
+use sui_types::base_types::{ObjectID, ObjectType};
+use sui_types::crypto::Signature;
 use sui_types::{
-    crypto::Signature, intent::Intent, messages::ExecuteTransactionRequestType,
+    messages::TransactionData,
+    programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 
 use crate::{
-    collection_state::{CollectionState, ObjectType},
+    collection_state::{CollectionState, ObjectType as OBObjectType},
     consts::{NFT_PROTOCOL, VOLCANO_EMOJI},
     err::RustSdkError,
-    utils::{get_active_address, get_client, get_keystore},
+    utils::{get_active_address, get_client, get_context, get_keystore},
 };
 
 pub async fn publish_contract(
     package_dir: &Path,
-    gas_budget: u64,
+    // TODO: Do we need gas budget
+    _gas_budget: u64,
 ) -> Result<CollectionState, RustSdkError> {
+    let context = get_context().await.unwrap();
     let client = get_client().await.unwrap();
+    // Maybe get these from the context
     let keystore = get_keystore().await.unwrap();
-    let active_address = get_active_address(&keystore).unwrap();
+    let sender = get_active_address(&keystore).unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
     let compiled_modules_base_64 = BuildConfig::default()
@@ -38,26 +46,33 @@ pub async fn publish_contract(
         .collect::<Result<Vec<_>, _>>()?;
 
     println!("{} Compiling contract", style("DONE").green().bold());
-
     println!("{} Preparing transaction", style("WIP").cyan().bold());
 
-    let call = client
-        .transaction_builder()
-        .publish(
-            active_address, // sender
-            compiled_modules,
-            None,       // Gas object, Node can pick one itself
-            gas_budget, // Gas budget
-        )
-        .await?;
+    // TODO: Add OriginByte Package addresses
+    let dep_ids: Vec<ObjectID> = vec![];
+
+    let mut builder = ProgrammableTransactionBuilder::new();
+
+    let _res = builder.publish_upgradeable(compiled_modules, dep_ids);
+
+    let data = TransactionData::new_programmable(
+        sender,
+        vec![], // Gas Objects
+        builder.finish(),
+        10_000, // Gas Budget
+        1,      // Gas Price
+    );
 
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
-    signatures.push(keystore.sign_secure(
-        &active_address,
-        &call,
-        Intent::default(),
-    )?);
+
+    let signature = context.config.keystore.sign_secure(
+        &sender,
+        &data,
+        Intent::sui_transaction(),
+    )?;
+
+    signatures.push(signature);
 
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
@@ -66,19 +81,14 @@ pub async fn publish_contract(
         "{} Sending and executing transaction.",
         style("WIN").cyan().bold()
     );
-    let tx =
-        Transaction::from_data(call, Intent::default(), signatures).verify()?;
 
-    let request_type =
-        Some(ExecuteTransactionRequestType::WaitForLocalExecution);
+    let response = context
+        .execute_transaction_block(
+            Transaction::from_data(data, Intent::sui_transaction(), signatures)
+                .verify()?,
+        )
+        .await?;
 
-    let response = client
-        .quorum_driver()
-        .execute_transaction(tx, request_type)
-        .await
-        .unwrap();
-
-    assert!(response.confirmed_local_execution);
     println!(
         "{} Sending and executing transaction.",
         style("Done").cyan().bold()
@@ -96,7 +106,13 @@ pub async fn publish_contract(
     // Creating a channel to send message with package ID
     let (sender, receiver) = channel();
 
-    let objects_created = response.effects.unwrap().created;
+    let effects = match response.effects.unwrap() {
+        SuiTransactionBlockEffects::V1(effects) => effects,
+    };
+
+    assert!(effects.status.is_ok());
+
+    let objects_created = effects.created;
 
     objects_created
         .iter()
@@ -124,13 +140,13 @@ pub async fn publish_contract(
     for _ in 0..3 {
         let object_type = receiver.recv().unwrap();
         match object_type {
-            ObjectType::Package(_object_id) => {
+            OBObjectType::Package(_object_id) => {
                 collection_state.contract = Some(object_type);
             }
-            ObjectType::MintCap(_object_id) => {
+            OBObjectType::MintCap(_object_id) => {
                 collection_state.mint_cap = Some(object_type);
             }
-            ObjectType::Collection(_object_id) => {
+            OBObjectType::Collection(_object_id) => {
                 collection_state.collection = Some(object_type);
             }
             _ => {}
@@ -155,30 +171,35 @@ pub async fn publish_contract(
 async fn print_object(
     client: &SuiClient,
     object: &OwnedObjectRef,
-    tx: Sender<ObjectType>,
+    tx: Sender<OBObjectType>,
 ) {
     let object_id = object.reference.object_id;
-    let object_read = client.read_api().get_object(object_id).await.unwrap();
 
+    // get_owned_objects
+    let object_read = client
+        .read_api()
+        .get_object_with_options(object_id, SuiObjectDataOptions::new())
+        .await
+        .unwrap();
+
+    // TODO: Add Publisher + UpgradeCap
     let mint_cap = format!("{}::mint_cap::MintCap", NFT_PROTOCOL);
-    let collection = format!("{}::collection::Collection", NFT_PROTOCOL);
+    // TODO: Do we need collection?
+    let _collection = format!("{}::collection::Collection", NFT_PROTOCOL);
 
-    if let SuiObjectRead::Exists(sui_object) = object_read {
-        match sui_object.data {
-            SuiRawData::MoveObject(raw_object) => {
-                if raw_object.type_.contains(mint_cap.as_str()) {
+    if let Some(object_data) = object_read.data {
+        let obj_type = object_data.type_.unwrap();
+
+        match obj_type {
+            ObjectType::Struct(object_type) => {
+                if object_type.name().as_str() == mint_cap.as_str() {
                     println!("Mint Cap object ID: {}", object_id);
-                    tx.send(ObjectType::MintCap(object_id)).unwrap();
-                }
-                if raw_object.type_.contains(collection.as_str()) {
-                    println!("Collection object ID: {}", object_id);
-                    tx.send(ObjectType::Collection(object_id)).unwrap();
+                    tx.send(OBObjectType::MintCap(object_id)).unwrap();
                 }
             }
-            SuiRawData::Package(_raw_package) => {
-                println!("Package object ID: {}", object_id);
-
-                tx.send(ObjectType::Package(object_id)).unwrap();
+            ObjectType::Package => {
+                println!("Package object ID: {}", object_data.object_id);
+                tx.send(OBObjectType::Package(object_id)).unwrap();
             }
         }
     }

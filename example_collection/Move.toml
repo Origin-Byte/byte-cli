@@ -1,0 +1,36 @@
+[package]
+name = "Suimarines"
+version = "1.0.0"
+
+[dependencies.Launchpad]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+subdir = "contracts/launchpad"
+# mainnet
+rev = "2a435a0194a3b62988f38de519c212c224162be2"
+
+[dependencies.Request]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+subdir = "contracts/request"
+# mainnet
+rev = "2a435a0194a3b62988f38de519c212c224162be2"
+
+[dependencies.Allowlist]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+subdir = "contracts/allowlist"
+# mainnet
+rev = "2a435a0194a3b62988f38de519c212c224162be2"
+
+[dependencies.LiquidityLayerV1]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+subdir = "contracts/liquidity_layer_v1"
+# mainnet
+rev = "2a435a0194a3b62988f38de519c212c224162be2"
+
+[dependencies.NftProtocol]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+# mainnet
+subdir = "contracts/nft_protocol"
+rev = "2a435a0194a3b62988f38de519c212c224162be2"
+
+[addresses]
+suimarines = "0x0"
