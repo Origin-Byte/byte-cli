@@ -7,7 +7,7 @@ use gutenberg::{
     models::{
         collection::CollectionData,
         launchpad::{listing::Listing, market::Market},
-        settings::{Composability, Settings},
+        settings::Composability,
     },
 };
 

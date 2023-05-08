@@ -24,7 +24,6 @@ pub struct Settings {
     pub mint_policies: MintPolicies,
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
-    pub loose: bool,
     pub orderbook: Orderbook,
 }
 
@@ -35,7 +34,6 @@ impl Settings {
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
         composability: Option<Composability>,
-        loose: bool,
         orderbook: Orderbook,
     ) -> Settings {
         Settings {
@@ -44,20 +42,18 @@ impl Settings {
             mint_policies,
             request_policies,
             composability,
-            loose,
             orderbook,
         }
     }
 
-    pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
+    pub fn write_feature_domains(
+        &self,
+        _collection: &CollectionData,
+    ) -> String {
         let mut code = String::new();
 
         if let Some(_royalties) = &self.royalties {
             code.push_str(self.write_royalties().as_str());
-        }
-
-        if self.loose {
-            code.push_str(self.write_loose(collection).as_str());
         }
 
         code
@@ -75,22 +71,11 @@ impl Settings {
             None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
-        let mut code = format!(
+        format!(
             "
         sui::transfer::transfer(mint_cap, {receiver});
         sui::transfer::share_object(collection);\n"
-        );
-
-        if self.loose {
-            code.push_str(
-                format!(
-                    "        sui::transfer::transfer(templates, {receiver});"
-                )
-                .as_str(),
-            )
-        }
-
-        code
+        )
     }
 
     pub fn write_tags(&self) -> String {

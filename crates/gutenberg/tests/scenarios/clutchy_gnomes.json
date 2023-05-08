@@ -42,7 +42,6 @@
                 "bps": 500
             }
         },
-        "orderbook": "protected",
-        "loose": false
+        "orderbook": "protected"
     }
 }
