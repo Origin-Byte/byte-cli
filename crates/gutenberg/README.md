@@ -38,7 +38,10 @@ Gutenberg is a templating engine for generating valid, publishable move contract
 - License
 
 #### 4.4 Royalties
-- Proportional: Strategy using basis points
+- Proportional:
+    - bps: A unit of measurement representing the total royalty percentage, where 1 basis point is equivalent to 0.01%. This is used to fairly distribute royalty payments among creators.
+    - shares: royalty shares must add up to 100_00 basis points
+        - (address, share) pairs
 
 #### 4.5 Orderbook
 - Disabled
