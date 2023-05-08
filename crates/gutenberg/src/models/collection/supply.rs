@@ -43,34 +43,4 @@ impl SupplyPolicy {
     pub fn is_empty(&self) -> bool {
         matches!(self, SupplyPolicy::Undefined)
     }
-
-    pub fn write_domain(&self) -> String {
-        match self {
-            SupplyPolicy::Unlimited => format!(
-                "
-        nft_protocol::supply_domain::delegate_unregulated_and_transfer(
-            &mint_cap,
-            &mut collection,
-            ctx,
-        );\n"
-            ),
-            SupplyPolicy::Limited { limit, frozen } => format!(
-                "
-        nft_protocol::supply_domain::regulate(
-            delegated_witness,
-            &mut collection,
-            {limit},
-            {frozen},
-        );
-
-        nft_protocol::supply_domain::delegate_and_transfer(
-            &mint_cap,
-            &mut collection,
-            {limit},
-            ctx,
-        );\n"
-            ),
-            SupplyPolicy::Undefined => "".to_string(),
-        }
-    }
 }

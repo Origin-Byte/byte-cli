@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use super::collection::CollectionData;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
-    #[serde(default)]
     pub mint_policies: MintPolicies,
     pub composability: Option<Composability>,
     #[serde(default)]
@@ -71,10 +71,6 @@ impl Settings {
     pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
         let mut code = String::new();
 
-        if let Some(_tags) = &self.tags {
-            code.push_str(self.write_tags().as_str());
-        }
-
         if let Some(_royalties) = &self.royalties {
             code.push_str(self.write_royalties().as_str());
         }
@@ -124,7 +120,7 @@ impl Settings {
         self.tags
             .as_ref()
             .expect("No collection tags setup found")
-            .write_domain(true)
+            .write_tags_vec()
     }
 
     pub fn write_royalties(&self) -> String {

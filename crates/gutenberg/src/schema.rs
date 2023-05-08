@@ -13,15 +13,16 @@ use strfmt::strfmt;
 
 use std::collections::HashMap;
 
+use crate::contract::modules::sui::Display;
+
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
 #[derive(Debug, Serialize, Deserialize, Default)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
     pub collection: CollectionData,
-    #[serde(default)]
     pub nft: NftData,
     #[serde(default)]
     pub settings: Settings,
@@ -68,12 +69,30 @@ impl Schema {
             .settings
             .write_transfer_fns(self.collection.creators.first());
 
+        let tags = self.settings.write_tags();
+        let display = Display::write_display(&self.nft.type_name);
+
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let (mint_cap, collection) = nft_protocol::collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
+        let sender = sui::tx_context::sender(ctx);
+
+        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {type_name}>(
+            &witness, option::none(), ctx
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(witness, ctx);
+
+        // Init Tags
+        {tags}
+
+        // Init Display
+        {display}
+
+        let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{transfer_fns}    }}",
-            witness = self.witness_name()
+            witness = self.witness_name(),
+            type_name = self.nft.type_name
         )
     }
 
@@ -85,10 +104,8 @@ impl Schema {
             code.push_str(royalties_fn.as_str());
         }
 
-        let mint_fns = self
-            .settings
-            .mint_policies
-            .write_mint_fns(&self.collection, &self.nft);
+        let mint_fns =
+            self.settings.mint_policies.write_mint_fns(&self.collection);
 
         code.push_str(mint_fns.as_str());
 
@@ -112,38 +129,7 @@ impl Schema {
 
         let entry_fns = self.write_entry_fns();
 
-        // let init_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::init)
-        //     .unwrap_or_else(String::new);
-
-        // // Collate list of objects that need to be shared
-        // // TODO: Use Marketplace::init and Listing::init functions to avoid
-        // // explicit share
-        // let share_marketplace = self
-        //     .marketplace
-        //     .as_ref()
-        //     .map(Marketplace::share)
-        //     .unwrap_or_default();
-
-        // module {module_name}::{module_name} {{
-        //     {imports}
-
-        //     /// One time witness is only instantiated in the init method
-        //     struct {witness} has drop {{}}
-
-        //     /// Can be used for authorization of other actions post-creation. It is
-        //     /// vital that this struct is not freely given to any contract, because it
-        //     /// serves as an auth token.
-        //     struct Witness has drop {{}}
-
-        //     {type_declarations}
-
-        //     {init_function}
-
-        //     {entry_functions}
-        // }}
+        let nft_struct = self.nft.write_struct();
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
@@ -158,6 +144,7 @@ impl Schema {
         vars.insert("type_declarations", &type_declarations);
         vars.insert("init_function", &init_fn);
         vars.insert("entry_functions", &entry_fns);
+        vars.insert("nft_struct", &nft_struct);
 
         // Marketplace and Listing objects
         // vars.insert("init_marketplace", &init_marketplace);

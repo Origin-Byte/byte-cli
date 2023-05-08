@@ -26,7 +26,7 @@ pub fn init_collection_config(
         schema.collection = CollectionData::from_prompt(&schema)?.unwrap();
     }
 
-    if !to_complete || schema.nft.is_empty() {
+    if !to_complete {
         println!(
             "{}",
             style("Let us now configure some NFT level metadata.")

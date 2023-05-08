@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
-    contract::modules::DisplayMod,
+    contract::modules::DisplayInfoMod,
     err::GutenError,
     utils::validate_address,
 };
@@ -17,6 +17,7 @@ use supply::SupplyPolicy;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
     pub name: String,
@@ -160,20 +161,13 @@ impl CollectionData {
 
         code.push_str(self.write_creators().as_str());
 
-        if let Some(display) = DisplayMod::add_collection_display(self) {
+        if let Some(display) = DisplayInfoMod::add_collection_display_info(self)
+        {
             code.push_str(&display);
         }
 
-        if let Some(symbol) = DisplayMod::add_collection_symbol(self) {
+        if let Some(symbol) = DisplayInfoMod::add_collection_symbol(self) {
             code.push_str(&symbol);
-        }
-
-        if let Some(url) = DisplayMod::add_collection_url(self) {
-            code.push_str(&url);
-        }
-
-        if !matches!(self.supply_policy, SupplyPolicy::Undefined) {
-            code.push_str(&self.supply_policy.write_domain())
         }
 
         code
@@ -206,12 +200,7 @@ impl CollectionData {
                 ));
             }
 
-            format!(
-                "nft_protocol::creators::from_creators<{witness}, Witness>(
-                &Witness {{}}, creators,
-            )",
-                witness = self.witness_name()
-            )
+            "nft_protocol::creators::new(creators)".to_string()
         };
 
         code.push_str(&format!(

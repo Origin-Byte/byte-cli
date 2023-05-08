@@ -76,7 +76,10 @@ impl Module for Transfer {
 
 impl Transfer {
     pub fn tranfer_to_sender(obj: &str) -> String {
-        format!("transfer::transfer({}, tx_context::sender(ctx));\n", obj)
+        format!(
+            "transfer::public_transfer({}, tx_context::sender(ctx));\n",
+            obj
+        )
     }
 
     pub fn share(obj: &str) -> String {
@@ -101,5 +104,21 @@ impl Module for TxContext {
 impl TxContext {
     pub fn sender(_obj: &str) -> String {
         "tx_context::sender(ctx)".to_string()
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Display();
+
+impl Display {
+    pub fn write_display(type_name: &String) -> String {
+        format!("let display = sui::display::new<{type_name}>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b\"name\"), std::string::utf8(b\"{{name}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"description\"), std::string::utf8(b\"{{description}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"image_url\"), std::string::utf8(b\"{{url}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);")
     }
 }

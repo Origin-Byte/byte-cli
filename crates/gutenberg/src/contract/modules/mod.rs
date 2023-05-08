@@ -5,9 +5,9 @@ pub mod standard;
 pub mod sui;
 
 pub use protocol::{
-    CollectionMod, ComposableNftMod, CreatorsMod, DisplayMod, MintCapMod,
-    NftMod, RoyaltiesMod, RoyaltyMod, TagsMod, TemplateMod, TemplatesMod,
-    WarehouseMod, WitnessMod,
+    CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, MintCapMod,
+    NftMod, RoyaltiesMod, RoyaltyMod, TemplateMod, TemplatesMod, WarehouseMod,
+    WitnessMod,
 };
 pub use standard::StringMod;
 pub use sui::{Balance, Transfer, TxContext, Url, VecMap, VecSet};
@@ -28,7 +28,6 @@ pub struct Modules {
     witness: bool,
     mint_cap: bool,
     collection: bool,
-    tags: bool,
     royalty: bool,
     display: bool,
     creators: bool,
@@ -50,7 +49,7 @@ impl Modules {
             string: true,
             vec_set: !schema.collection.creators.is_empty(),
             vec_map: schema.settings.royalties.is_some(),
-            url: schema.collection.url.is_some() || schema.nft.url,
+            url: true,
             balance: schema.settings.royalties.is_some(),
             transfer: true,
             tx_context: true,
@@ -58,9 +57,8 @@ impl Modules {
             witness: true,
             mint_cap: true,
             collection: true,
-            tags: schema.settings.tags.is_some(),
             royalty: schema.settings.royalties.is_some(),
-            display: schema.nft.has_display_domains(),
+            display: true,
             creators: true,
             warehouse: schema.settings.mint_policies.launchpad
                 && !schema.settings.loose,
@@ -115,14 +113,11 @@ impl Imports {
         if self.modules.collection {
             self.write_import(CollectionMod::default(), true);
         }
-        if self.modules.tags {
-            self.write_import(TagsMod::default(), true);
-        }
         if self.modules.royalty {
             self.write_import(RoyaltyMod::default(), true);
         }
         if self.modules.display {
-            self.write_import(DisplayMod::default(), true);
+            self.write_import(DisplayInfoMod::default(), true);
         }
         if self.modules.creators {
             self.write_import(CreatorsMod::default(), true);

@@ -4,12 +4,9 @@ use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    contract::modules::DisplayMod,
+    contract::modules::DisplayInfoMod,
     err::GutenError,
-    models::{
-        collection::{supply::SupplyPolicy, CollectionData},
-        nft::NftData,
-    },
+    models::collection::{supply::SupplyPolicy, CollectionData},
 };
 
 pub enum MintType {
@@ -112,7 +109,6 @@ impl MintPolicies {
     pub fn write_mint_fn(
         &self,
         collection: &CollectionData,
-        nft: &NftData,
         mint_policy: Option<MintType>,
     ) -> String {
         let code: String;
@@ -131,19 +127,15 @@ impl MintPolicies {
         args.push_str("        url: vector<u8>,\n");
         params.push_str("            url,\n");
 
-        if nft.display {
-            args.push_str(DisplayMod::add_display_args());
-            domains.push_str(DisplayMod::add_nft_display());
-            params.push_str(DisplayMod::add_display_params());
-        }
-        if nft.url {
-            domains.push_str(DisplayMod::add_nft_url());
-        }
-        if nft.attributes {
-            args.push_str(DisplayMod::add_attributes_args());
-            domains.push_str(DisplayMod::add_nft_attributes());
-            params.push_str(DisplayMod::add_attributes_params());
-        }
+        args.push_str(DisplayInfoMod::add_display_args());
+        domains.push_str(DisplayInfoMod::add_nft_display());
+        params.push_str(DisplayInfoMod::add_display_params());
+
+        domains.push_str(DisplayInfoMod::add_nft_url());
+
+        args.push_str(DisplayInfoMod::add_attributes_args());
+        domains.push_str(DisplayInfoMod::add_nft_attributes());
+        params.push_str(DisplayInfoMod::add_attributes_params());
 
         let mint_cap = match collection.supply_policy {
             SupplyPolicy::Unlimited => format!(
@@ -255,31 +247,23 @@ impl MintPolicies {
         code
     }
 
-    pub fn write_mint_fns(
-        &self,
-        collection: &CollectionData,
-        nft_data: &NftData,
-    ) -> String {
+    pub fn write_mint_fns(&self, collection: &CollectionData) -> String {
         let mut mint_fns = String::new();
 
         if self.launchpad {
-            mint_fns.push_str(&self.write_mint_fn(
-                collection,
-                nft_data,
-                Some(MintType::Launchpad),
-            ));
+            mint_fns.push_str(
+                &self.write_mint_fn(collection, Some(MintType::Launchpad)),
+            );
         }
 
         // TODO: For now the flow are indistinguishable
         if self.airdrop || self.direct {
-            mint_fns.push_str(&self.write_mint_fn(
-                collection,
-                nft_data,
-                Some(MintType::Airdrop),
-            ));
+            mint_fns.push_str(
+                &self.write_mint_fn(collection, Some(MintType::Airdrop)),
+            );
         }
 
-        mint_fns.push_str(&self.write_mint_fn(collection, nft_data, None));
+        mint_fns.push_str(&self.write_mint_fn(collection, None));
 
         mint_fns
     }
