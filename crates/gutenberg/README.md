@@ -2,7 +2,7 @@
 
 Gutenberg = templating engine = contract generator
 
-Purpose: generate valid, publishable move contract from a configuration file (json / yaml)
+Purpose: generate valid, publishable move contract using Origin Byte sdk based on a template customized by configuration file (json / yaml).
 
 ## Config options:
 
@@ -19,17 +19,16 @@ Purpose: generate valid, publishable move contract from a configuration file (js
 
 ### Feature settings:
 
-- minting policies
-	- how to generate functions that control the minting process
-	- currently supported: launchpad
+- minting policies - how to generate functions that control the minting process
+	- launchpad
 - request policies
 	- transfer
 	- borrow
-- tags:
-	- supported tags: Art, ProfilePicture, Collectible, GameAsset, TokenisedAsset, Ticker, DomainName, Music, Video, Ticket, License,
-- royalties:
-	- currently supported: proportional strategy using basis points
-- orderbook:
+- tags
+	- Art, ProfilePicture, Collectible, GameAsset, TokenisedAsset, Ticker, DomainName, Music, Video, Ticket, License,
+- royalties
+	- proportional - strategy using basis points
+- orderbook
 	- disabled
 	- protected
 	- unprotected
