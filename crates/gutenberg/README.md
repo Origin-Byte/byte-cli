@@ -1,34 +1,46 @@
-# Terminology, features
+# Gutenberg Templating Engine (Contract Generator)
 
-Gutenberg = templating engine = contract generator
+Gutenberg is a templating engine for generating valid, publishable move contracts using the Origin Byte SDK, based on a template customized by a configuration file (JSON/YAML).
 
-Purpose: generate valid, publishable move contract using Origin Byte sdk based on a template customized by configuration file (json / yaml).
+## Configuration Options
 
-## Config options:
+### 1. Module Alias
 
-- module alias
+### 2. Collection Properties
+- Name
+- Description
+- URL
+- Creators: List of addresses
 
-### Collection properties
-- name
-- description
-- url
-- creators: list of addresses
+### 3. NFT Structure
+- TypeName
 
-### NFT structure
-- typeName
+### 4. Feature Settings
 
-### Feature settings:
+#### 4.1 Minting Policies
+- Launchpad: Generate functions that control the minting process
 
-- minting policies - how to generate functions that control the minting process
-	- launchpad
-- request policies
-	- transfer
-	- borrow
-- tags
-	- Art, ProfilePicture, Collectible, GameAsset, TokenisedAsset, Ticker, DomainName, Music, Video, Ticket, License,
-- royalties
-	- proportional - strategy using basis points
-- orderbook
-	- disabled
-	- protected
-	- unprotected
+#### 4.2 Request Policies
+- Transfer
+- Borrow
+
+#### 4.3 Tags
+- Art
+- Profile Picture
+- Collectible
+- Game Asset
+- Tokenised Asset
+- Ticker
+- Domain Name
+- Music
+- Video
+- Ticket
+- License
+
+#### 4.4 Royalties
+- Proportional: Strategy using basis points
+
+#### 4.5 Orderbook
+- Disabled
+- Protected
+- Unprotected
