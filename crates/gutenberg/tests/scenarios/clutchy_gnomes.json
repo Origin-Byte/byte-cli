@@ -14,8 +14,11 @@
     },
     "settings": {
         "mintPolicies": {
-            "launchpad": true,
-            "airdrop": true
+            "launchpad": true
+        },
+        "requestPolicies": {
+            "transfer": true,
+            "borrow": true
         },
         "tags": [
             "Art",

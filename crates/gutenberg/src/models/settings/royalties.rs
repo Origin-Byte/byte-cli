@@ -72,7 +72,7 @@ impl RoyaltyPolicy {
             RoyaltyPolicy::Proportional { shares, bps } => (
                 shares.clone(),
                 format!(
-                    "        royalty_strategy_bps::create_domain_and_add_strategy(
+                    "        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness,
             &mut collection,
             nft_protocol::royalty::from_shares(royalty_map, ctx),

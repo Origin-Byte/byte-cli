@@ -71,6 +71,10 @@ impl Schema {
 
         let tags = self.settings.write_tags();
         let display = Display::write_display(&self.nft.type_name);
+        let request_policies = self
+            .settings
+            .request_policies
+            .write_policies(&self.nft.type_name);
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
@@ -90,7 +94,7 @@ impl Schema {
         {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{transfer_fns}    }}",
+{domains}{feature_domains}{request_policies}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )
