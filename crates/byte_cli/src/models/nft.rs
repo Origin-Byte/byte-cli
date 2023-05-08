@@ -27,7 +27,9 @@ impl FromPrompt for NftData {
             nft_fields.push(String::from("tags"));
         }
 
-        let nft = NftData::new(nft_fields).unwrap();
+        let nft = NftData {
+            type_name: String::from("nft"),
+        };
 
         Ok(Some(nft))
     }
