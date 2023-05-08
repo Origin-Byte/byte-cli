@@ -93,9 +93,6 @@ impl Schema {
         // Init Display
         {display}
 
-        // 
-        request_policies
-
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{request_policies}{transfer_fns}    }}",
             witness = self.witness_name(),
