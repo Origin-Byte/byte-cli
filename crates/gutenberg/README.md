@@ -6,6 +6,8 @@ Purpose: generate valid, publishable move contract from a configuration file (js
 
 ## Config options:
 
+- module alias
+
 ### Collection properties
 - name
 - description
@@ -24,3 +26,5 @@ Purpose: generate valid, publishable move contract from a configuration file (js
 	- borrow
 - tags:
 	- supported tags: Art, ProfilePicture, Collectible, GameAsset, TokenisedAsset, Ticker, DomainName, Music, Video, Ticket, License,
+- royalties:
+	- currently supported: proportional strategy using basis points
