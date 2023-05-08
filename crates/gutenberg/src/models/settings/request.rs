@@ -29,20 +29,11 @@ impl Default for RequestPolicies {
 }
 
 impl RequestPolicies {
-    pub fn new(fields_vec: Vec<String>) -> Result<RequestPolicies, GutenError> {
-        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
-
-        let fields = RequestPolicies::fields();
-
-        let field_struct = fields
-            .iter()
-            .map(|f| {
-                let v = fields_to_add.contains(f);
-                (f.clone(), v)
-            })
-            .collect::<Vec<(String, bool)>>();
-
-        RequestPolicies::from_map(&field_struct)
+    pub fn new(
+        transfer: bool,
+        borrow: bool,
+    ) -> RequestPolicies {
+        RequestPolicies { transfer, borrow }
     }
 
     pub fn is_empty(&self) -> bool {
