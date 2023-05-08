@@ -19,7 +19,9 @@ use super::collection::CollectionData;
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
+    #[serde(default)]
     pub mint_policies: MintPolicies,
+    #[serde(default)]
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
     #[serde(default)]
