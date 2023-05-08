@@ -18,13 +18,18 @@ Purpose: generate valid, publishable move contract from a configuration file (js
 - typeName
 
 ### Feature settings:
-- mintPolicies
+
+- minting policies
 	- how to generate functions that control the minting process
 	- currently supported: launchpad
-- requestPolicies
+- request policies
 	- transfer
 	- borrow
 - tags:
 	- supported tags: Art, ProfilePicture, Collectible, GameAsset, TokenisedAsset, Ticker, DomainName, Music, Video, Ticket, License,
 - royalties:
 	- currently supported: proportional strategy using basis points
+- orderbook:
+	- disabled
+	- protected
+	- unprotected
