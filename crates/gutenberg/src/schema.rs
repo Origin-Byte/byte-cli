@@ -124,6 +124,70 @@ impl Schema {
         code
     }
 
+    pub fn write_tests(&self) -> String {
+        let type_name = &self.nft.type_name;
+        let witness = self.witness_name();
+        format!(
+            "
+    #[test_only]
+    use sui::test_scenario::{{Self, ctx}};
+    #[test_only]
+    use nft_protocol::collection::Collection;
+
+    #[test_only]
+    const CREATOR: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {{
+        let scenario = test_scenario::begin(CREATOR);
+
+        init({witness} {{}}, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        assert!(test_scenario::has_most_recent_shared<Collection<{type_name}>>(), 0);
+
+        let mint_cap = test_scenario::take_from_address<MintCap<{type_name}>>(
+            &scenario, CREATOR,
+        );
+
+        test_scenario::return_to_address(CREATOR, mint_cap);
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        test_scenario::end(scenario);
+    }}
+
+    #[test]
+    fun it_mints_nft() {{
+        let scenario = test_scenario::begin(CREATOR);
+        init({witness} {{}}, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = test_scenario::take_from_address<MintCap<{type_name}>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let warehouse = warehouse::new<{type_name}>(ctx(&mut scenario));
+
+        mint_nft(
+            string::utf8(b\"TEST NAME\"),
+            string::utf8(b\"TEST DESCRIPTION\"),
+            b\"https://originbyte.io/\",
+            vector[ascii::string(b\"avg_return\")],
+            vector[ascii::string(b\"24%\")],
+            &mut mint_cap,
+            &mut warehouse,
+            ctx(&mut scenario)
+        );
+
+        transfer::public_transfer(warehouse, CREATOR);
+        test_scenario::return_to_address(CREATOR, mint_cap);
+        test_scenario::end(scenario);
+    }}
+        ")
+    }
+
     /// Higher level method responsible for generating Move code from the
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
@@ -145,6 +209,8 @@ impl Schema {
 
         let mut vars = HashMap::<&'static str, &str>::new();
 
+        let tests = self.write_tests();
+
         if let Some(module_alias) = &self.module_alias {
             vars.insert("module_alias", module_alias);
         } else {
@@ -157,6 +223,7 @@ impl Schema {
         vars.insert("init_function", &init_fn);
         vars.insert("entry_functions", &entry_fns);
         vars.insert("nft_struct", &nft_struct);
+        vars.insert("tests", &tests);
 
         // Marketplace and Listing objects
         // vars.insert("init_marketplace", &init_marketplace);

@@ -11,4 +11,5 @@ module {module_alias}::{module_name} {{
 
 {type_declarations}
 {init_function}{entry_functions}
+{tests}
 }}

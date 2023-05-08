@@ -1,6 +1,13 @@
 # Gutenberg Templating Engine (Contract Generator)
 
 Gutenberg is a templating engine for generating valid, publishable move contracts using the Origin Byte SDK, based on a template customized by a configuration file (JSON/YAML).
+## Generates the following structure
+- TBD
+- One Type Witness struct
+- Nft struct
+- Init function
+- TBD functions
+- Tests
 
 ## Configuration Options
 
