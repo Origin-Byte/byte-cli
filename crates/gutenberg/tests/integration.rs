@@ -4,7 +4,6 @@
 use gutenberg::Schema;
 
 use std::fs::{self, File};
-use std::io::Write;
 use std::path::Path;
 
 #[test]
@@ -14,6 +13,7 @@ fn scenarios() {
     for entry in std::fs::read_dir(scenarios_path)
         .unwrap()
         .filter_map(Result::ok)
+        .filter(|e| e.metadata().map(|m| m.is_file()).unwrap_or(false))
     {
         let path = entry.path();
 
@@ -36,33 +36,13 @@ fn scenarios() {
 
         let output = String::from_utf8(output).unwrap();
 
-        let expected_file = format!("{}.move", expected_file);
-        let output_path =
-            Path::new("./tests/packages/build").join(&expected_file);
-        if let Err(e) = write_to_file(&output, &output_path) {
-            eprintln!("Error writing to file: {}", e);
-        } else {
-            println!("Expected value written to {}", &output_path.display());
-        }
-
-        let expected_path =
-            Path::new("./tests/packages/sources").join(&expected_file);
-
-        let expected = assert_expected(&expected_path);
-        // println!("Output size:\n{:#?}", output.len());
-        // println!("Expected sizze:\n{:#?}", expected.len());
-
+        let expected = assert_expected(&format!("{expected_file}.move"));
         pretty_assertions::assert_eq!(output, expected);
     }
 }
 
-fn write_to_file(expected: &str, file_path: &Path) -> std::io::Result<()> {
-    let mut file = File::create(file_path)?;
-    file.write_all(expected.as_bytes())?;
-    Ok(())
-}
-
-fn assert_expected(expected_path: &Path) -> String {
+fn assert_expected(expected: &str) -> String {
+    let expected_path = Path::new("./tests/packages/sources").join(expected);
     fs::read_to_string(&expected_path).expect("Could not read expected")
 }
 
