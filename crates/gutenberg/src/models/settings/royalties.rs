@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum RoyaltyPolicy {
     Proportional { shares: BTreeSet<Share>, bps: u64 },
-    Constant { shares: BTreeSet<Share>, fee: u64 },
 }
 
 #[derive(
@@ -26,13 +26,9 @@ impl FromStr for RoyaltyPolicy {
 
     fn from_str(input: &str) -> Result<RoyaltyPolicy, Self::Err> {
         match input {
-            "Proportional" => Ok(RoyaltyPolicy::Proportional {
+            "proportional" => Ok(RoyaltyPolicy::Proportional {
                 shares: BTreeSet::default(),
                 bps: u64::default(),
-            }),
-            "Constant" => Ok(RoyaltyPolicy::Constant {
-                shares: BTreeSet::default(),
-                fee: u64::default(),
             }),
             _ => Err(()),
         }
@@ -45,20 +41,17 @@ impl RoyaltyPolicy {
             RoyaltyPolicy::Proportional { shares, bps: _ } => {
                 shares.append(beneficiaries)
             }
-            RoyaltyPolicy::Constant { shares, fee: _ } => {
-                shares.append(beneficiaries)
-            }
         };
     }
 
     pub fn add_beneficiary_vecs(
         &mut self,
-        creators_vec: &Vec<String>,
+        beneficiaries_vec: &Vec<String>,
         shares_vec: &Vec<u64>,
     ) {
-        let push_creator =
-            |creators_vec: &Vec<String>, shares: &mut BTreeSet<Share>| {
-                creators_vec
+        let push_beneficiary =
+            |beneficiaries_vec: &Vec<String>, shares: &mut BTreeSet<Share>| {
+                beneficiaries_vec
                     .iter()
                     .zip(shares_vec.iter())
                     .map(|(address, share)| {
@@ -69,39 +62,34 @@ impl RoyaltyPolicy {
 
         let shares = match self {
             RoyaltyPolicy::Proportional { shares, bps: _ } => shares,
-            RoyaltyPolicy::Constant { shares, fee: _ } => shares,
         };
 
-        push_creator(creators_vec, shares);
+        push_beneficiary(beneficiaries_vec, shares);
     }
 
-    pub fn write_domain(&self) -> String {
+    pub fn write_strategy(&self) -> String {
         let (royalty_shares, royalty_strategy) = match self {
             RoyaltyPolicy::Proportional { shares, bps } => (
                 shares.clone(),
                 format!(
-                    "        nft_protocol::royalty::add_proportional_royalty(&mut royalty, {});\n",
+                    "        royalty_strategy_bps::create_domain_and_add_strategy(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::royalty::from_shares(royalty_map, ctx),
+            {},
+            ctx,
+        );\n",
                     bps
-                ),
-            ),
-            RoyaltyPolicy::Constant { shares, fee } => (
-                shares.clone(),
-                format!(
-                    "        nft_protocol::royalty::add_constant_royalty(&mut royalty, {});\n",
-                    fee
                 ),
             ),
         };
 
-        let mut code = if royalty_shares.len() == 1 {
-            format!(
-                "let royalty = nft_protocol::royalty::from_address({address}, ctx);\n",
-                address = royalty_shares.first().unwrap().address,
-            )
-        } else {
+        let (mut code, kiosk_init) = {
             let mut vecmap = String::from(
                 "\n        let royalty_map = sui::vec_map::empty();\n",
             );
+
+            let mut kiosk_init = "".to_string();
 
             royalty_shares
                 .iter()
@@ -120,52 +108,29 @@ impl RoyaltyPolicy {
                     )
                         .as_str(),
                     );
+
+                    kiosk_init.push_str(
+                        format!(
+                        "        ob_kiosk::ob_kiosk::init_for_address({address}, ctx);\n"
+                    )
+                        .as_str(),
+                    );
                 })
                 .for_each(drop);
 
             vecmap.push_str("\n");
-            vecmap.push_str(
-                "        let royalty = nft_protocol::royalty::from_shares(royalty_map, ctx);\n",
-            );
 
-            vecmap
+            (vecmap, kiosk_init)
         };
-
-        let add_domain = "        nft_protocol::royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);\n";
 
         code.push_str(royalty_strategy.as_str());
-        code.push_str(add_domain);
+        code.push_str(
+            "\n       
+        // Setup Kiosks for royalty address(es)\n",
+        );
+
+        code.push_str(kiosk_init.as_str());
 
         code
-    }
-
-    pub fn write_entry_fn(&self, witness: &String) -> String {
-        let domain = match self {
-            RoyaltyPolicy::Proportional { shares: _, bps: _ } => {
-                "calculate_proportional_royalty(domain, sui::balance::value(b))"
-            }
-            RoyaltyPolicy::Constant { shares: _, fee: _ } => {
-                "calculate_constant_royalty(domain)"
-            }
-        };
-
-        format!(
-            "\n
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut nft_protocol::royalties::TradePayment<{witness}, FT>,
-        collection: &mut nft_protocol::collection::Collection<{witness}>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let b = nft_protocol::royalties::balance_mut(Witness {{}}, payment);
-
-        let domain = nft_protocol::royalty::royalty_domain(collection);
-        let royalty_owed =
-            nft_protocol::royalty::{domain};
-
-        nft_protocol::royalty::collect_royalty(collection, b, royalty_owed);
-        nft_protocol::royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
-    }}"
-        )
     }
 }

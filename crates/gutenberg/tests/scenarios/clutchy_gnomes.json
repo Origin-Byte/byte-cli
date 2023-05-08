@@ -23,6 +23,21 @@
             "Collectible",
             "GameAsset",
             "TokenisedAsset"
-        ]
+        ],
+        "royalties": {
+            "proportional": {
+                "shares": [
+                    {
+                        "address": "sui::tx_context::sender(ctx)",
+                        "share": 9000
+                    },
+                    {
+                        "address": "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49dh",
+                        "share": 1000
+                    }
+                ],
+                "bps": 500
+            }
+        }
     }
 }
