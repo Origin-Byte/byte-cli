@@ -37,19 +37,21 @@ fn scenarios() {
         let output = String::from_utf8(output).unwrap();
 
         let expected_file = format!("{}.move", expected_file);
-        let expected_path =
-            Path::new("./tests/packages/sources").join(&expected_file);
         let output_path =
             Path::new("./tests/packages/build").join(&expected_file);
-
-        let expected = assert_expected(&expected_path);
-        println!("Output size:\n{:#?}", output.len());
-        println!("Expected sizze:\n{:#?}", expected.len());
-        if let Err(e) = write_to_file(&expected, &output_path) {
+        if let Err(e) = write_to_file(&output, &output_path) {
             eprintln!("Error writing to file: {}", e);
         } else {
-            println!("Expected value written to {}", &expected_path.display());
+            println!("Expected value written to {}", &output_path.display());
         }
+
+        let expected_path =
+            Path::new("./tests/packages/sources").join(&expected_file);
+
+        let expected = assert_expected(&expected_path);
+        // println!("Output size:\n{:#?}", output.len());
+        // println!("Expected sizze:\n{:#?}", expected.len());
+
         pretty_assertions::assert_eq!(output, expected);
     }
 }
