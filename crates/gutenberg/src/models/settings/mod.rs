@@ -87,10 +87,6 @@ impl Settings {
             code.push_str(self.write_royalties().as_str());
         }
 
-        if let Some(_royalties) = &self.royalties {
-            code.push_str(self.write_royalties().as_str());
-        }
-
         if self.loose {
             code.push_str(self.write_loose(collection).as_str());
         }
