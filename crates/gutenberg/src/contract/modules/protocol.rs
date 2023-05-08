@@ -1,18 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::models::collection::CollectionData;
-
-use super::{sui::Url, Module};
-
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NftMod();
-
-impl Module for NftMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::nft::{Self, Nft};\n".to_string()
-    }
-}
 
 impl NftMod {
     pub fn new_to_sender() -> String {
@@ -23,12 +14,6 @@ impl NftMod {
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct RoyaltyMod();
-
-impl Module for RoyaltyMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::royalty;\n".to_string()
-    }
-}
 
 impl RoyaltyMod {
     pub fn from_sender_address() -> String {
@@ -85,12 +70,6 @@ impl RoyaltyMod {
 #[serde(rename_all = "camelCase")]
 pub struct DisplayInfoMod();
 
-impl Module for DisplayInfoMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::display_info;\n".to_string()
-    }
-}
-
 impl DisplayInfoMod {
     pub fn add_collection_display_info(
         collection: &CollectionData,
@@ -120,7 +99,7 @@ impl DisplayInfoMod {
             &mut collection,
             {url}
         );\n",
-                url = Url::to_url_param(url, false)
+                url = format!("sui::url::new_unsafe_from_bytes(b\"{}\"),", url)
             )
         })
     }
@@ -192,12 +171,6 @@ impl DisplayInfoMod {
 #[serde(rename_all = "camelCase")]
 pub struct WitnessMod();
 
-impl Module for WitnessMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::witness;\n".to_string()
-    }
-}
-
 impl WitnessMod {
     pub fn get_delegated_witness() -> String {
         "witness::from_witness(&Witness {});\n".to_string()
@@ -207,12 +180,6 @@ impl WitnessMod {
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatorsMod();
-
-impl Module for CreatorsMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::creators;\n".to_string()
-    }
-}
 
 impl CreatorsMod {
     pub fn from_sender_address(otw: &str) -> String {
@@ -229,16 +196,6 @@ impl CreatorsMod {
 #[serde(rename_all = "camelCase")]
 pub struct WarehouseMod();
 
-impl Module for WarehouseMod {
-    fn import(&self, has_self: bool) -> String {
-        if has_self {
-            "    use nft_protocol::warehouse::{Self, Warehouse};\n".to_string()
-        } else {
-            "    use nft_protocol::warehouse::Warehouse;\n".to_string()
-        }
-    }
-}
-
 impl WarehouseMod {
     pub fn deposit_nft() -> String {
         "warehouse::deposit_nft(warehouse, nft);\n".to_string()
@@ -248,17 +205,6 @@ impl WarehouseMod {
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct RoyaltiesMod();
-
-impl Module for RoyaltiesMod {
-    fn import(&self, has_self: bool) -> String {
-        if has_self {
-            "    use nft_protocol::royalties::{Self, TradePayment};\n"
-                .to_string()
-        } else {
-            "    use nft_protocol::royalties::TradePayment;\n".to_string()
-        }
-    }
-}
 
 impl RoyaltiesMod {
     pub fn balance_mut() -> String {
@@ -273,17 +219,6 @@ impl RoyaltiesMod {
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionMod();
-
-impl Module for CollectionMod {
-    fn import(&self, has_self: bool) -> String {
-        if has_self {
-            "    use nft_protocol::collection::{Self, Collection};\n"
-                .to_string()
-        } else {
-            "    use nft_protocol::collection::Collection;\n".to_string()
-        }
-    }
-}
 
 impl CollectionMod {
     pub fn create() -> String {
@@ -306,21 +241,9 @@ impl CollectionMod {
 #[serde(rename_all = "camelCase")]
 pub struct MintCapMod();
 
-impl Module for MintCapMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::mint_cap::MintCap;\n".to_string()
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ComposableNftMod();
-
-impl Module for ComposableNftMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::composable_nft::Self as c_nft;\n".to_string()
-    }
-}
 
 impl ComposableNftMod {
     pub fn add_type(type_name: &str) -> String {
@@ -358,25 +281,5 @@ impl ComposableNftMod {
 
     pub fn add_type_to_nft(otw: &str) -> String {
         format!("c_nft::add_type_domain<{otw}, T>(delegated_witness, &mut nft, ctx);\n", otw = otw)
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct TemplateMod();
-
-impl Module for TemplateMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::template;\n".to_string()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct TemplatesMod();
-
-impl Module for TemplatesMod {
-    fn import(&self, _has_self: bool) -> String {
-        "    use nft_protocol::templates;\n".to_string()
     }
 }

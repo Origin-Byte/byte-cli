@@ -1,7 +1,6 @@
-use bevy_reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
     pub type_name: String,

@@ -9,20 +9,30 @@ fn main() {
     let scenarios_path = Path::new("./tests/scenarios");
     let modules_path = Path::new("./tests/packages/sources");
 
-    for entry in std::fs::read_dir(scenarios_path)
+    let files = std::fs::read_dir(scenarios_path)
         .unwrap()
         .filter_map(Result::ok)
-    {
+        .filter_map(|entry| {
+            let path = entry.path();
+            path.is_file().then_some(entry)
+        });
+
+    for entry in files {
         let config_path = entry.path();
 
         let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
         let expected_file = format!("{expected_file}.move");
 
-        let config_extension = config_path
-            .extension()
-            .expect("Could not identify path extension")
-            .to_str()
-            .unwrap();
+        let config_extension = match config_path.extension() {
+            Some(extension) => extension.to_str().unwrap(),
+            None => {
+                eprintln!(
+                    "Could not identify file extension for configuration path: {}",
+                    config_path.display(),
+                );
+                continue;
+            }
+        };
 
         let mut output =
             File::create(modules_path.join(expected_file)).unwrap();

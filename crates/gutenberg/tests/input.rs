@@ -2,19 +2,21 @@
 
 use std::collections::BTreeSet;
 
-use gutenberg::models::{
-    collection::CollectionData,
-    launchpad::{listing::Listing, market::Market},
-    settings::{Composability, Settings},
+use gutenberg::{
+    err::GutenError,
+    models::{
+        collection::CollectionData,
+        launchpad::{listing::Listing, market::Market},
+        settings::{Composability, Settings},
+    },
 };
-
-use anyhow::Result;
 
 // TODO:
 // Input name: fail on non alpha-numeric
-// Input creators: non addresses, hexadecimals with wrong lenghts, lack of 0x, empty vectors, etc.
-// Listings > Markets > The token string field is currenly not being validated
-// Schema should not write Move if no mintpolicy is selected..
+// Input creators: non addresses, hexadecimals with wrong lenghts, lack of 0x,
+// empty vectors, etc. Listings > Markets > The token string field is currenly
+// not being validated Schema should not write Move if no mintpolicy is
+// selected..
 
 // Base tests
 // name
@@ -26,7 +28,7 @@ use anyhow::Result;
 // listing
 
 #[test]
-fn input_name() -> Result<()> {
+fn input_name() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     collection.set_name(String::from("Suimarines"))?;
@@ -42,7 +44,7 @@ fn input_name() -> Result<()> {
 }
 
 #[test]
-fn input_description() -> Result<()> {
+fn input_description() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     collection
@@ -56,7 +58,7 @@ fn input_description() -> Result<()> {
 }
 
 #[test]
-fn input_symbol() -> Result<()> {
+fn input_symbol() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     collection.set_symbol(String::from("SUIM"))?;
@@ -69,7 +71,7 @@ fn input_symbol() -> Result<()> {
 }
 
 #[test]
-fn input_url() -> Result<()> {
+fn input_url() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     collection.set_url(String::from("http://originbyte.io"))?;
@@ -88,7 +90,7 @@ fn input_url() -> Result<()> {
 }
 
 #[test]
-fn input_creators() -> Result<()> {
+fn input_creators() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     let creators = vec![String::from(
@@ -111,7 +113,7 @@ fn input_creators() -> Result<()> {
 }
 
 #[test]
-fn input_composability() -> Result<()> {
+fn input_composability() -> Result<(), GutenError> {
     let mut settings = Settings::default();
 
     let mut types = BTreeSet::new();
