@@ -1,10 +1,12 @@
 pub mod composability;
 pub mod minting;
+pub mod request;
 pub mod royalties;
 pub mod tags;
 
 pub use composability::Composability;
 pub use minting::MintPolicies;
+pub use request::RequestPolicies;
 pub use royalties::RoyaltyPolicy;
 pub use tags::Tags;
 
@@ -18,6 +20,7 @@ pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
     pub mint_policies: MintPolicies,
+    pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
     #[serde(default)]
     pub loose: bool,
@@ -28,6 +31,7 @@ impl Settings {
         tags: Option<Tags>,
         royalties: Option<RoyaltyPolicy>,
         mint_policies: MintPolicies,
+        request_policies: RequestPolicies,
         composability: Option<Composability>,
         loose: bool,
     ) -> Settings {
@@ -35,6 +39,7 @@ impl Settings {
             tags,
             royalties,
             mint_policies,
+            request_policies,
             composability,
             loose,
         }
@@ -44,6 +49,7 @@ impl Settings {
         self.tags.is_none()
             && self.royalties.is_none()
             && self.mint_policies.is_empty()
+            && self.request_policies.is_empty()
             && self.composability.is_none()
             && !self.loose
     }
@@ -58,6 +64,10 @@ impl Settings {
 
     pub fn set_mint_policies(&mut self, policies: MintPolicies) {
         self.mint_policies = policies;
+    }
+
+    pub fn set_request_policies(&mut self, policies: RequestPolicies) {
+        self.request_policies = policies;
     }
 
     pub fn set_composability(&mut self, composability: Composability) {
@@ -75,8 +85,8 @@ impl Settings {
             code.push_str(self.write_royalties().as_str());
         }
 
-        if let Some(_composability) = &self.composability {
-            code.push_str(self.write_composability().as_str());
+        if let Some(_royalties) = &self.royalties {
+            code.push_str(self.write_royalties().as_str());
         }
 
         if self.loose {

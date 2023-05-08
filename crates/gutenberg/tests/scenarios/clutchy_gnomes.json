@@ -17,6 +17,10 @@
             "launchpad": true,
             "airdrop": true
         },
+        "requestPolicies": {
+            "transfer": true,
+            "borrow": true
+        },
         "tags": [
             "Art",
             "ProfilePicture",
