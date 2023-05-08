@@ -127,7 +127,7 @@ impl Settings {
         self.royalties
             .as_ref()
             .expect("No collection royalties setup found")
-            .write_domain()
+            .write_strategy()
     }
 
     pub fn write_composability(&self) -> String {

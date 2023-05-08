@@ -99,11 +99,6 @@ impl Schema {
     pub fn write_entry_fns(&self) -> String {
         let mut code = String::new();
 
-        if let Some(royalties) = &self.settings.royalties {
-            let royalties_fn = royalties.write_entry_fn(&self.witness_name());
-            code.push_str(royalties_fn.as_str());
-        }
-
         let mint_fns =
             self.settings.mint_policies.write_mint_fns(&self.collection);
 
