@@ -1,11 +1,13 @@
 pub mod composability;
 pub mod minting;
+pub mod orderbook;
 pub mod request;
 pub mod royalties;
 pub mod tags;
 
 pub use composability::Composability;
 pub use minting::MintPolicies;
+pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 pub use royalties::RoyaltyPolicy;
 pub use tags::Tags;
@@ -14,18 +16,16 @@ use serde::{Deserialize, Serialize};
 
 use super::collection::CollectionData;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
-    #[serde(default)]
     pub mint_policies: MintPolicies,
-    #[serde(default)]
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
-    #[serde(default)]
     pub loose: bool,
+    pub orderbook: Orderbook,
 }
 
 impl Settings {
@@ -36,6 +36,7 @@ impl Settings {
         request_policies: RequestPolicies,
         composability: Option<Composability>,
         loose: bool,
+        orderbook: Orderbook,
     ) -> Settings {
         Settings {
             tags,
@@ -44,40 +45,8 @@ impl Settings {
             request_policies,
             composability,
             loose,
+            orderbook,
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.tags.is_none()
-            && self.royalties.is_none()
-            && self.mint_policies.is_empty()
-            && self.request_policies.is_empty()
-            && self.composability.is_none()
-            && !self.loose
-    }
-
-    pub fn set_tags(&mut self, tags: Tags) {
-        self.tags = Option::Some(tags);
-    }
-
-    pub fn set_royalties(&mut self, royalties: RoyaltyPolicy) {
-        self.royalties = Option::Some(royalties);
-    }
-
-    pub fn set_mint_policies(&mut self, policies: MintPolicies) {
-        self.mint_policies = policies;
-    }
-
-    pub fn set_request_policies(&mut self, policies: RequestPolicies) {
-        self.request_policies = policies;
-    }
-
-    pub fn set_composability(&mut self, composability: Composability) {
-        self.composability = Option::Some(composability);
-    }
-
-    pub fn set_loose(&mut self, is_loose: bool) {
-        self.loose = is_loose;
     }
 
     pub fn write_feature_domains(&self, collection: &CollectionData) -> String {

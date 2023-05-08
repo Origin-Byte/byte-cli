@@ -16,17 +16,15 @@ use crate::contract::modules::Display;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
     pub collection: CollectionData,
     pub nft: NftData,
-    #[serde(default)]
     pub settings: Settings,
     pub launchpad: Option<Launchpad>,
-    pub contract: Option<String>,
 }
 
 impl Schema {
@@ -35,7 +33,6 @@ impl Schema {
         nft: NftData,
         settings: Settings,
         launchpad: Option<Launchpad>,
-        contract: Option<String>,
     ) -> Schema {
         Schema {
             module_alias: None,
@@ -43,7 +40,6 @@ impl Schema {
             nft,
             settings,
             launchpad,
-            contract,
         }
     }
 
