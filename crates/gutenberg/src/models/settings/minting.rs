@@ -1,11 +1,7 @@
-use std::collections::HashSet;
-
-use bevy_reflect::{Reflect, Struct};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     contract::modules::DisplayInfoMod,
-    err::GutenError,
     models::collection::{supply::SupplyPolicy, CollectionData},
 };
 
@@ -15,7 +11,7 @@ pub enum MintType {
     Launchpad,
 }
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MintPolicies {
     #[serde(default)]
     pub launchpad: bool,
@@ -36,74 +32,8 @@ impl Default for MintPolicies {
 }
 
 impl MintPolicies {
-    pub fn new(fields_vec: Vec<String>) -> Result<MintPolicies, GutenError> {
-        let fields_to_add: HashSet<String> = HashSet::from_iter(fields_vec);
-
-        let fields = MintPolicies::fields();
-
-        let field_struct = fields
-            .iter()
-            .map(|f| {
-                let v = fields_to_add.contains(f);
-                (f.clone(), v)
-            })
-            .collect::<Vec<(String, bool)>>();
-
-        MintPolicies::from_map(&field_struct)
-    }
-
     pub fn is_empty(&self) -> bool {
         !self.launchpad && !self.airdrop && !self.direct
-    }
-
-    fn from_map(map: &Vec<(String, bool)>) -> Result<MintPolicies, GutenError> {
-        let mut field_struct = MintPolicies::default();
-
-        for (f, v) in map {
-            match f.as_str() {
-                "launchpad" => {
-                    field_struct.launchpad = *v;
-                    Ok(())
-                }
-                "airdrop" => {
-                    field_struct.airdrop = *v;
-                    Ok(())
-                }
-                "direct" => {
-                    field_struct.direct = *v;
-                    Ok(())
-                }
-                other => Err(GutenError::UnsupportedSettings(format!(
-                    "The NFT mint policy provided `{}` is not supported",
-                    other
-                ))),
-            }?;
-        }
-
-        Ok(field_struct)
-    }
-
-    pub fn fields() -> Vec<String> {
-        let field_struct = MintPolicies::default();
-        let mut fields: Vec<String> = Vec::new();
-
-        for (i, _) in field_struct.iter_fields().enumerate() {
-            let field_name = field_struct.name_at(i).unwrap();
-
-            fields.push(field_name.to_string());
-        }
-        fields
-    }
-
-    pub fn to_map(&self) -> Vec<(String, bool)> {
-        let mut map: Vec<(String, bool)> = Vec::new();
-
-        for (i, value) in self.iter_fields().enumerate() {
-            let field_name = self.name_at(i).unwrap();
-            let value_ = value.downcast_ref::<bool>().unwrap();
-            map.push((field_name.to_string(), *value_));
-        }
-        map
     }
 
     pub fn write_mint_fn(
@@ -120,7 +50,8 @@ impl MintPolicies {
         let mut params = String::new();
         let mut transfer = String::new();
 
-        // Name and URL are mandatory as they are static display fields on the NFT
+        // Name and URL are mandatory as they are static display fields on the
+        // NFT
         args.push_str("        name: std::string::String,\n");
         params.push_str("            name,\n");
 

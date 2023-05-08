@@ -6,14 +6,13 @@ use crate::err::GutenError;
 use crate::models::launchpad::Launchpad;
 use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
-use crate::storage::*;
 
 use serde::{Deserialize, Serialize};
 use strfmt::strfmt;
 
 use std::collections::HashMap;
 
-use crate::contract::modules::sui::Display;
+use crate::contract::modules::Display;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -28,7 +27,6 @@ pub struct Schema {
     pub settings: Settings,
     pub launchpad: Option<Launchpad>,
     pub contract: Option<String>,
-    pub storage: Option<Storage>,
 }
 
 impl Schema {
@@ -38,7 +36,6 @@ impl Schema {
         settings: Settings,
         launchpad: Option<Launchpad>,
         contract: Option<String>,
-        storage: Option<Storage>,
     ) -> Schema {
         Schema {
             module_alias: None,
@@ -47,7 +44,6 @@ impl Schema {
             settings,
             launchpad,
             contract,
-            storage,
         }
     }
 
@@ -85,7 +81,7 @@ impl Schema {
         );
         ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
             &allowlist_cap, &mut allowlist,
-        );"          
+        );"
         );
 
         format!(
