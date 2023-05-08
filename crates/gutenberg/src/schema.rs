@@ -76,6 +76,19 @@ impl Schema {
             .request_policies
             .write_policies(&self.nft.type_name);
 
+        let allowlist = format!("
+        // Setup Allowlist
+        let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
+
+        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::orderbook::Witness>(
+            &allowlist_cap, &mut allowlist,
+        );
+        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
+            &allowlist_cap, &mut allowlist,
+        );
+        "          
+        );
+
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         let sender = sui::tx_context::sender(ctx);
@@ -94,7 +107,7 @@ impl Schema {
         {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{transfer_fns}    }}",
+{domains}{feature_domains}{request_policies}{allowlist}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )
