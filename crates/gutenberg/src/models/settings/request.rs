@@ -11,7 +11,7 @@ pub enum RequestType {
     //Withdraw, TODO
 }
 
-#[derive(Debug, Deserialize, Serialize, Reflect)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestPolicies {
     #[serde(default)]
     pub transfer: bool,
