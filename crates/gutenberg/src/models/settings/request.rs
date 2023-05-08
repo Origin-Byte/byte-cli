@@ -46,16 +46,14 @@ impl RequestPolicies {
         );
         nft_protocol::transfer_allowlist::enforce(
             &mut transfer_policy, &transfer_policy_cap,
-        );
-            "
+        );"
             ));
         }
         if self.borrow {
             request_policies.push_str(&format!(
                 "
         let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);\n
-            "
+            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);\n"
             ));
         }
 

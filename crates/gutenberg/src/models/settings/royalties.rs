@@ -78,7 +78,7 @@ impl RoyaltyPolicy {
             nft_protocol::royalty::from_shares(royalty_map, ctx),
             {},
             ctx,
-        );\n",
+        );\n\n",
                     bps
                 ),
             ),
@@ -124,10 +124,7 @@ impl RoyaltyPolicy {
         };
 
         code.push_str(royalty_strategy.as_str());
-        code.push_str(
-            "\n       
-        // Setup Kiosks for royalty address(es)\n",
-        );
+        code.push_str("        // Setup Kiosks for royalty address(es)\n");
 
         code.push_str(kiosk_init.as_str());
 

@@ -83,10 +83,8 @@ impl Tags {
 
     /// Generates Move code to push tags to a Move `vector` structure
     pub fn write_tags_vec(&self) -> String {
-        let mut code = String::from(
-            "
-        let tags = nft_protocol::tags::empty(ctx);\n",
-        );
+        let mut code =
+            String::from("let tags = nft_protocol::tags::empty(ctx);\n");
 
         for tag in self.0.iter().map(Tag::to_string) {
             code.push_str(&format!(

@@ -85,8 +85,7 @@ impl Schema {
         );
         ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
             &allowlist_cap, &mut allowlist,
-        );
-        "          
+        );"          
         );
 
         format!(
@@ -184,8 +183,7 @@ impl Schema {
         transfer::public_transfer(warehouse, CREATOR);
         test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::end(scenario);
-    }}
-        ")
+    }}")
     }
 
     /// Higher level method responsible for generating Move code from the
