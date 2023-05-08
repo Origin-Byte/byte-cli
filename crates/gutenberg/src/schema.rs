@@ -68,6 +68,9 @@ impl Schema {
             .request_policies
             .write_policies(&self.nft.type_name);
 
+        let orderbook =
+            self.settings.orderbook.write_orderbook(&self.nft.type_name);
+
         let allowlist = format!("
         // Setup Allowlist
         let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
@@ -98,7 +101,7 @@ impl Schema {
         {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{allowlist}{transfer_fns}    }}",
+{domains}{feature_domains}{request_policies}{orderbook}{allowlist}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )
@@ -111,6 +114,11 @@ impl Schema {
             self.settings.mint_policies.write_mint_fns(&self.collection);
 
         code.push_str(mint_fns.as_str());
+
+        let orderbook_fns =
+            self.settings.orderbook.write_entry_fns(&self.nft.type_name);
+
+        code.push_str(orderbook_fns.as_str());
 
         code
     }

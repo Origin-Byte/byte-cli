@@ -82,7 +82,7 @@ module gnomes::gnomes {
         ob_kiosk::ob_kiosk::init_for_address(sui::tx_context::sender(ctx), ctx);
 
         let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<Gnome>(&publisher, ctx);
+            ob_request::transfer_request::init_policy<Gnome>(&sui::package::publisher, ctx);
 
         nft_protocol::royalty_strategy_bps::enforce(
             &mut transfer_policy, &transfer_policy_cap,
@@ -91,8 +91,13 @@ module gnomes::gnomes {
             &mut transfer_policy, &transfer_policy_cap,
         );
         let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<Gnome>(&publisher, ctx);
+            ob_request::borrow_request::init_policy<Gnome>(&sui::package::publisher, ctx);
 
+        // Protected orderbook such that trading is not initially possible
+        let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<Gnome, SUI>(
+            dw, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
+        );
+        liquidity_layer_v1::orderbook::share(orderbook);
         // Setup Allowlist
         let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
 
@@ -159,6 +164,28 @@ module gnomes::gnomes {
         );
 
         nft
+    }
+    // Protected orderbook functions
+    public entry fun enable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::Orderbook<Gnome, SUI>,
+    ) {
+        let dw = witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
+        );
+    }
+
+    public entry fun disable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::Orderbook<Gnome, SUI>,
+    ) {
+        let dw = witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
+        );
     }
 
     #[test_only]
