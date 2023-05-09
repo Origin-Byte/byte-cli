@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::contract::modules::DisplayInfoMod;
+
 pub enum MintType {
     Airdrop,
     Launchpad,
@@ -27,23 +29,17 @@ impl MintPolicies {
         let mut params = String::new();
         let mut transfer = String::new();
 
-        // Name and URL are mandatory as they are static display fields on the
-        // NFT
         args.push_str("        name: std::string::String,\n");
         params.push_str("            name,\n");
+
+        args.push_str(DisplayInfoMod::add_display_args());
+        params.push_str(DisplayInfoMod::add_display_params());
 
         args.push_str("        url: vector<u8>,\n");
         params.push_str("            url,\n");
 
-        // args.push_str(DisplayInfoMod::add_display_args());
-        // domains.push_str(DisplayInfoMod::add_nft_display());
-        // params.push_str(DisplayInfoMod::add_display_params());
-
-        // domains.push_str(DisplayInfoMod::add_nft_url());
-
-        // args.push_str(DisplayInfoMod::add_attributes_args());
-        // domains.push_str(DisplayInfoMod::add_nft_attributes());
-        // params.push_str(DisplayInfoMod::add_attributes_params());
+        args.push_str(DisplayInfoMod::add_attributes_args());
+        params.push_str(DisplayInfoMod::add_attributes_params());
 
         let mint_cap = format!(
                 "        mint_cap: &mut nft_protocol::mint_cap::MintCap<{nft_type_name}>,\n"

@@ -130,14 +130,20 @@ module gnomes::gnomes {
 
     public entry fun mint_nft(
         name: std::string::String,
+        description: std::string::String,
         url: vector<u8>,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
         warehouse: &mut nft_protocol::warehouse::Warehouse<Gnome>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
             name,
+            description,
             url,
+            attribute_keys,
+            attribute_values,
             mint_cap,
             ctx,
         );
@@ -147,14 +153,20 @@ module gnomes::gnomes {
 
     public entry fun airdrop_nft(
         name: std::string::String,
+        description: std::string::String,
         url: vector<u8>,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
         receiver: &mut ob_kiosk::ob_kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
             name,
+            description,
             url,
+            attribute_keys,
+            attribute_values,
             mint_cap,
             ctx,
         );
@@ -164,7 +176,10 @@ module gnomes::gnomes {
 
     fun mint(
         name: std::string::String,
+        description: std::string::String,
         url: vector<u8>,
+        attribute_keys: vector<std::string::String>,
+        attribute_values: vector<std::string::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
         ctx: &mut sui::tx_context::TxContext,
     ): Gnome {
@@ -258,7 +273,7 @@ module gnomes::gnomes {
     fun it_inits_collection() {
         let scenario = test_scenario::begin(CREATOR);
 
-        init(GNOMES {}, ctx(&mut scenario));
+        init(GNOMES {}, sui::test_scenario::ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         assert!(test_scenario::has_most_recent_shared<Collection<Gnome>>(), 0);
@@ -276,7 +291,7 @@ module gnomes::gnomes {
     #[test]
     fun it_mints_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        init(GNOMES {}, ctx(&mut scenario));
+        init(GNOMES {}, sui::test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -285,20 +300,20 @@ module gnomes::gnomes {
             CREATOR,
         );
 
-        let warehouse = warehouse::new<Gnome>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Gnome>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft(
-            string::utf8(b"TEST NAME"),
-            string::utf8(b"TEST DESCRIPTION"),
+            std::string::utf8(b"TEST NAME"),
+            std::string::utf8(b"TEST DESCRIPTION"),
             b"https://originbyte.io/",
-            vector[ascii::string(b"avg_return")],
-            vector[ascii::string(b"24%")],
+            vector[std::ascii::string(b"avg_return")],
+            vector[std::ascii::string(b"24%")],
             &mut mint_cap,
             &mut warehouse,
-            ctx(&mut scenario)
+            sui::test_scenario::ctx(&mut scenario)
         );
 
-        transfer::public_transfer(warehouse, CREATOR);
+        sui::transfer::public_transfer(warehouse, CREATOR);
         test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::end(scenario);
     }
