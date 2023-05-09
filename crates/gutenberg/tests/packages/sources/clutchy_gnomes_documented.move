@@ -55,7 +55,7 @@ module gnomes::gnomes {
 
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
-        sui::vec_set::insert(&mut creators, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49dg);
+        sui::vec_set::insert(&mut creators, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49db);
 
         nft_protocol::collection::add_domain(
             delegated_witness,
@@ -73,7 +73,7 @@ module gnomes::gnomes {
         );
 
         let royalty_map = sui::vec_map::empty();
-        sui::vec_map::insert(&mut royalty_map, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49dh, 1000);
+        sui::vec_map::insert(&mut royalty_map, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49da, 1000);
         sui::vec_map::insert(&mut royalty_map, sui::tx_context::sender(ctx), 9000);
 
         nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
@@ -85,7 +85,7 @@ module gnomes::gnomes {
         );
 
         // Setup Kiosks for royalty address(es)
-        ob_kiosk::ob_kiosk::init_for_address(@0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49dh, ctx);
+        ob_kiosk::ob_kiosk::init_for_address(@0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49da, ctx);
         ob_kiosk::ob_kiosk::init_for_address(sui::tx_context::sender(ctx), ctx);
 
         let (transfer_policy, transfer_policy_cap) =
