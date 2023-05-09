@@ -82,7 +82,7 @@ module gnomes::gnomes {
         ob_kiosk::ob_kiosk::init_for_address(sui::tx_context::sender(ctx), ctx);
 
         let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<Gnome>(&publisher, ctx);
+            ob_request::transfer_request::init_policy<Gnome>(&sui::package::publisher, ctx);
 
         nft_protocol::royalty_strategy_bps::enforce(
             &mut transfer_policy, &transfer_policy_cap,
@@ -91,8 +91,13 @@ module gnomes::gnomes {
             &mut transfer_policy, &transfer_policy_cap,
         );
         let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<Gnome>(&publisher, ctx);
+            ob_request::borrow_request::init_policy<Gnome>(&sui::package::publisher, ctx);
 
+        // Protected orderbook such that trading is not initially possible
+        let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<Gnome, SUI>(
+            dw, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
+        );
+        liquidity_layer_v1::orderbook::share(orderbook);
         // Setup Allowlist
         let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
 
@@ -102,8 +107,18 @@ module gnomes::gnomes {
         ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
             &allowlist_cap, &mut allowlist,
         );
-        sui::transfer::transfer(mint_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
-        sui::transfer::share_object(collection);
+        // Setup Transfers
+        sui::transfer::public_transfer(publisher, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(mint_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(allowlist_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(allowlist);
+        sui::transfer::public_share_object(collection);
+        
+        sui::transfer::public_transfer(transfer_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(transfer_policy);
+
+        sui::transfer::public_transfer(borrow_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_share_object(borrow_policy);
     }
 
     public entry fun mint_to_launchpad(
@@ -159,6 +174,28 @@ module gnomes::gnomes {
         );
 
         nft
+    }
+    // Protected orderbook functions
+    public entry fun enable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::Orderbook<Gnome, SUI>,
+    ) {
+        let dw = witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
+        );
+    }
+
+    public entry fun disable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::Orderbook<Gnome, SUI>,
+    ) {
+        let dw = witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
+        );
     }
 
     #[test_only]

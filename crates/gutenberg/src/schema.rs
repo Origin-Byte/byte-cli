@@ -16,17 +16,15 @@ use crate::contract::modules::Display;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     module_alias: Option<String>,
     pub collection: CollectionData,
     pub nft: NftData,
-    #[serde(default)]
     pub settings: Settings,
     pub launchpad: Option<Launchpad>,
-    pub contract: Option<String>,
 }
 
 impl Schema {
@@ -35,7 +33,6 @@ impl Schema {
         nft: NftData,
         settings: Settings,
         launchpad: Option<Launchpad>,
-        contract: Option<String>,
     ) -> Schema {
         Schema {
             module_alias: None,
@@ -43,7 +40,6 @@ impl Schema {
             nft,
             settings,
             launchpad,
-            contract,
         }
     }
 
@@ -71,6 +67,9 @@ impl Schema {
             .settings
             .request_policies
             .write_policies(&self.nft.type_name);
+
+        let orderbook =
+            self.settings.orderbook.write_orderbook(&self.nft.type_name);
 
         let allowlist = format!("
         // Setup Allowlist
@@ -102,7 +101,7 @@ impl Schema {
         {display}
 
         let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{allowlist}{transfer_fns}    }}",
+{domains}{feature_domains}{request_policies}{orderbook}{allowlist}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )
@@ -115,6 +114,11 @@ impl Schema {
             self.settings.mint_policies.write_mint_fns(&self.collection);
 
         code.push_str(mint_fns.as_str());
+
+        let orderbook_fns =
+            self.settings.orderbook.write_entry_fns(&self.nft.type_name);
+
+        code.push_str(orderbook_fns.as_str());
 
         code
     }

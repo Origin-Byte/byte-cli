@@ -8,19 +8,8 @@ pub enum RequestType {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestPolicies {
-    #[serde(default)]
     pub transfer: bool,
-    #[serde(default)]
     pub borrow: bool,
-}
-
-impl Default for RequestPolicies {
-    fn default() -> Self {
-        Self {
-            transfer: false,
-            borrow: false,
-        }
-    }
 }
 
 impl RequestPolicies {
@@ -39,7 +28,7 @@ impl RequestPolicies {
             request_policies.push_str(&format!(
                 "
         let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<{type_name}>(&publisher, ctx);
+            ob_request::transfer_request::init_policy<{type_name}>(&sui::package::publisher, ctx);
 
         nft_protocol::royalty_strategy_bps::enforce(
             &mut transfer_policy, &transfer_policy_cap,
@@ -53,7 +42,7 @@ impl RequestPolicies {
             request_policies.push_str(&format!(
                 "
         let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);\n"
+            ob_request::borrow_request::init_policy<{type_name}>(&sui::package::publisher, ctx);\n"
             ));
         }
 

@@ -1,11 +1,13 @@
 pub mod composability;
 pub mod minting;
+pub mod orderbook;
 pub mod request;
 pub mod royalties;
 pub mod tags;
 
 pub use composability::Composability;
 pub use minting::MintPolicies;
+pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 pub use royalties::RoyaltyPolicy;
 pub use tags::Tags;
@@ -14,18 +16,15 @@ use serde::{Deserialize, Serialize};
 
 use super::collection::CollectionData;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
-    #[serde(default)]
     pub mint_policies: MintPolicies,
-    #[serde(default)]
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
-    #[serde(default)]
-    pub loose: bool,
+    pub orderbook: Orderbook,
 }
 
 impl Settings {
@@ -35,7 +34,7 @@ impl Settings {
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
         composability: Option<Composability>,
-        loose: bool,
+        orderbook: Orderbook,
     ) -> Settings {
         Settings {
             tags,
@@ -43,52 +42,18 @@ impl Settings {
             mint_policies,
             request_policies,
             composability,
-            loose,
+            orderbook,
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.tags.is_none()
-            && self.royalties.is_none()
-            && self.mint_policies.is_empty()
-            && self.request_policies.is_empty()
-            && self.composability.is_none()
-            && !self.loose
-    }
-
-    pub fn set_tags(&mut self, tags: Tags) {
-        self.tags = Option::Some(tags);
-    }
-
-    pub fn set_royalties(&mut self, royalties: RoyaltyPolicy) {
-        self.royalties = Option::Some(royalties);
-    }
-
-    pub fn set_mint_policies(&mut self, policies: MintPolicies) {
-        self.mint_policies = policies;
-    }
-
-    pub fn set_request_policies(&mut self, policies: RequestPolicies) {
-        self.request_policies = policies;
-    }
-
-    pub fn set_composability(&mut self, composability: Composability) {
-        self.composability = Option::Some(composability);
-    }
-
-    pub fn set_loose(&mut self, is_loose: bool) {
-        self.loose = is_loose;
-    }
-
-    pub fn write_feature_domains(&self, collection: &CollectionData) -> String {
+    pub fn write_feature_domains(
+        &self,
+        _collection: &CollectionData,
+    ) -> String {
         let mut code = String::new();
 
         if let Some(_royalties) = &self.royalties {
             code.push_str(self.write_royalties().as_str());
-        }
-
-        if self.loose {
-            code.push_str(self.write_loose(collection).as_str());
         }
 
         code
@@ -106,19 +71,33 @@ impl Settings {
             None => "sui::tx_context::sender(ctx)".to_string(),
         };
 
-        let mut code = format!(
-            "
-        sui::transfer::transfer(mint_cap, {receiver});
-        sui::transfer::share_object(collection);\n"
-        );
+        let mut code = String::new();
 
-        if self.loose {
-            code.push_str(
-                format!(
-                    "        sui::transfer::transfer(templates, {receiver});"
-                )
-                .as_str(),
-            )
+        code.push_str(&format!(
+            "
+        // Setup Transfers
+        sui::transfer::public_transfer(publisher, {receiver});
+        sui::transfer::public_transfer(mint_cap, {receiver});
+        sui::transfer::public_transfer(allowlist_cap, {receiver});
+        sui::transfer::public_share_object(allowlist);
+        sui::transfer::public_share_object(collection);
+        "
+        ));
+
+        if self.request_policies.transfer {
+            code.push_str(&format!(
+                "
+        sui::transfer::public_transfer(transfer_policy_cap, {receiver});
+        sui::transfer::public_share_object(transfer_policy);\n"
+            ));
+        }
+
+        if self.request_policies.borrow {
+            code.push_str(&format!(
+                "
+        sui::transfer::public_transfer(borrow_policy_cap, {receiver});
+        sui::transfer::public_share_object(borrow_policy);\n"
+            ));
         }
 
         code
