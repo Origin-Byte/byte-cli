@@ -14,11 +14,6 @@ fn main() {
             input_config_path,
             output_dir,
         } => {
-            println!(
-                "Generating contract from {} to {}",
-                input_config_path, output_dir
-            );
-
             let config_path_parsed = Path::new(&input_config_path);
             let output_dir_parsed = Path::new(&output_dir);
             generate_contract(&config_path_parsed, &output_dir_parsed);
