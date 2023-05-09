@@ -146,7 +146,7 @@ impl Schema {
     fun it_inits_collection() {{
         let scenario = test_scenario::begin(CREATOR);
 
-        init({witness} {{}}, ctx(&mut scenario));
+        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         assert!(test_scenario::has_most_recent_shared<Collection<{type_name}>>(), 0);
@@ -164,7 +164,7 @@ impl Schema {
     #[test]
     fun it_mints_nft() {{
         let scenario = test_scenario::begin(CREATOR);
-        init({witness} {{}}, ctx(&mut scenario));
+        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -173,20 +173,20 @@ impl Schema {
             CREATOR,
         );
 
-        let warehouse = warehouse::new<{type_name}>(ctx(&mut scenario));
+        let warehouse = warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft(
-            string::utf8(b\"TEST NAME\"),
-            string::utf8(b\"TEST DESCRIPTION\"),
+            std::string::utf8(b\"TEST NAME\"),
+            std::string::utf8(b\"TEST DESCRIPTION\"),
             b\"https://originbyte.io/\",
-            vector[ascii::string(b\"avg_return\")],
-            vector[ascii::string(b\"24%\")],
+            vector[std::ascii::string(b\"avg_return\")],
+            vector[std::ascii::string(b\"24%\")],
             &mut mint_cap,
             &mut warehouse,
-            ctx(&mut scenario)
+            sui::test_scenario::ctx(&mut scenario)
         );
 
-        transfer::public_transfer(warehouse, CREATOR);
+        sui::transfer::public_transfer(warehouse, CREATOR);
         test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::end(scenario);
     }}")
