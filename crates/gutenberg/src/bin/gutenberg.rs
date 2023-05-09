@@ -18,9 +18,36 @@ fn main() {
                 "Generating contract from {} to {}",
                 input_config_path, output_dir
             );
+
+            let config_path_parsed = Path::new(&input_config_path);
+            let output_dir_parsed = Path::new(&output_dir);
+            generate_contract(&config_path_parsed, &output_dir_parsed);
         }
         Commands::GenerateTests => generate_tests(),
     }
+}
+
+fn generate_contract(config_path: &Path, output_dir: &Path) {
+    let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
+    let expected_file = format!("{expected_file}.move");
+
+    let config_extension = match config_path.extension() {
+        Some(extension) => extension.to_str().unwrap(),
+        None => {
+            eprintln!(
+                "Could not identify file extension for configuration path: {}",
+                config_path.display(),
+            );
+            return;
+        }
+    };
+
+    let mut output = File::create(output_dir.join(expected_file)).unwrap();
+
+    let config = File::open(config_path).unwrap();
+    assert_schema(config_path, config, config_extension)
+        .write_move(&mut output)
+        .expect("Could not write move file");
 }
 
 fn generate_tests() {
@@ -37,28 +64,7 @@ fn generate_tests() {
 
     for entry in files {
         let config_path = entry.path();
-
-        let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
-        let expected_file = format!("{expected_file}.move");
-
-        let config_extension = match config_path.extension() {
-            Some(extension) => extension.to_str().unwrap(),
-            None => {
-                eprintln!(
-                    "Could not identify file extension for configuration path: {}",
-                    config_path.display(),
-                );
-                continue;
-            }
-        };
-
-        let mut output =
-            File::create(modules_path.join(expected_file)).unwrap();
-
-        let config = File::open(config_path.as_path()).unwrap();
-        assert_schema(config_path.as_path(), config, config_extension)
-            .write_move(&mut output)
-            .expect("Could not write move file");
+        generate_contract(&config_path, modules_path);
     }
 }
 
