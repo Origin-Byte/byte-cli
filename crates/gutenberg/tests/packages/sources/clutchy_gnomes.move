@@ -17,8 +17,6 @@ module gnomes::gnomes {
 
 
     fun init(witness: GNOMES, ctx: &mut sui::tx_context::TxContext) {
-        let sender = sui::tx_context::sender(ctx);
-
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<GNOMES, Gnome>(
             &witness, std::option::none(), ctx
         );
@@ -27,19 +25,17 @@ module gnomes::gnomes {
         let publisher = sui::package::claim(witness, ctx);
 
         // Init Tags
-        let tags = nft_protocol::tags::empty(ctx);
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::art());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::profile_picture());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::collectible());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::game_asset());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::tokenised_asset());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::ticker());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::domain_name());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::music());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::video());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::ticket());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::license());
-        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::utility());
+        let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, nft_protocol::tags::art());
+        std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
+        std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
+        std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
+        std::vector::push_back(&mut tags, nft_protocol::tags::music());
+        std::vector::push_back(&mut tags, nft_protocol::tags::video());
+        std::vector::push_back(&mut tags, nft_protocol::tags::ticket());
+        std::vector::push_back(&mut tags, nft_protocol::tags::license());
 
 
         // Init Display
@@ -50,6 +46,7 @@ module gnomes::gnomes {
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
         sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
         sui::display::update_version(&mut display);
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 

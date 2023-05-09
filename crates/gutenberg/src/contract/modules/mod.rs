@@ -18,6 +18,8 @@ impl Display {
         sui::display::add(&mut display, std::string::utf8(b\"image_url\"), std::string::utf8(b\"{{url}}\"));
         sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));
         sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));
-        sui::display::update_version(&mut display);")
+        sui::display::update_version(&mut display);
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));"
+    )
     }
 }

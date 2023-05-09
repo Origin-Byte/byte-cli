@@ -85,8 +85,6 @@ impl Schema {
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let sender = sui::tx_context::sender(ctx);
-
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {type_name}>(
             &witness, std::option::none(), ctx
         );

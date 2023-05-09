@@ -26,13 +26,11 @@
             "Collectible",
             "GameAsset",
             "TokenisedAsset",
-            "Ticker",
             "DomainName",
             "Music",
             "Video",
             "Ticket",
-            "License",
-            "Utility"
+            "License"
         ],
         "royalties": {
             "proportional": {
