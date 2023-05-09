@@ -170,12 +170,12 @@ impl Settings {
             "
     public entry fun burn_nft_in_listing(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collectio::Collection<{nft_type_name}>,
-        listing: &mut launchpad::listing::Listing,
+        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-        let nft = launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
+        let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
         burn_nft(publisher, collection, nft);
     }}
         "
@@ -185,13 +185,13 @@ impl Settings {
             "
     public entry fun burn_nft_in_listing_with_id(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collectio::Collection<{nft_type_name}>,
-        listing: &mut launchpad::listing::Listing,
+        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         nft_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-        let nft = launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
+        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
         burn_nft(publisher, collection, nft);
     }}
         "

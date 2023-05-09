@@ -80,7 +80,7 @@ impl DisplayInfoMod {
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            display_info::new(
+            nft_protocol::display_info::new(
                 std::string::utf8(b\"{collection_name}\"),
                 std::string::utf8(b\"{description}\"),
             ),
@@ -149,8 +149,8 @@ impl DisplayInfoMod {
     }
 
     pub fn add_attributes_args() -> &'static str {
-        "        attribute_keys: vector<std::string::String>,
-        attribute_values: vector<std::string::String>,\n"
+        "        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,\n"
     }
 
     pub fn add_display_params() -> &'static str {

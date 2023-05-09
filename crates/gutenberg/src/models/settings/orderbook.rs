@@ -37,9 +37,9 @@ impl Orderbook {
     // Protected orderbook functions
     public entry fun enable_orderbook(
         publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, sui::sui::SUI>,
+        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<{type_name}, sui::sui::SUI>,
     ) {{
-        let delegated_witness = witness::from_publisher(publisher);
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
 
         liquidity_layer_v1::orderbook::set_protection(
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
@@ -48,9 +48,9 @@ impl Orderbook {
 
     public entry fun disable_orderbook(
         publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, sui::sui::SUI>,
+        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<{type_name}, sui::sui::SUI>,
     ) {{
-        let delegated_witness = witness::from_publisher(publisher);
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
 
         liquidity_layer_v1::orderbook::set_protection(
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),

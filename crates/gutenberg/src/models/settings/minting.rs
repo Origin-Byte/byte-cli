@@ -56,13 +56,13 @@ impl MintPolicies {
                 MintType::Launchpad => {
                     args.push_str(
                         format!(
-                            "        warehouse: &mut nft_protocol::warehouse::Warehouse<{}>,\n",
+                            "        warehouse: &mut ob_launchpad::warehouse::Warehouse<{}>,\n",
                             nft_type_name
                         )
                         .as_str(),
                     );
                     transfer.push_str(
-                        "nft_protocol::warehouse::deposit_nft(warehouse, nft);",
+                        "ob_launchpad::warehouse::deposit_nft(warehouse, nft);",
                     );
                     fun_name.push_str("mint_nft");
                     args.push_str(
@@ -71,7 +71,7 @@ impl MintPolicies {
                 }
                 MintType::Airdrop => {
                     args.push_str(
-                        "        receiver: &mut ob_kiosk::ob_kiosk::Kiosk,\n",
+                        "        receiver: &mut sui::kiosk::Kiosk,\n",
                     );
                     transfer.push_str(
                         "ob_kiosk::ob_kiosk::deposit(receiver, nft, ctx);",

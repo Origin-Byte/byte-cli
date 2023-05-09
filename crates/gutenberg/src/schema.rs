@@ -88,7 +88,7 @@ impl Schema {
         let sender = sui::tx_context::sender(ctx);
 
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {type_name}>(
-            &witness, option::none(), ctx
+            &witness, std::option::none(), ctx
         );
 
         // Init Publisher
@@ -100,7 +100,7 @@ impl Schema {
         // Init Display
         {display}
 
-        let delegated_witness = nft_protocol::witness::from_witness(Witness {{}});
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{request_policies}{orderbook}{allowlist}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
@@ -135,45 +135,40 @@ impl Schema {
         format!(
             "
     #[test_only]
-    use sui::test_scenario::{{Self, ctx}};
-    #[test_only]
-    use nft_protocol::collection::Collection;
-
-    #[test_only]
     const CREATOR: address = @0xA1C04;
 
     #[test]
     fun it_inits_collection() {{
-        let scenario = test_scenario::begin(CREATOR);
+        let scenario = sui::test_scenario::begin(CREATOR);
 
         init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
-        test_scenario::next_tx(&mut scenario, CREATOR);
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<{type_name}>>(), 0);
+        assert!(sui::test_scenario::has_most_recent_shared<nft_protocol::collection::Collection<{type_name}>>(), 0);
 
-        let mint_cap = test_scenario::take_from_address<MintCap<{type_name}>>(
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
             &scenario, CREATOR,
         );
 
-        test_scenario::return_to_address(CREATOR, mint_cap);
-        test_scenario::next_tx(&mut scenario, CREATOR);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        test_scenario::end(scenario);
+        sui::test_scenario::end(scenario);
     }}
 
     #[test]
     fun it_mints_nft() {{
-        let scenario = test_scenario::begin(CREATOR);
+        let scenario = sui::test_scenario::begin(CREATOR);
         init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
 
-        test_scenario::next_tx(&mut scenario, CREATOR);
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let mint_cap = test_scenario::take_from_address<MintCap<{type_name}>>(
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
             &scenario,
             CREATOR,
         );
 
-        let warehouse = warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
+        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft(
             std::string::utf8(b\"TEST NAME\"),
@@ -187,8 +182,8 @@ impl Schema {
         );
 
         sui::transfer::public_transfer(warehouse, CREATOR);
-        test_scenario::return_to_address(CREATOR, mint_cap);
-        test_scenario::end(scenario);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::end(scenario);
     }}")
     }
 
