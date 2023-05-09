@@ -6,34 +6,19 @@ use crate::{
 };
 
 pub enum MintType {
-    Direct,
     Airdrop,
     Launchpad,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MintPolicies {
-    #[serde(default)]
     pub launchpad: bool,
-    #[serde(default)]
     pub airdrop: bool,
-    #[serde(default)]
-    pub direct: bool,
-}
-
-impl Default for MintPolicies {
-    fn default() -> Self {
-        Self {
-            launchpad: false,
-            airdrop: false,
-            direct: false,
-        }
-    }
 }
 
 impl MintPolicies {
     pub fn is_empty(&self) -> bool {
-        !self.launchpad && !self.airdrop && !self.direct
+        !self.launchpad && !self.airdrop
     }
 
     pub fn write_mint_fn(
@@ -113,7 +98,6 @@ impl MintPolicies {
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
                 }
-                MintType::Direct => unimplemented!(),
             }
 
             code = format!(
@@ -187,8 +171,7 @@ impl MintPolicies {
             );
         }
 
-        // TODO: For now the flow are indistinguishable
-        if self.airdrop || self.direct {
+        if self.airdrop {
             mint_fns.push_str(
                 &self.write_mint_fn(collection, Some(MintType::Airdrop)),
             );
