@@ -121,22 +121,16 @@ module gnomes::gnomes {
         sui::transfer::public_share_object(borrow_policy);
     }
 
-    public entry fun mint_to_launchpad(
+    public entry fun mint_nft(
         name: std::string::String,
         url: vector<u8>,
-        description: std::string::String,
-        attribute_keys: vector<std::string::String>,
-        attribute_values: vector<std::string::String>,
-        mint_cap: &nft_protocol::mint_cap::MintCap<GNOMES>,
-        warehouse: &mut nft_protocol::warehouse::Warehouse<GNOMES>,
+        mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
+        warehouse: &mut nft_protocol::warehouse::Warehouse<Gnome>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
             name,
             url,
-            description,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             ctx,
         );
@@ -144,35 +138,43 @@ module gnomes::gnomes {
         nft_protocol::warehouse::deposit_nft(warehouse, nft);
     }
 
+    public entry fun airdrop_nft(
+        name: std::string::String,
+        url: vector<u8>,
+        mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
+        receiver: &mut ob_kiosk::ob_kiosk::Kiosk,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let nft = mint(
+            name,
+            url,
+            mint_cap,
+            ctx,
+        );
+
+        ob_kiosk::ob_kiosk::deposit(receiver, nft, ctx);
+    }
+
     fun mint(
         name: std::string::String,
         url: vector<u8>,
-        description: std::string::String,
-        attribute_keys: vector<std::string::String>,
-        attribute_values: vector<std::string::String>,
-        mint_cap: &nft_protocol::mint_cap::MintCap<GNOMES>,
+        mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
         ctx: &mut sui::tx_context::TxContext,
-    ): nft_protocol::nft::Nft<GNOMES> {
-        let nft = nft_protocol::nft::from_mint_cap(
-            mint_cap,
+    ): Gnome {
+        
+        let nft = Gnome {
+            id: sui::object::new(ctx),
             name,
-            sui::url::new_unsafe_from_bytes(url),
-            ctx,
+            description,
+            url: sui::url::new_unsafe_from_bytes(url),
+            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+        };
+        nft_protocol::mint_event::emit_mint(
+            ob_permissions::witness::from_witness(Witness {}),
+            nft_protocol::mint_cap::collection_id(mint_cap),
+            &nft,
         );
-        let delegated_witness = nft_protocol::witness::from_witness<GNOMES, Witness>(&Witness {});
-
-        nft_protocol::display::add_display_domain(
-            delegated_witness, &mut nft, name, description,
-        );
-
-        nft_protocol::display::add_url_domain(
-            delegated_witness, &mut nft, sui::url::new_unsafe_from_bytes(url),
-        );
-
-        nft_protocol::display::add_attributes_domain_from_vec(
-            delegated_witness, &mut nft, attribute_keys, attribute_values,
-        );
-
+        nft_protocol::mint_cap::increment_supply(mint_cap, 1);
         nft
     }
     // Protected orderbook functions

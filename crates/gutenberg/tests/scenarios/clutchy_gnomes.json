@@ -14,7 +14,8 @@
     },
     "settings": {
         "mintPolicies": {
-            "launchpad": true
+            "launchpad": true,
+            "airdrop": true
         },
         "requestPolicies": {
             "transfer": true,
