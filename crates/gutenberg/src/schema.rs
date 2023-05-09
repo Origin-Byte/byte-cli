@@ -122,6 +122,10 @@ impl Schema {
 
         code.push_str(orderbook_fns.as_str());
 
+        if self.settings.burn {
+            code.push_str(&self.settings.write_burn_fns(&self.nft.type_name));
+        }
+
         code
     }
 

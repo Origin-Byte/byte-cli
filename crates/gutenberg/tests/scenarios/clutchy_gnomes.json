@@ -97,6 +97,9 @@
         // "Unprotected" generates the orderbook on publishing
         // Required
         // Possible values: [none, unprotected, protected]
-        "orderbook": "protected"
+        "orderbook": "protected",
+        // If enabled, generates burn_nft, burn_nft_in_listing, burn_nft_in_listing_with_id functions
+        // Required
+        "burn": true
     }
 }

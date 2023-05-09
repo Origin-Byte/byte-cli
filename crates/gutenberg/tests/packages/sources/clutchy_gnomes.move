@@ -206,6 +206,45 @@ module gnomes::gnomes {
             dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
     }
+    
+    // Burn functions
+    
+    public entry fun burn_nft(
+        publisher: &sui::package::Publisher,
+        collection: &nft_protocol::collection::Collection<Gnome>,
+        nft: Gnome,
+    ) {
+        let dw = ob_permissions::witness::from_publisher(publisher);
+        let guard = nft_protocol::mint_event::start_burn(dw, &nft);
+
+        let Gnome { id, name: _, description: _, url: _, attributes: _ } = nft;
+
+        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
+    }
+        
+    public entry fun burn_nft_in_listing(
+        publisher: &sui::package::Publisher,
+        collection: &nft_protocol::collectio::Collection<Gnome>,
+        listing: &mut launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let nft = launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
+        burn_nft(publisher, collection, nft);
+    }
+        
+    public entry fun burn_nft_in_listing_with_id(
+        publisher: &sui::package::Publisher,
+        collection: &nft_protocol::collectio::Collection<Gnome>,
+        listing: &mut launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        nft_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let nft = launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
+        burn_nft(publisher, collection, nft);
+    }
+        
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
