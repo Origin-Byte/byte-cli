@@ -1,16 +1,11 @@
-use crate::cli::{Cli, Commands};
 use clap::Parser;
+use gutenberg::cli::{Cli, Commands};
 use gutenberg::Schema;
-<<<<<<< refs/remotes/origin/main:crates/gutenberg/src/bin/gutenberg.rs
-=======
 use regex::Regex;
 use serde::de::{DeserializeOwned, Error};
->>>>>>> parse config with description:crates/gutenberg/src/bin/generate.rs
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-
-pub mod cli;
 
 fn main() {
     let cli = Cli::parse();
