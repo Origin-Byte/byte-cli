@@ -110,8 +110,10 @@ impl Schema {
     pub fn write_entry_fns(&self) -> String {
         let mut code = String::new();
 
-        let mint_fns =
-            self.settings.mint_policies.write_mint_fns(&self.collection);
+        let mint_fns = self
+            .settings
+            .mint_policies
+            .write_mint_fns(&self.nft.type_name);
 
         code.push_str(mint_fns.as_str());
 

@@ -1,10 +1,11 @@
-use crate::cli::{Cli, Commands};
 use clap::Parser;
+use gutenberg::cli::{Cli, Commands};
 use gutenberg::Schema;
+use regex::Regex;
+use serde::de::{DeserializeOwned, Error};
 use std::fs::File;
+use std::io::Read;
 use std::path::Path;
-
-pub mod cli;
 
 fn main() {
     let cli = Cli::parse();
@@ -76,7 +77,7 @@ fn assert_schema(config_path: &Path, config: File, extension: &str) -> Schema {
                 std::process::exit(2);
             }
         },
-        "json" => match serde_json::from_reader::<_, Schema>(config) {
+        "json" => match remove_comments_and_parse::<Schema>(config) {
             Ok(schema) => schema,
             Err(err) => {
                 eprintln!(
@@ -91,4 +92,18 @@ fn assert_schema(config_path: &Path, config: File, extension: &str) -> Schema {
             std::process::exit(2);
         }
     }
+}
+
+fn remove_comments_and_parse<T: DeserializeOwned>(
+    mut file: File,
+) -> Result<T, serde_json::Error> {
+    let mut content = String::new();
+    file.read_to_string(&mut content)
+        .map_err(|_| serde_json::Error::custom("Failed to read file"))?;
+
+    // Regex pattern to match single-line comments starting with "//"
+    let comment_pattern = Regex::new(r"(?m)^\s*//.*$").unwrap();
+    let json_without_comments = comment_pattern.replace_all(&content, "");
+
+    serde_json::from_str(&json_without_comments)
 }

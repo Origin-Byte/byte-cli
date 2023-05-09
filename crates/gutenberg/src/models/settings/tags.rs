@@ -19,6 +19,7 @@ pub enum Tag {
     Video,
     Ticket,
     License,
+    Utility,
 }
 
 // The ToString trait is automatically implemented for any type which
@@ -38,6 +39,7 @@ impl Display for Tag {
             Tag::Video => "video",
             Tag::Ticket => "ticket",
             Tag::License => "license",
+            Tag::Utility => "utility",
         };
 
         write!(f, "{}", tag)
@@ -60,6 +62,7 @@ impl FromStr for Tag {
             "Video" => Ok(Tag::Video),
             "Ticket" => Ok(Tag::Ticket),
             "License" => Ok(Tag::License),
+            "Utility" => Ok(Tag::Utility),
             _ => Err(()),
         }
     }

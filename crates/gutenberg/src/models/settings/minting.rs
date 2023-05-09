@@ -1,52 +1,29 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    contract::modules::DisplayInfoMod,
-    models::collection::{supply::SupplyPolicy, CollectionData},
-};
-
 pub enum MintType {
-    Direct,
     Airdrop,
     Launchpad,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MintPolicies {
-    #[serde(default)]
     pub launchpad: bool,
-    #[serde(default)]
     pub airdrop: bool,
-    #[serde(default)]
-    pub direct: bool,
-}
-
-impl Default for MintPolicies {
-    fn default() -> Self {
-        Self {
-            launchpad: false,
-            airdrop: false,
-            direct: false,
-        }
-    }
 }
 
 impl MintPolicies {
     pub fn is_empty(&self) -> bool {
-        !self.launchpad && !self.airdrop && !self.direct
+        !self.launchpad && !self.airdrop
     }
 
     pub fn write_mint_fn(
         &self,
-        collection: &CollectionData,
         mint_policy: Option<MintType>,
+        nft_type_name: &str,
     ) -> String {
         let code: String;
-        let witness = collection.witness_name();
-
         let mut return_type = String::new();
         let mut args = String::new();
-        let mut domains = String::new();
         let mut params = String::new();
         let mut transfer = String::new();
 
@@ -58,27 +35,19 @@ impl MintPolicies {
         args.push_str("        url: vector<u8>,\n");
         params.push_str("            url,\n");
 
-        args.push_str(DisplayInfoMod::add_display_args());
-        domains.push_str(DisplayInfoMod::add_nft_display());
-        params.push_str(DisplayInfoMod::add_display_params());
+        // args.push_str(DisplayInfoMod::add_display_args());
+        // domains.push_str(DisplayInfoMod::add_nft_display());
+        // params.push_str(DisplayInfoMod::add_display_params());
 
-        domains.push_str(DisplayInfoMod::add_nft_url());
+        // domains.push_str(DisplayInfoMod::add_nft_url());
 
-        args.push_str(DisplayInfoMod::add_attributes_args());
-        domains.push_str(DisplayInfoMod::add_nft_attributes());
-        params.push_str(DisplayInfoMod::add_attributes_params());
+        // args.push_str(DisplayInfoMod::add_attributes_args());
+        // domains.push_str(DisplayInfoMod::add_nft_attributes());
+        // params.push_str(DisplayInfoMod::add_attributes_params());
 
-        let mint_cap = match collection.supply_policy {
-            SupplyPolicy::Unlimited => format!(
-                "        mint_cap: &nft_protocol::mint_cap::UnregulatedMintCap<{witness}>,\n"
-            ),
-            SupplyPolicy::Limited { .. } => format!(
-                "        mint_cap: &mut nft_protocol::mint_cap::RegulatedMintCap<{witness}>,\n"
-            ),
-            SupplyPolicy::Undefined => format!(
-                "        mint_cap: &nft_protocol::mint_cap::MintCap<{witness}>,\n"
-            ),
-        };
+        let mint_cap = format!(
+                "        mint_cap: &mut nft_protocol::mint_cap::MintCap<{nft_type_name}>,\n"
+            );
         args.push_str(&mint_cap);
 
         params.push_str("            mint_cap,\n");
@@ -92,28 +61,30 @@ impl MintPolicies {
                     args.push_str(
                         format!(
                             "        warehouse: &mut nft_protocol::warehouse::Warehouse<{}>,\n",
-                            witness
+                            nft_type_name
                         )
                         .as_str(),
                     );
                     transfer.push_str(
                         "nft_protocol::warehouse::deposit_nft(warehouse, nft);",
                     );
-                    fun_name.push_str("mint_to_launchpad");
+                    fun_name.push_str("mint_nft");
                     args.push_str(
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
                 }
                 MintType::Airdrop => {
-                    args.push_str("        receiver: address,\n");
-                    transfer
-                        .push_str("sui::transfer::transfer(nft, receiver);");
-                    fun_name.push_str("mint_to_address");
+                    args.push_str(
+                        "        receiver: &mut ob_kiosk::ob_kiosk::Kiosk,\n",
+                    );
+                    transfer.push_str(
+                        "ob_kiosk::ob_kiosk::deposit(receiver, nft, ctx);",
+                    );
+                    fun_name.push_str("airdrop_nft");
                     args.push_str(
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
                 }
-                MintType::Direct => unimplemented!(),
             }
 
             code = format!(
@@ -129,47 +100,33 @@ impl MintPolicies {
     }}"
             );
         } else {
-            return_type.push_str(
-                format!(": nft_protocol::nft::Nft<{}>", witness).as_str(),
-            );
+            return_type.push_str(format!(": {}", nft_type_name).as_str());
             transfer.push_str("nft");
 
             args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
-            let nft = match collection.supply_policy {
-                SupplyPolicy::Unlimited => format!(
-                    "let nft = nft_protocol::nft::from_unregulated(
-            mint_cap,
+            let nft = format!(
+                "
+        let nft = {nft_type_name} {{
+            id: sui::object::new(ctx),
             name,
-            sui::url::new_unsafe_from_bytes(url),
-            ctx,
-        );"
-                ),
-                SupplyPolicy::Limited { .. } => format!(
-                    "let nft = nft_protocol::nft::from_regulated(
-            mint_cap,
-            name,
-            sui::url::new_unsafe_from_bytes(url),
-            ctx,
-        );"
-                ),
-                SupplyPolicy::Undefined => format!(
-                    "let nft = nft_protocol::nft::from_mint_cap(
-            mint_cap,
-            name,
-            sui::url::new_unsafe_from_bytes(url),
-            ctx,
-        );"
-                ),
-            };
+            description,
+            url: sui::url::new_unsafe_from_bytes(url),
+            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+        }};"
+            );
 
             code = format!(
                 "\n
     fun mint(
 {args}    ){return_type} {{
         {nft}
-        let delegated_witness = nft_protocol::witness::from_witness<{witness}, Witness>(&Witness {{}});
-{domains}
+        nft_protocol::mint_event::emit_mint(
+            ob_permissions::witness::from_witness(Witness {{}}),
+            nft_protocol::mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+        nft_protocol::mint_cap::increment_supply(mint_cap, 1);
         {transfer}
     }}"
             );
@@ -178,23 +135,22 @@ impl MintPolicies {
         code
     }
 
-    pub fn write_mint_fns(&self, collection: &CollectionData) -> String {
+    pub fn write_mint_fns(&self, nft_type_name: &str) -> String {
         let mut mint_fns = String::new();
 
         if self.launchpad {
             mint_fns.push_str(
-                &self.write_mint_fn(collection, Some(MintType::Launchpad)),
+                &self.write_mint_fn(Some(MintType::Launchpad), nft_type_name),
             );
         }
 
-        // TODO: For now the flow are indistinguishable
-        if self.airdrop || self.direct {
+        if self.airdrop {
             mint_fns.push_str(
-                &self.write_mint_fn(collection, Some(MintType::Airdrop)),
+                &self.write_mint_fn(Some(MintType::Airdrop), nft_type_name),
             );
         }
 
-        mint_fns.push_str(&self.write_mint_fn(collection, None));
+        mint_fns.push_str(&self.write_mint_fn(None, nft_type_name));
 
         mint_fns
     }
