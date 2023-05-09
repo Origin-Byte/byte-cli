@@ -4271,6 +4271,7 @@ checksum = "92620684d99f750bae383ecb3be3748142d6095760afd5cbcf2261e9a279d780"
 name = "gutenberg"
 version = "0.2.0"
 dependencies = [
+ "clap 4.2.7",
  "hex",
  "pretty_assertions",
  "serde 1.0.160",
