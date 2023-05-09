@@ -33,6 +33,13 @@ module gnomes::gnomes {
         nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::collectible());
         nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::game_asset());
         nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::tokenised_asset());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::ticker());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::domain_name());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::music());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::video());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::ticket());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::license());
+        nft_protocol::tags::add_tag(&mut tags, nft_protocol::tags::utility());
 
 
         // Init Display

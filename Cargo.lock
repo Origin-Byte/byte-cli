@@ -4274,6 +4274,7 @@ dependencies = [
  "clap 4.2.7",
  "hex",
  "pretty_assertions",
+ "regex",
  "serde 1.0.160",
  "serde_json",
  "serde_yaml 0.9.21",
