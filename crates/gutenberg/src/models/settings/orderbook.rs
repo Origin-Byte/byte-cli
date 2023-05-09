@@ -13,15 +13,15 @@ impl Orderbook {
         match self {
             Orderbook::Unprotected => format!(
                 "
-        liquidity_layer_v1::orderbook::create_unprotected<{type_name}, SUI>(
+        liquidity_layer_v1::orderbook::create_unprotected<{type_name}, sui::sui::SUI>(
             delegated_witness, &transfer_policy, ctx,
         );"
             ),
             Orderbook::Protected => format!(
                 "
         // Protected orderbook such that trading is not initially possible
-        let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<{type_name}, SUI>(
-            dw, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
+        let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<{type_name}, sui::sui::SUI>(
+            delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);"
             ),            
@@ -37,23 +37,23 @@ impl Orderbook {
     // Protected orderbook functions
     public entry fun enable_orderbook(
         publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, SUI>,
+        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, sui::sui::SUI>,
     ) {{
-        let dw = witness::from_publisher(publisher);
+        let delegated_witness = witness::from_publisher(publisher);
 
         liquidity_layer_v1::orderbook::set_protection(
-            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
+            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
         );
     }}
 
     public entry fun disable_orderbook(
         publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, SUI>,
+        orderbook: &mut liquidity_layer_v1::Orderbook<{type_name}, sui::sui::SUI>,
     ) {{
-        let dw = witness::from_publisher(publisher);
+        let delegated_witness = witness::from_publisher(publisher);
 
         liquidity_layer_v1::orderbook::set_protection(
-            dw, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
+            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
     }}"
             ),            
