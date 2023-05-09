@@ -9,7 +9,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    GenerateContract {
+    Generate {
         input_config_path: String,
         output_dir: String,
     },

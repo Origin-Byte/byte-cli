@@ -63,3 +63,25 @@ Gutenberg is a templating engine for generating valid, publishable move contract
 - Disabled
 - Protected
 - Unprotected
+
+# Gutenberg cli usage
+
+## Generate contract
+```
+Usage: gutenberg.exe generate <INPUT_CONFIG_PATH> <OUTPUT_DIR>
+
+Arguments:
+  <INPUT_CONFIG_PATH>
+  <OUTPUT_DIR>
+
+Options:
+  -h, --help  Print help
+```
+
+## Generate tests
+```
+Usage: gutenberg.exe generate-tests
+
+Options:
+  -h, --help  Print help
+  ```

@@ -10,7 +10,7 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::GenerateContract {
+        Commands::Generate {
             input_config_path,
             output_dir,
         } => {
