@@ -31,11 +31,13 @@ module gnomes::gnomes {
         std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
         std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
         std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::ticker());
         std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
         std::vector::push_back(&mut tags, nft_protocol::tags::music());
         std::vector::push_back(&mut tags, nft_protocol::tags::video());
         std::vector::push_back(&mut tags, nft_protocol::tags::ticket());
         std::vector::push_back(&mut tags, nft_protocol::tags::license());
+        std::vector::push_back(&mut tags, nft_protocol::tags::utility());
 
 
         // Init Display

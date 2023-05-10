@@ -11,11 +11,11 @@ impl NftData {
         let type_name = &self.type_name;
         format!(
             "struct {type_name} has key, store {{
-                id: UID,
-                name: String,
-                description: String,
-                url: Url,
-                attributes: Attributes,
+                id: sui::object::UID,
+                name: std::string::String,
+                description: std::string::String,
+                url: sui::url::Url,
+                attributes: nft_protocol::attributes::Attributes,
             }}"
         )
     }
