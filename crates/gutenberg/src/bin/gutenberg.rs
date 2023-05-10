@@ -1,10 +1,8 @@
 use clap::Parser;
 use gutenberg::cli::{Cli, Commands};
 use gutenberg::Schema;
-use regex::Regex;
-use serde::de::{DeserializeOwned, Error};
+use std::ffi::OsStr;
 use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 fn main() {
@@ -27,21 +25,12 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
     let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
     let expected_file = format!("{expected_file}.move");
 
-    let config_extension = match config_path.extension() {
-        Some(extension) => extension.to_str().unwrap(),
-        None => {
-            eprintln!(
-                "Could not identify file extension for configuration path: {}",
-                config_path.display(),
-            );
-            return;
-        }
-    };
+    // Create directory if it does not exist
+    std::fs::create_dir_all(output_dir).unwrap();
 
     let mut output = File::create(output_dir.join(expected_file)).unwrap();
 
-    let config = File::open(config_path).unwrap();
-    assert_schema(config_path, config, config_extension)
+    assert_schema(config_path)
         .write_move(&mut output)
         .expect("Could not write move file");
 }
@@ -65,24 +54,28 @@ fn generate_tests() {
 }
 
 /// Asserts that the config file has correct schema
-fn assert_schema(config_path: &Path, config: File, extension: &str) -> Schema {
+fn assert_schema(path: &Path) -> Schema {
+    let config = File::open(path).unwrap();
+    let extension =
+        path.extension().and_then(OsStr::to_str).unwrap_or_default();
+
     match extension {
         "yaml" => match serde_yaml::from_reader::<_, Schema>(config) {
             Ok(schema) => schema,
             Err(err) => {
                 eprintln!(
                     "Could not parse `{path}` due to {err}",
-                    path = config_path.display()
+                    path = path.display()
                 );
                 std::process::exit(2);
             }
         },
-        "json" => match remove_comments_and_parse::<Schema>(config) {
+        "json" => match serde_json::from_reader::<_, Schema>(config) {
             Ok(schema) => schema,
             Err(err) => {
                 eprintln!(
                     "Could not parse `{path}` due to {err}",
-                    path = config_path.display()
+                    path = path.display()
                 );
                 std::process::exit(2);
             }
@@ -92,18 +85,4 @@ fn assert_schema(config_path: &Path, config: File, extension: &str) -> Schema {
             std::process::exit(2);
         }
     }
-}
-
-fn remove_comments_and_parse<T: DeserializeOwned>(
-    mut file: File,
-) -> Result<T, serde_json::Error> {
-    let mut content = String::new();
-    file.read_to_string(&mut content)
-        .map_err(|_| serde_json::Error::custom("Failed to read file"))?;
-
-    // Regex pattern to match single-line comments starting with "//"
-    let comment_pattern = Regex::new(r"(?m)^\s*//.*$").unwrap();
-    let json_without_comments = comment_pattern.replace_all(&content, "");
-
-    serde_json::from_str(&json_without_comments)
 }
