@@ -60,7 +60,7 @@ pub fn get_policy_type() -> Result<Option<RoyaltyPolicy>, anyhow::Error> {
 
             Ok(Some(RoyaltyPolicy::Proportional {
                 shares: BTreeSet::new(),
-                bps,
+                collection_royalty_bps: bps,
             }))
         }
         "Constant" => {

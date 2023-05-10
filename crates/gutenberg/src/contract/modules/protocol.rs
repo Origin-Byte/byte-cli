@@ -94,7 +94,7 @@ impl DisplayInfoMod {
         collection.url.as_ref().map(|url| {
             format!(
                 "
-        nft_protocol::display::add_collection_url_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             {url}
@@ -110,10 +110,10 @@ impl DisplayInfoMod {
         collection.symbol.as_ref().map(|symbol| {
             format!(
                 "
-        nft_protocol::display::add_collection_symbol_domain(
+        nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            std::string::utf8(b\"{symbol}\"),
+            nft_protocol::symbol::new(std::string::utf8(b\"{symbol}\")),
         );\n",
             )
         })
