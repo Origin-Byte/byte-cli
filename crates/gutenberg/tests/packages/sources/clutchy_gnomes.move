@@ -69,6 +69,12 @@ module gnomes::gnomes {
             ),
         );
 
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::symbol::new(std::string::utf8(b"GNOMES")),
+        );
+
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e, 1000);
         sui::vec_map::insert(&mut royalty_map, sui::tx_context::sender(ctx), 9000);
