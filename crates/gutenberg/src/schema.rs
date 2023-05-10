@@ -20,7 +20,7 @@ use crate::contract::modules::Display;
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
-    module_alias: Option<String>,
+    package_name: Option<String>,
     pub collection: CollectionData,
     pub nft: NftData,
     pub settings: Settings,
@@ -35,7 +35,7 @@ impl Schema {
         launchpad: Option<Launchpad>,
     ) -> Schema {
         Schema {
-            module_alias: None,
+            package_name: None,
             collection,
             nft,
             settings,
@@ -208,7 +208,7 @@ impl Schema {
 
         let tests = self.write_tests();
 
-        if let Some(module_alias) = &self.module_alias {
+        if let Some(module_alias) = &self.package_name {
             vars.insert("module_alias", module_alias);
         } else {
             vars.insert("module_alias", &module_name);
