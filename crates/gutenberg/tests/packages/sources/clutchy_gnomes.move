@@ -51,6 +51,7 @@ module gnomes::gnomes {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
         let creators = sui::vec_set::empty();
+        sui::vec_set::insert(&mut creators, sui::tx_context::sender(ctx));
         sui::vec_set::insert(&mut creators, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
         sui::vec_set::insert(&mut creators, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49db);
 
@@ -112,16 +113,16 @@ module gnomes::gnomes {
             &allowlist_cap, &mut allowlist,
         );
         // Setup Transfers
-        sui::transfer::public_transfer(publisher, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
-        sui::transfer::public_transfer(mint_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
-        sui::transfer::public_transfer(allowlist_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_transfer(allowlist_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(allowlist);
         sui::transfer::public_share_object(collection);
         
-        sui::transfer::public_transfer(transfer_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);
 
-        sui::transfer::public_transfer(borrow_policy_cap, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df);
+        sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(borrow_policy);
     }
 
