@@ -57,9 +57,7 @@ impl Schema {
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let transfer_fns = self
-            .settings
-            .write_transfer_fns(self.collection.creators.first());
+        let transfer_fns = self.settings.write_transfer_fns();
 
         let tags = self.settings.write_tags();
         let display = Display::write_display(&self.nft.type_name);
@@ -70,18 +68,6 @@ impl Schema {
 
         let orderbook =
             self.settings.orderbook.write_orderbook(&self.nft.type_name);
-
-        let allowlist = format!("
-        // Setup Allowlist
-        let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
-
-        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::orderbook::Witness>(
-            &allowlist_cap, &mut allowlist,
-        );
-        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
-            &allowlist_cap, &mut allowlist,
-        );"
-        );
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
@@ -99,7 +85,7 @@ impl Schema {
         {display}
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{orderbook}{allowlist}{transfer_fns}    }}",
+{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}",
             witness = self.witness_name(),
             type_name = self.nft.type_name
         )

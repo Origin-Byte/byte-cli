@@ -62,26 +62,15 @@ impl Settings {
         code
     }
 
-    pub fn write_transfer_fns(&self, receiver: Option<&String>) -> String {
-        let receiver = match receiver {
-            Some(address) => {
-                if address == "sui::tx_context::sender(ctx)" {
-                    address.clone()
-                } else {
-                    format!("@{address}")
-                }
-            }
-            None => "sui::tx_context::sender(ctx)".to_string(),
-        };
-
+    pub fn write_transfer_fns(&self) -> String {
         let mut code = String::new();
 
         code.push_str(&format!(
             "
         // Setup Transfers
-        sui::transfer::public_transfer(publisher, {receiver});
-        sui::transfer::public_transfer(mint_cap, {receiver});
-        sui::transfer::public_transfer(allowlist_cap, {receiver});
+        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_transfer(allowlist_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(allowlist);
         sui::transfer::public_share_object(collection);
         "
@@ -90,7 +79,7 @@ impl Settings {
         if self.request_policies.transfer {
             code.push_str(&format!(
                 "
-        sui::transfer::public_transfer(transfer_policy_cap, {receiver});
+        sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);\n"
             ));
         }
@@ -98,7 +87,7 @@ impl Settings {
         if self.request_policies.borrow {
             code.push_str(&format!(
                 "
-        sui::transfer::public_transfer(borrow_policy_cap, {receiver});
+        sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(borrow_policy);\n"
             ));
         }
@@ -148,9 +137,7 @@ impl Settings {
 
         code.push_str(&format!(
             "
-    
     // Burn functions
-    
     public entry fun burn_nft(
         publisher: &sui::package::Publisher,
         collection: &nft_protocol::collection::Collection<{nft_type_name}>,
