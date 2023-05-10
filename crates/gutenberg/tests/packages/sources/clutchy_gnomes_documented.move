@@ -74,6 +74,12 @@ module gnomes::gnomes {
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
+            nft_protocol::symbol::new(std::string::utf8(b"GNOMES")),
+        );
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 

@@ -4,20 +4,28 @@ use std::{collections::BTreeSet, str::FromStr};
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RoyaltyPolicy {
-    Proportional { shares: BTreeSet<Share>, bps: u64 },
+    #[serde(rename_all = "camelCase")]
+    Proportional {
+        shares: BTreeSet<Share>,
+        collection_royalty_bps: u64,
+    },
 }
 
 #[derive(
     Debug, Default, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Ord,
 )]
+#[serde(rename_all = "camelCase")]
 pub struct Share {
     pub address: String,
-    pub share: u64,
+    pub share_bps: u64,
 }
 
 impl Share {
     pub fn new(address: String, share: u64) -> Share {
-        Share { address, share }
+        Share {
+            address,
+            share_bps: share,
+        }
     }
 }
 
@@ -28,7 +36,7 @@ impl FromStr for RoyaltyPolicy {
         match input {
             "proportional" => Ok(RoyaltyPolicy::Proportional {
                 shares: BTreeSet::default(),
-                bps: u64::default(),
+                collection_royalty_bps: u64::default(),
             }),
             _ => Err(()),
         }
@@ -38,9 +46,10 @@ impl FromStr for RoyaltyPolicy {
 impl RoyaltyPolicy {
     pub fn add_beneficiaries(&mut self, beneficiaries: &mut BTreeSet<Share>) {
         match self {
-            RoyaltyPolicy::Proportional { shares, bps: _ } => {
-                shares.append(beneficiaries)
-            }
+            RoyaltyPolicy::Proportional {
+                shares,
+                collection_royalty_bps: _,
+            } => shares.append(beneficiaries),
         };
     }
 
@@ -61,7 +70,10 @@ impl RoyaltyPolicy {
             };
 
         let shares = match self {
-            RoyaltyPolicy::Proportional { shares, bps: _ } => shares,
+            RoyaltyPolicy::Proportional {
+                shares,
+                collection_royalty_bps: _,
+            } => shares,
         };
 
         push_beneficiary(beneficiaries_vec, shares);
@@ -69,7 +81,7 @@ impl RoyaltyPolicy {
 
     pub fn write_strategy(&self) -> String {
         let (royalty_shares, royalty_strategy) = match self {
-            RoyaltyPolicy::Proportional { shares, bps } => (
+            RoyaltyPolicy::Proportional { shares, collection_royalty_bps: bps } => (
                 shares.clone(),
                 format!(
                     "        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
@@ -104,7 +116,7 @@ impl RoyaltyPolicy {
                     vecmap.push_str(
                         format!(
                         "        sui::vec_map::insert(&mut royalty_map, {address}, {share});\n",
-                        share = share.share
+                        share = share.share_bps
                     )
                         .as_str(),
                     );
