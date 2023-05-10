@@ -15,8 +15,8 @@
         // First creator is used as the receiver in transfer methods in init function (runs on publish)!
         // Required.
         "creators": [
-            "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df",
-            "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49db"
+            "sui::tx_context::sender(ctx)",
+            "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
         ]
     },
     // NFT details.
@@ -83,7 +83,7 @@
                     {
                         // Address of the second share recipient.
                         // Required
-                        "address": "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49da",
+                        "address": "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e",
                         // The share of the royalties this recipient will receive. This is represented as a percentage multiplied by 100 (i.e., 1000 represents 10.00%).
                         // Required
                         "share": 1000
