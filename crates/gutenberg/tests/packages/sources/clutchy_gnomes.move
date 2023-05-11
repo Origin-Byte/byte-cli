@@ -114,15 +114,6 @@ module gnomes::gnomes {
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);
-        // Setup Allowlist
-        let (allowlist, allowlist_cap) = ob_allowlist::allowlist::new(ctx);
-
-        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::orderbook::Witness>(
-            &allowlist_cap, &mut allowlist,
-        );
-        ob_allowlist::allowlist::insert_authority<liquidity_layer_v1::bidding::Witness>(
-            &allowlist_cap, &mut allowlist,
-        );
         // Setup Transfers
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
@@ -230,9 +221,7 @@ module gnomes::gnomes {
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
     }
-    
     // Burn functions
-    
     public entry fun burn_nft(
         publisher: &sui::package::Publisher,
         collection: &nft_protocol::collection::Collection<Gnome>,
