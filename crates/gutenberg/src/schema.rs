@@ -69,11 +69,17 @@ impl Schema {
         let orderbook =
             self.settings.orderbook.write_orderbook(&self.nft.type_name);
 
+        let witness = self.witness_name();
+        let type_name = &self.nft.type_name;
+
+        let create_collection = self
+            .settings
+            .mint_policies
+            .write_collection_create_with_mint_cap(&witness, &type_name);
+
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {type_name}>(
-            &witness, std::option::none(), ctx
-        );
+        {create_collection}
 
         // Init Publisher
         let publisher = sui::package::claim(witness, ctx);
@@ -85,9 +91,7 @@ impl Schema {
         {display}
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}",
-            witness = self.witness_name(),
-            type_name = self.nft.type_name
+{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}" 
         )
     }
 

@@ -9,6 +9,7 @@ pub enum MintType {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MintPolicies {
+    pub supply: Option<u64>,
     pub launchpad: bool,
     pub airdrop: bool,
 }
@@ -184,5 +185,21 @@ impl MintPolicies {
         mint_fns.push_str(&self.write_mint_fn(None, nft_type_name));
 
         mint_fns
+    }
+
+    pub fn write_collection_create_with_mint_cap(&self, witness: &str, nft_type_name: &str ) -> String {
+        match self.supply {
+            Some(supply) => format!(
+                "
+        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
+            &witness, std::option::some({supply}), ctx
+        );"),
+            None => 
+            format!(
+                "
+        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
+            &witness, std::option::none(), ctx
+        );")
+        }
     }
 }

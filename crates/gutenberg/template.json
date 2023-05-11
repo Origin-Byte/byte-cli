@@ -34,6 +34,8 @@
         // Policies for minting NFTs.
         // Required
         "mintPolicies": {
+            // Specifies the supply of the NFTs. If not provided, the collection will be uncapped.
+            "supply": 3333,
             // Specifies whether the launchpad minting policy is enabled. Generates mint_nft function.
             // Required
             "launchpad": true,

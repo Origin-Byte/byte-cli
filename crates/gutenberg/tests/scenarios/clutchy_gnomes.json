@@ -15,6 +15,7 @@
     },
     "settings": {
         "mintPolicies": {
+            "supply": 33333,
             "launchpad": true,
             "airdrop": true
         },
