@@ -28,6 +28,7 @@ impl MintPolicies {
         let mut args = String::new();
         let mut params = String::new();
         let mut transfer = String::new();
+        let mut extra_fun = String::new();
 
         args.push_str("        name: std::string::String,\n");
         params.push_str("            name,\n");
@@ -80,6 +81,10 @@ impl MintPolicies {
                     args.push_str(
                         "        ctx: &mut sui::tx_context::TxContext,",
                     );
+                    extra_fun = self.write_airdrop_nft_into_new_kiosk(
+                        nft_type_name,
+                        &params,
+                    );
                 }
             }
 
@@ -93,7 +98,8 @@ impl MintPolicies {
         );
 
         {transfer}
-    }}"
+    }}
+    {extra_fun}"
             );
         } else {
             return_type.push_str(format!(": {}", nft_type_name).as_str());
@@ -129,6 +135,35 @@ impl MintPolicies {
         }
 
         code
+    }
+
+    pub fn write_airdrop_nft_into_new_kiosk(
+        &self,
+        nft_type_name: &str,
+        params: &str,
+    ) -> String {
+        format!(
+            "
+    public entry fun airdrop_nft_into_new_kiosk(
+        name: std::string::String,
+        description: std::string::String,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+        mint_cap: &mut nft_protocol::mint_cap::MintCap<{nft_type_name}>,
+        receiver: address,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {{
+    
+        let nft = mint(
+        {params}
+        );
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new_for_address(receiver, ctx);
+        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, ctx);
+        sui::transfer::public_share_object(kiosk);
+    }}"
+        )
     }
 
     pub fn write_mint_fns(&self, nft_type_name: &str) -> String {

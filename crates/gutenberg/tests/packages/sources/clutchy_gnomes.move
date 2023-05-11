@@ -147,6 +147,7 @@ module gnomes::gnomes {
 
         ob_launchpad::warehouse::deposit_nft(warehouse, nft);
     }
+    
 
     public entry fun airdrop_nft(
         name: std::string::String,
@@ -169,6 +170,32 @@ module gnomes::gnomes {
         );
 
         ob_kiosk::ob_kiosk::deposit(receiver, nft, ctx);
+    }
+    
+    public entry fun airdrop_nft_into_new_kiosk(
+        name: std::string::String,
+        description: std::string::String,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+        mint_cap: &mut nft_protocol::mint_cap::MintCap<Gnome>,
+        receiver: address,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+    
+        let nft = mint(
+                    name,
+            description,
+            url,
+            attribute_keys,
+            attribute_values,
+            mint_cap,
+            ctx,
+        );
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new_for_address(receiver, ctx);
+        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, ctx);
+        sui::transfer::public_share_object(kiosk);
     }
 
     fun mint(
