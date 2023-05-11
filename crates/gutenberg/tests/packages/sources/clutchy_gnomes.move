@@ -1,4 +1,4 @@
-module gnomes::gnomes {
+module gnomes_inc::gnomes {
     /// One time witness is only instantiated in the init method
     struct GNOMES has drop {}
 
