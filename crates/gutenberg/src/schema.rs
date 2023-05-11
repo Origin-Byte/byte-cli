@@ -198,10 +198,10 @@ impl Schema {
 
         let tests = self.write_tests();
 
-        if let Some(module_alias) = &self.package_name {
-            vars.insert("module_alias", module_alias);
+        if let Some(package_name) = &self.package_name {
+            vars.insert("package_name", package_name);
         } else {
-            vars.insert("module_alias", &module_name);
+            vars.insert("package_name", &module_name);
         }
 
         vars.insert("module_name", &module_name);

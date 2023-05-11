@@ -1,10 +1,10 @@
 {
-    // The alias for the module being configured.
-    "moduleAlias": "gnomes",
+    // Package of the collection contract.
+    "packageName": "gnomes_inc",
     // Collection details.
     // Required
     "collection": {
-        // Name of the collection.
+        // Name of the collection. Will be used as module name in the generated contract (after sanitization).
         // Required
         "name": "gnomes",
         // Description of the collection.
@@ -14,10 +14,8 @@
         // The URL where more information about the collection can be found.
         "url": "https://originbyte.io/",
         // Array of creators' addresses. This is used solely for display purposes. Royalties are defined under settings object.
-        // First creator is used as the receiver in transfer methods in init function (runs on publish)!
-        // Required.
+        // Required. Can be empty.
         "creators": [
-            "sui::tx_context::sender(ctx)",
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
         ]
     },

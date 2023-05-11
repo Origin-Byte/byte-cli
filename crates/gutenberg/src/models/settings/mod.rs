@@ -70,8 +70,6 @@ impl Settings {
         // Setup Transfers
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_transfer(allowlist_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(allowlist);
         sui::transfer::public_share_object(collection);
         "
         ));
