@@ -96,12 +96,10 @@ impl RoyaltyPolicy {
             ),
         };
 
-        let (mut code, kiosk_init) = {
+        let mut code = {
             let mut vecmap = String::from(
                 "\n        let royalty_map = sui::vec_map::empty();\n",
             );
-
-            let mut kiosk_init = "".to_string();
 
             royalty_shares
                 .iter()
@@ -120,25 +118,15 @@ impl RoyaltyPolicy {
                     )
                         .as_str(),
                     );
-
-                    kiosk_init.push_str(
-                        format!(
-                        "        ob_kiosk::ob_kiosk::init_for_address({address}, ctx);\n"
-                    )
-                        .as_str(),
-                    );
                 })
                 .for_each(drop);
 
             vecmap.push_str("\n");
 
-            (vecmap, kiosk_init)
+            vecmap
         };
 
         code.push_str(royalty_strategy.as_str());
-        code.push_str("        // Setup Kiosks for royalty address(es)\n");
-
-        code.push_str(kiosk_init.as_str());
 
         code
     }
