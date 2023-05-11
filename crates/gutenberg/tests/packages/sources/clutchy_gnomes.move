@@ -115,8 +115,6 @@ module gnomes_inc::gnomes {
         // Setup Transfers
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_transfer(allowlist_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(allowlist);
         sui::transfer::public_share_object(collection);
         
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
