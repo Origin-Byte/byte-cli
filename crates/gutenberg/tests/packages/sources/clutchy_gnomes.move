@@ -93,9 +93,6 @@ module gnomes::gnomes {
             ctx,
         );
 
-        // Setup Kiosks for royalty address(es)
-        ob_kiosk::ob_kiosk::init_for_address(@0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e, ctx);
-        ob_kiosk::ob_kiosk::init_for_address(sui::tx_context::sender(ctx), ctx);
 
         let (transfer_policy, transfer_policy_cap) =
             ob_request::transfer_request::init_policy<Gnome>(&publisher, ctx);
