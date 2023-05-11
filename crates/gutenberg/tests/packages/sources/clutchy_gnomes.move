@@ -17,8 +17,9 @@ module gnomes::gnomes {
 
 
     fun init(witness: GNOMES, ctx: &mut sui::tx_context::TxContext) {
+        
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<GNOMES, Gnome>(
-            &witness, std::option::none(), ctx
+            &witness, std::option::some(33333), ctx
         );
 
         // Init Publisher
