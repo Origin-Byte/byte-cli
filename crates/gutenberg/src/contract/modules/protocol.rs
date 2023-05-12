@@ -75,6 +75,7 @@ impl DisplayInfoMod {
         collection: &CollectionData,
     ) -> Option<String> {
         collection.description.as_ref().map(|description| {
+            let escaped_desc = DisplayInfoMod::escape_newlines(description);
             format!(
                 "
         nft_protocol::collection::add_domain(
@@ -82,12 +83,16 @@ impl DisplayInfoMod {
             &mut collection,
             nft_protocol::display_info::new(
                 std::string::utf8(b\"{collection_name}\"),
-                std::string::utf8(b\"{description}\"),
+                std::string::utf8(b\"{escaped_desc}\"),
             ),
         );\n",
                 collection_name = collection.name
             )
         })
+    }
+
+    fn escape_newlines(input: &str) -> String {
+        input.replace("\n", "\\n")
     }
 
     pub fn add_collection_url(collection: &CollectionData) -> Option<String> {
