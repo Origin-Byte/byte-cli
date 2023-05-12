@@ -5,7 +5,7 @@ Gutenberg is a templating engine for generating valid, publishable move contract
 ## Generates the following structure
 
 - TBD
-- One Type Witness struct
+- One Time Witness struct
 - Nft struct
 - Init function
 - TBD functions
