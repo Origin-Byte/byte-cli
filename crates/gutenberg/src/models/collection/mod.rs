@@ -231,7 +231,7 @@ impl CollectionData {
     pub fn write_tags(&self) -> String {
         self.tags
             .as_ref()
-            .expect("No collection tags setup found")
-            .write_tags_vec()
+            .map(|tags| tags.write_tags_vec())
+            .unwrap_or_default()
     }
 }
