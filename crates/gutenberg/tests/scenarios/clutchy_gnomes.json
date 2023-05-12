@@ -8,6 +8,18 @@
         "creators": [
             "sui::tx_context::sender(ctx)",
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
+        ],
+        "tags": [
+            "Art",
+            "ProfilePicture",
+            "Collectible",
+            "GameAsset",
+            "TokenisedAsset",
+            "DomainName",
+            "Music",
+            "Video",
+            "Ticket",
+            "License"
         ]
     },
     "nft": {
@@ -23,18 +35,6 @@
             "transfer": true,
             "borrow": true
         },
-        "tags": [
-            "Art",
-            "ProfilePicture",
-            "Collectible",
-            "GameAsset",
-            "TokenisedAsset",
-            "DomainName",
-            "Music",
-            "Video",
-            "Ticket",
-            "License"
-        ],
         "royalties": {
             "proportional": {
                 "shares": [

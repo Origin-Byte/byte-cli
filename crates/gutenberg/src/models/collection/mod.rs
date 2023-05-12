@@ -3,6 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 pub mod supply;
+pub mod tags;
 
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +15,8 @@ use crate::{
 };
 
 use supply::SupplyPolicy;
+
+use self::tags::Tags;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -32,6 +35,8 @@ pub struct CollectionData {
     pub creators: Vec<String>,
     #[serde(default)]
     pub supply_policy: SupplyPolicy,
+
+    pub tags: Option<Tags>,
 }
 
 impl CollectionData {
@@ -42,6 +47,7 @@ impl CollectionData {
         url: Option<String>,
         creators: Vec<String>,
         supply_policy: SupplyPolicy,
+        tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -50,6 +56,7 @@ impl CollectionData {
             url,
             creators,
             supply_policy,
+            tags,
         }
     }
 
@@ -59,6 +66,7 @@ impl CollectionData {
             && self.symbol.is_none()
             && self.url.is_none()
             && self.creators.is_empty()
+            && self.tags.is_none()
     }
 
     pub fn witness_name(&self) -> String {
@@ -218,5 +226,12 @@ impl CollectionData {
         ));
 
         code
+    }
+
+    pub fn write_tags(&self) -> String {
+        self.tags
+            .as_ref()
+            .expect("No collection tags setup found")
+            .write_tags_vec()
     }
 }
