@@ -6,9 +6,7 @@ module {package_name}::{module_name} {{
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {{}}
-
-    {nft_struct}
-
+{nft_struct}
 {type_declarations}
 {init_function}{entry_functions}
 {tests}
