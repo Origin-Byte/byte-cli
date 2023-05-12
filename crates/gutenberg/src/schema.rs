@@ -59,7 +59,7 @@ impl Schema {
 
         let transfer_fns = self.settings.write_transfer_fns();
 
-        let tags = self.settings.write_tags();
+        let tags = self.collection.write_tags();
         let display = Display::write_display(&self.nft.type_name);
         let request_policies = self
             .settings

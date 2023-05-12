@@ -3,14 +3,12 @@ pub mod minting;
 pub mod orderbook;
 pub mod request;
 pub mod royalties;
-pub mod tags;
 
 pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 pub use royalties::RoyaltyPolicy;
-pub use tags::Tags;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +17,6 @@ use super::collection::CollectionData;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    pub tags: Option<Tags>,               // Done
     pub royalties: Option<RoyaltyPolicy>, // Done
     pub mint_policies: MintPolicies,
     pub request_policies: RequestPolicies,
@@ -30,7 +27,6 @@ pub struct Settings {
 
 impl Settings {
     pub fn new(
-        tags: Option<Tags>,
         royalties: Option<RoyaltyPolicy>,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
@@ -39,7 +35,6 @@ impl Settings {
         burn: bool,
     ) -> Settings {
         Settings {
-            tags,
             royalties,
             mint_policies,
             request_policies,
@@ -91,13 +86,6 @@ impl Settings {
         }
 
         code
-    }
-
-    pub fn write_tags(&self) -> String {
-        self.tags
-            .as_ref()
-            .expect("No collection tags setup found")
-            .write_tags_vec()
     }
 
     pub fn write_royalties(&self) -> String {
