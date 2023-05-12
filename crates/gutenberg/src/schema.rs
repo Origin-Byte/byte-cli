@@ -48,7 +48,7 @@ impl Schema {
     }
 
     pub fn witness_name(&self) -> String {
-        self.collection.name.to_uppercase().replace(' ', "")
+        self.module_name().to_uppercase()
     }
 
     pub fn write_init_fn(&self) -> String {
