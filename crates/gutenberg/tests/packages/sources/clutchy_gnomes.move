@@ -8,16 +8,14 @@ module gnomes_inc::gnomes {
     struct Witness has drop {}
 
     struct Gnome has key, store {
-                id: sui::object::UID,
-                name: std::string::String,
-                description: std::string::String,
-                url: sui::url::Url,
-                attributes: nft_protocol::attributes::Attributes,
-            }
-
+        id: sui::object::UID,
+        name: std::string::String,
+        description: std::string::String,
+        url: sui::url::Url,
+        attributes: nft_protocol::attributes::Attributes,
+    }
 
     fun init(witness: GNOMES, ctx: &mut sui::tx_context::TxContext) {
-        
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<GNOMES, Gnome>(
             &witness, std::option::some(33333), ctx
         );
@@ -52,7 +50,6 @@ module gnomes_inc::gnomes {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
         let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, sui::tx_context::sender(ctx));
         sui::vec_set::insert(&mut creators, @0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e);
 
         nft_protocol::collection::add_domain(
@@ -84,7 +81,7 @@ module gnomes_inc::gnomes {
 
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e, 1000);
-        sui::vec_map::insert(&mut royalty_map, sui::tx_context::sender(ctx), 9000);
+        sui::vec_map::insert(&mut royalty_map, @sui::tx_context::sender(ctx), 9000);
 
         nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness,

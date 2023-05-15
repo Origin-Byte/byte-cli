@@ -55,7 +55,7 @@ impl Schema {
         let domains = self.collection.write_domains();
 
         let feature_domains =
-            self.settings.write_feature_domains(&self.collection)?;
+            self.settings.write_feature_domains(&self.collection);
 
         let transfer_fns = self.settings.write_transfer_fns();
 
@@ -77,7 +77,7 @@ impl Schema {
             .mint_policies
             .write_collection_create_with_mint_cap(&witness, &type_name);
 
-        format!(
+        Ok(format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         {create_collection}
 
@@ -92,7 +92,7 @@ impl Schema {
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}" 
-        )
+        ))
     }
 
     pub fn write_entry_fns(&self) -> String {

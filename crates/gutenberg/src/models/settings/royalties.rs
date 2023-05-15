@@ -57,11 +57,11 @@ impl RoyaltyPolicy {
 
     pub fn add_beneficiary_vecs(
         &mut self,
-        beneficiaries_vec: &Vec<String>,
+        beneficiaries_vec: &Vec<Address>,
         shares_vec: &Vec<u64>,
     ) {
         let push_beneficiary =
-            |beneficiaries_vec: &Vec<String>, shares: &mut BTreeSet<Share>| {
+            |beneficiaries_vec: &Vec<Address>, shares: &mut BTreeSet<Share>| {
                 beneficiaries_vec
                     .iter()
                     .zip(shares_vec.iter())
@@ -106,6 +106,12 @@ impl RoyaltyPolicy {
             royalty_shares
                 .iter()
                 .map(|share| {
+                    let address = if share.address == "sui::tx_context::sender(ctx)" {
+                        share.address.clone()
+                    } else {
+                        format!("@{address}", address = share.address)
+                    };
+
                     vecmap.push_str(
                         format!(
                         "        sui::vec_map::insert(&mut royalty_map, {address}, {share});\n",
