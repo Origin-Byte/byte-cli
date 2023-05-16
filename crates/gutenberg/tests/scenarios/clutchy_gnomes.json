@@ -6,7 +6,6 @@
         "symbol": "GNOMES",
         "url": "https://originbyte.io/",
         "creators": [
-            "sui::tx_context::sender(ctx)",
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
         ],
         "tags": [
@@ -39,7 +38,7 @@
             "proportional": {
                 "shares": [
                     {
-                        "address": "sui::tx_context::sender(ctx)",
+                        "address": "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df",
                         "shareBps": 9000
                     },
                     {

@@ -214,7 +214,6 @@ impl Schema {
         } else {
             vars.insert("package_name", &module_name);
         }
-
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
         vars.insert("type_declarations", &type_declarations);
@@ -222,10 +221,6 @@ impl Schema {
         vars.insert("entry_functions", &entry_fns);
         vars.insert("nft_struct", &nft_struct);
         vars.insert("tests", &tests);
-
-        // Marketplace and Listing objects
-        // vars.insert("init_marketplace", &init_marketplace);
-        // vars.insert("share_marketplace", &share_marketplace);
 
         let vars: HashMap<String, String> = vars
             .into_iter()

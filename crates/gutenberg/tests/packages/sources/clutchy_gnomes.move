@@ -50,7 +50,6 @@ module gnomes_inc::gnomes {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
         let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, sui::tx_context::sender(ctx));
         sui::vec_set::insert(&mut creators, @0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e);
 
         nft_protocol::collection::add_domain(
@@ -82,7 +81,7 @@ module gnomes_inc::gnomes {
 
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e, 1000);
-        sui::vec_map::insert(&mut royalty_map, sui::tx_context::sender(ctx), 9000);
+        sui::vec_map::insert(&mut royalty_map, @0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df, 9000);
 
         nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness,

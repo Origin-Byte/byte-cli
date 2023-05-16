@@ -12,11 +12,13 @@ pub enum GutenError {
     UnsupportedSettings(String),
     #[error("The address `{0}` provided is not valid.")]
     InvalidAddress(String),
-    #[error("The tag provided is not supported")]
+    #[error("The tag provided is not supported.")]
     UnsupportedTag,
-    #[error("Unsupported Collection Symbol")]
+    #[error("Unsupported Collection Symbol.")]
     UnsupportedSymbol,
-    #[error("This error should not occur and likely results from a bug")]
+    #[error("No Mint Policy has been chosen. At least one mint policy has to be chosen.")]
+    MintPolicyIsNone,
+    #[error("This error should not occur and likely results from a bug.")]
     UnreachableError,
     #[error("{0}")]
     UploadError(String),

@@ -15,7 +15,6 @@ pub use royalties::RoyaltyPolicy;
 use serde::{Deserialize, Serialize};
 
 use super::collection::CollectionData;
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {

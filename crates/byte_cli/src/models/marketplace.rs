@@ -10,8 +10,11 @@ use super::{address_validator, number_validator, FromPrompt};
 use console::style;
 use dialoguer::{Confirm, Input, Select};
 use gutenberg::{
-    models::launchpad::{
-        listing::Listing, market::Market, marketplace::Marketplace,
+    models::{
+        launchpad::{
+            listing::Listing, market::Market, marketplace::Marketplace,
+        },
+        Address,
     },
     Schema,
 };
@@ -128,27 +131,17 @@ impl FromPrompt for Listing {
     {
         let theme = get_dialoguer_theme();
 
-        let mut admin = Input::with_theme(&theme)
+        let admin = Input::with_theme(&theme)
             .with_prompt("What is the address of the listing administrator?")
-            .default(String::from(DEFAULT_SENDER_MSG))
             .validate_with(address_validator)
             .interact()
             .unwrap();
 
-        if admin == DEFAULT_SENDER_MSG.to_string() {
-            admin = TX_SENDER_ADDRESS.to_string();
-        }
-
-        let mut receiver = Input::with_theme(&theme)
+        let receiver = Input::with_theme(&theme)
             .with_prompt("What is the address that receives the sale proceeds?")
-            .default(String::from(DEFAULT_SENDER_MSG))
             .validate_with(address_validator)
             .interact()
             .unwrap();
-
-        if receiver == DEFAULT_SENDER_MSG.to_string() {
-            receiver = TX_SENDER_ADDRESS.to_string();
-        }
 
         let number = Input::with_theme(&theme)
             .with_prompt(
@@ -172,6 +165,10 @@ impl FromPrompt for Listing {
             markets.push(Market::from_prompt(schema)?.unwrap());
         }
 
-        Ok(Some(Listing::new(admin, receiver, markets)))
+        Ok(Some(Listing::new(
+            Address::new(admin)?,
+            Address::new(receiver)?,
+            markets,
+        )))
     }
 }
