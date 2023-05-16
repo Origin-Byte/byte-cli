@@ -38,7 +38,7 @@
             "proportional": {
                 "shares": [
                     {
-                        "address": "sui::tx_context::sender(ctx)",
+                        "address": "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df",
                         "shareBps": 9000
                     },
                     {

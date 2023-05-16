@@ -106,16 +106,11 @@ impl RoyaltyPolicy {
             royalty_shares
                 .iter()
                 .map(|share| {
-                    let address = if share.address == "sui::tx_context::sender(ctx)" {
-                        share.address.clone()
-                    } else {
-                        format!("@{address}", address = share.address)
-                    };
-
                     vecmap.push_str(
                         format!(
-                        "        sui::vec_map::insert(&mut royalty_map, {address}, {share});\n",
-                        share = share.share_bps
+                        "        sui::vec_map::insert(&mut royalty_map, @{address}, {share});\n",
+                        share = share.share_bps,
+                        address = share.address
                     )
                         .as_str(),
                     );
