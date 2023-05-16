@@ -8,16 +8,14 @@ module gnomes_inc::gnomes {
     struct Witness has drop {}
 
     struct Gnome has key, store {
-                id: sui::object::UID,
-                name: std::string::String,
-                description: std::string::String,
-                url: sui::url::Url,
-                attributes: nft_protocol::attributes::Attributes,
-            }
-
+        id: sui::object::UID,
+        name: std::string::String,
+        description: std::string::String,
+        url: sui::url::Url,
+        attributes: nft_protocol::attributes::Attributes,
+    }
 
     fun init(witness: GNOMES, ctx: &mut sui::tx_context::TxContext) {
-        
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<GNOMES, Gnome>(
             &witness, std::option::some(33333), ctx
         );
@@ -281,6 +279,27 @@ module gnomes_inc::gnomes {
         burn_nft(publisher, collection, nft);
     }
         
+    public entry fun burn_own_nft(
+        collection: &nft_protocol::collection::Collection<Gnome>,
+        nft: Gnome,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {});
+        burn_nft(delegated_witness, collection, nft);
+    }
+
+    public entry fun burn_own_nft_in_kiosk(
+        collection: &nft_protocol::collection::Collection<Gnome>,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<Gnome, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
+        ob_request::withdraw_request::confirm(withdraw_request, policy);
+
+        burn_own_nft(collection, nft);
+    }
+        
 
     #[test_only]
     const CREATOR: address = @0xA1C04;
@@ -333,4 +352,61 @@ module gnomes_inc::gnomes {
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::end(scenario);
     }
+    #[test]
+    fun it_burns_own_nft() {
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init(GNOMES {}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Gnome>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
+            &scenario,
+            CREATOR,
+        );
+
+        let collection = sui::test_scenario::take_shared<
+            nft_protocol::collection::Collection<Gnome>
+        >(&scenario);
+
+        let borrow_policy = sui::test_scenario::take_shared<
+            ob_request::request::Policy<
+                ob_request::request::WithNft<Gnome, ob_request::withdraw_request::WITHDRAW_REQ>
+            >
+        >(&scenario);
+
+        let nft = mint(
+            std::string::utf8(b"TEST NAME"),
+            std::string::utf8(b"TEST DESCRIPTION"),
+            b"https://originbyte.io/",
+            vector[std::ascii::string(b"avg_return")],
+            vector[std::ascii::string(b"24%")],
+            &mut mint_cap,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+        let nft_id = sui::object::id(&nft);
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
+
+        burn_own_nft_in_kiosk(
+            &collection,
+            &mut kiosk,
+            nft_id,
+            &borrow_policy,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_to_address(CREATOR, publisher);
+        sui::test_scenario::return_shared(collection);
+        sui::test_scenario::return_shared(borrow_policy);
+        sui::transfer::public_share_object(kiosk);
+        sui::test_scenario::end(scenario);
+    }
+                
 }

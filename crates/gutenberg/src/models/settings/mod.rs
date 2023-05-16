@@ -1,9 +1,11 @@
+pub mod burn;
 pub mod composability;
 pub mod minting;
 pub mod orderbook;
 pub mod request;
 pub mod royalties;
 
+pub use burn::Burn;
 pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
@@ -22,7 +24,7 @@ pub struct Settings {
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
     pub orderbook: Orderbook,
-    pub burn: bool,
+    pub burn: Burn,
 }
 
 impl Settings {
@@ -32,7 +34,7 @@ impl Settings {
         request_policies: RequestPolicies,
         composability: Option<Composability>,
         orderbook: Orderbook,
-        burn: bool,
+        burn: Burn,
     ) -> Settings {
         Settings {
             royalties,
@@ -116,60 +118,5 @@ impl Settings {
             Some(composability) => composability.write_types(),
             None => "".to_string(),
         }
-    }
-
-    pub fn write_burn_fns(&self, nft_type_name: &String) -> String {
-        let mut code = String::new();
-
-        code.push_str(&format!(
-            "
-    // Burn functions
-    public entry fun burn_nft(
-        publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
-        nft: {nft_type_name},
-    ) {{
-        let dw = ob_permissions::witness::from_publisher(publisher);
-        let guard = nft_protocol::mint_event::start_burn(dw, &nft);
-
-        let {nft_type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
-
-        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
-    }}
-        "
-        ));
-
-        code.push_str(&format!(
-            "
-    public entry fun burn_nft_in_listing(
-        publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
-        burn_nft(publisher, collection, nft);
-    }}
-        "
-        ));
-
-        code.push_str(&format!(
-            "
-    public entry fun burn_nft_in_listing_with_id(
-        publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        nft_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
-        burn_nft(publisher, collection, nft);
-    }}
-        "
-        ));
-
-        code
     }
 }

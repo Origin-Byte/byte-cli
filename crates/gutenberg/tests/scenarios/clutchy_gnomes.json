@@ -51,6 +51,6 @@
             }
         },
         "orderbook": "protected",
-        "burn": true
+        "burn": "permissionless"
     }
 }

@@ -110,8 +110,10 @@ impl Schema {
 
         code.push_str(orderbook_fns.as_str());
 
-        if self.settings.burn {
-            code.push_str(&self.settings.write_burn_fns(&self.nft.type_name));
+        if self.settings.burn != crate::models::settings::Burn::None {
+            code.push_str(
+                &&self.settings.burn.write_burn_fns(&self.nft.type_name),
+            );
         }
 
         code
@@ -120,7 +122,7 @@ impl Schema {
     pub fn write_tests(&self) -> String {
         let type_name = &self.nft.type_name;
         let witness = self.witness_name();
-        format!(
+        let mut tests = format!(
             "
     #[test_only]
     const CREATOR: address = @0xA1C04;
@@ -172,7 +174,16 @@ impl Schema {
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::end(scenario);
-    }}")
+    }}");
+
+        tests.push_str(
+            self.settings
+                .burn
+                .write_burn_tests(&self.nft.type_name, &self.witness_name())
+                .as_str(),
+        );
+
+        tests
     }
 
     /// Higher level method responsible for generating Move code from the
