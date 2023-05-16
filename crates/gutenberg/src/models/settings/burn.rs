@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub enum Burn {
     None,
-    Default,
+    Permissioned,
     Permissionless,
 }
 
@@ -98,7 +98,7 @@ impl Burn {
     ) -> String {
         match self {
             Burn::None => String::new(),
-            Burn::Default => String::new(),
+            Burn::Permissioned => String::new(),
             Burn::Permissionless => {
                 format!(
                 "
