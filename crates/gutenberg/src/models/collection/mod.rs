@@ -140,7 +140,7 @@ impl CollectionData {
 
     pub fn set_creators(
         &mut self,
-        mut creators: Vec<String>,
+        creators: Vec<String>,
     ) -> Result<(), GutenError> {
         if creators.len() > MAX_CREATORS_LENGTH {
             return Err(GutenError::UnsupportedCollectionInput(format!(
@@ -151,7 +151,7 @@ impl CollectionData {
 
         // Guarantees that creator addresses are valid
         let creator_addresses = creators
-            .drain(..)
+            .into_iter()
             .map(|creator| Address::new(creator))
             .collect::<Result<Vec<Address>, GutenError>>()?;
 

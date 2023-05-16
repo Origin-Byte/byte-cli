@@ -8,6 +8,7 @@ use gutenberg::{
         collection::CollectionData,
         launchpad::{listing::Listing, market::Market},
         settings::Composability,
+        Address,
     },
 };
 
@@ -94,7 +95,8 @@ fn input_creators() -> Result<(), GutenError> {
     collection.set_creators(creators.clone())?;
 
     let creators_ = vec![Address::new(
-        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string(),
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
+            .to_string(),
     )?];
 
     assert_eq!(collection.creators, creators_);
@@ -108,9 +110,9 @@ fn input_creators() -> Result<(), GutenError> {
     collection.set_creators(creators.clone())?;
 
     let creators_ = vec![
-        Address::new("0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string())?,
-        Address::new("0xa7e29665a1c2600a439de3316b76e0c8a7531916".to_string())?,
-        Address::new("0x755a088ca3847eebc66103e1dea89845e306fe46".to_string())?,
+        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?,
+        Address::new("0x582547ac2b368b17409a3f3672fe2eea9767b80830497fb2e31a15bc492f5516".to_string())?,
+        Address::new("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df".to_string())?,
     ];
     assert_eq!(collection.creators, creators_);
 
@@ -138,11 +140,15 @@ fn input_composability() -> Result<(), GutenError> {
 }
 
 #[test]
-fn input_listing() -> Result<()> {
-    let admin =
-        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?;
-    let receiver =
-        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?;
+fn input_listing() -> Result<(), GutenError> {
+    let admin = Address::new(
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
+            .to_string(),
+    )?;
+    let receiver = Address::new(
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
+            .to_string(),
+    )?;
 
     let mut markets = Vec::new();
 
@@ -178,7 +184,7 @@ fn input_listing() -> Result<()> {
 }
 
 #[test]
-fn err_input_name_if_non_alphanumeric() -> Result<()> {
+fn err_input_name_if_non_alphanumeric() -> Result<(), GutenError> {
     let mut collection = CollectionData::default();
 
     assert!(collection.set_name(String::from("Suimarine$")).is_err());
@@ -197,11 +203,15 @@ fn err_input_name_if_non_alphanumeric() -> Result<()> {
 }
 
 #[test]
-fn input_addresses() -> Result<()> {
+fn input_addresses() -> Result<(), GutenError> {
     // In converting a string to an address the function should be
     // able to handle hexadecimals with or without 0x prefix.
-    let address = "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string();
-    let address_2 = "d8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d143".to_string();
+    let address =
+        "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"
+            .to_string();
+    let address_2 =
+        "1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"
+            .to_string();
 
     assert_eq!(Address::new(address)?, Address::new(address_2)?);
 
@@ -209,7 +219,7 @@ fn input_addresses() -> Result<()> {
 }
 
 #[test]
-fn err_input_incorrect_addresses() -> Result<()> {
+fn err_input_incorrect_addresses() -> Result<(), GutenError> {
     assert!(Address::new(
         "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d1432144152".to_string()
     )

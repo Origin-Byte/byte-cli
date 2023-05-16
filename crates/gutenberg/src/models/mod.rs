@@ -41,11 +41,11 @@ impl Address {
             )
         })?;
 
-        if hexa.len() != 20 {
+        if hexa.len() != 32 {
             Err(err::invalid_address(
                 hexa_str.to_string(),
                 format!(
-                    "Invalid Hexadecimal number. Expected 20 digits, got {}",
+                    "Invalid Hexadecimal number. Expected 32 digits, got {}",
                     hexa.len(),
                 ),
             ))

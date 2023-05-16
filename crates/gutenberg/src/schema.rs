@@ -51,7 +51,7 @@ impl Schema {
         self.module_name().to_uppercase()
     }
 
-    pub fn write_init_fn(&self) -> Result<String, GutenError> {
+    pub fn write_init_fn(&self) -> String {
         let domains = self.collection.write_domains();
 
         let feature_domains =
@@ -77,7 +77,7 @@ impl Schema {
             .mint_policies
             .write_collection_create_with_mint_cap(&witness, &type_name);
 
-        Ok(format!(
+        format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         {create_collection}
 
@@ -92,7 +92,7 @@ impl Schema {
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
 {domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}" 
-        ))
+        )
     }
 
     pub fn write_entry_fns(&self) -> String {
@@ -188,7 +188,7 @@ impl Schema {
 
         let type_declarations = self.settings.write_type_declarations();
 
-        let init_fn = self.write_init_fn()?;
+        let init_fn = self.write_init_fn();
 
         let entry_fns = self.write_entry_fns();
 
