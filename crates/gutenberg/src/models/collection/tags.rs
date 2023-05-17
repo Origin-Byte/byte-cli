@@ -6,7 +6,7 @@ use std::{
 
 use crate::err::GutenError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Tag {
     Art,
     ProfilePicture,
@@ -68,7 +68,7 @@ impl FromStr for Tag {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct Tags(Vec<Tag>);
 

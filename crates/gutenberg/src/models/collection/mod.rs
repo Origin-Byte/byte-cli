@@ -2,7 +2,6 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-pub mod supply;
 pub mod tags;
 
 use serde::{Deserialize, Serialize};
@@ -14,12 +13,10 @@ use crate::{
     utils::validate_address,
 };
 
-use supply::SupplyPolicy;
-
 use self::tags::Tags;
 
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
@@ -33,9 +30,6 @@ pub struct CollectionData {
     #[serde(default)]
     /// The addresses of creators
     pub creators: Vec<String>,
-    #[serde(default)]
-    pub supply_policy: SupplyPolicy,
-
     pub tags: Option<Tags>,
 }
 
@@ -46,7 +40,6 @@ impl CollectionData {
         symbol: Option<String>,
         url: Option<String>,
         creators: Vec<String>,
-        supply_policy: SupplyPolicy,
         tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
@@ -55,7 +48,6 @@ impl CollectionData {
             symbol,
             url,
             creators,
-            supply_policy,
             tags,
         }
     }
@@ -158,10 +150,6 @@ impl CollectionData {
         self.creators = creators;
 
         Ok(())
-    }
-
-    pub fn set_supply_policy(&mut self, supply_policy: SupplyPolicy) {
-        self.supply_policy = supply_policy;
     }
 
     pub fn write_domains(&self) -> String {

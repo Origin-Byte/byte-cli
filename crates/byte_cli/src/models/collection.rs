@@ -10,13 +10,10 @@ use crate::{
 };
 
 use dialoguer::{Confirm, Input};
-use gutenberg::{
-    models::collection::{supply::SupplyPolicy, CollectionData},
-    Schema,
-};
+use gutenberg::{models::collection::CollectionData, schema::SchemaBuilder};
 
 impl FromPrompt for CollectionData {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -105,9 +102,20 @@ impl FromPrompt for CollectionData {
 
         collection.set_creators(creators.into_iter().collect())?;
 
-        collection
-            .set_supply_policy(SupplyPolicy::from_prompt(&schema)?.unwrap());
+        // TODO:
+        // if features.contains(&String::from("tags")) {
+        //     let tag_indices = MultiSelect::with_theme(&theme)
+        //         .with_prompt("Which tags do you want to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
+        //         .items(&TAG_OPTIONS)
+        //         .interact()
+        //         .unwrap();
 
-        Ok(Some(collection))
+        //     let tags =
+        //         Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
+
+        //     settings.set_tags(tags);
+        // }
+
+        Ok(collection)
     }
 }

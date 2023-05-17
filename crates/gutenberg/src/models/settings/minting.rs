@@ -7,7 +7,7 @@ pub enum MintType {
     Launchpad,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     pub supply: Option<u64>,
     pub launchpad: bool,
@@ -15,6 +15,14 @@ pub struct MintPolicies {
 }
 
 impl MintPolicies {
+    pub fn new(supply: Option<u64>, launchpad: bool, airdrop: bool) -> Self {
+        Self {
+            supply,
+            launchpad,
+            airdrop,
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         !self.launchpad && !self.airdrop
     }
@@ -155,7 +163,7 @@ impl MintPolicies {
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-    
+
         let nft = mint(
         {params}
         );
@@ -187,13 +195,17 @@ impl MintPolicies {
         mint_fns
     }
 
-    pub fn write_collection_create_with_mint_cap(&self, witness: &str, nft_type_name: &str ) -> String {
+    pub fn write_collection_create_with_mint_cap(
+        &self,
+        witness: &str,
+        nft_type_name: &str,
+    ) -> String {
         match self.supply {
             Some(supply) => format!(
 "let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
             &witness, std::option::some({supply}), ctx
         );"),
-            None => 
+            None =>
             format!(
 "let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
             &witness, std::option::none(), ctx

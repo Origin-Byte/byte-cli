@@ -1,17 +1,18 @@
 use console::Emoji;
 
 // CLI Select options
-pub const FIELD_OPTIONS: [&str; 3] =
-    ["Name & Description", "Url", "Attributes"];
 pub const ROYALTY_OPTIONS: [&str; 3] = [
     "Percentage of trade price (in Basis Points)",
     "Fixed royalty amount regardless of trading price (in SUI)",
     "None",
 ];
-pub const FEATURE_OPTIONS: [&str; 1] = ["tags"];
+pub const FEATURE_OPTIONS: [&str; 3] = [
+    "Tradeable Traits",
+    "Immediate Secondary Market Trading",
+    "NFT Burning",
+];
 pub const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-pub const MINTING_OPTIONS: [&str; 2] =
-    ["OriginByte Launchpad", "Mint directly to addresses"];
+pub const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 pub const MARKET_OPTIONS: [&str; 2] =
     ["Fixed price sale", "Dutch auction sale"];
 pub const TAG_OPTIONS: [&str; 11] = [
@@ -30,8 +31,6 @@ pub const TAG_OPTIONS: [&str; 11] = [
 pub const DEFAULT_SENDER_MSG: &str =
     "Leave blank to default to transaction sender";
 
-pub const FIELD_OPTIONS_: [&str; 3] = ["display", "url", "attributes"];
-pub const ROYALTY_OPTIONS_: [&str; 3] = ["Proportional", "Constant", "None"];
 pub const MINTING_OPTIONS_: [&str; 2] = ["launchpad", "airdrop"];
 pub const MARKET_OPTIONS_: [&str; 2] = ["Fixed price", "Dutch auction"];
 

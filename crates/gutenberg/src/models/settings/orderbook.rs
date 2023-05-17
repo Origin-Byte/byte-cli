@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
     None,
@@ -24,13 +24,13 @@ impl Orderbook {
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);"
-            ),            
+            ),
             Orderbook::None => String::new(), // do nothing
         }
     }
 
     pub fn write_entry_fns(&self, type_name: &String) -> String {
-         match self {
+        match self {
             Orderbook::Unprotected => String::new(), // do nothing
             Orderbook::Protected => format!(
                 "
@@ -56,7 +56,7 @@ impl Orderbook {
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
     }}"
-            ),            
+            ),
             Orderbook::None => String::new(), // do nothing
         }
     }

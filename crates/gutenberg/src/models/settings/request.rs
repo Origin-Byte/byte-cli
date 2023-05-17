@@ -6,7 +6,7 @@ pub enum RequestType {
     //Withdraw, TODO
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RequestPolicies {
     pub transfer: bool,
     pub borrow: bool,

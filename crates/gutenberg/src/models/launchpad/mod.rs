@@ -14,7 +14,7 @@ fn default_admin() -> String {
 }
 
 /// Contains the market configurations of the marketplace
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Launchpad {
     /// In case a marketplace is creating the collection

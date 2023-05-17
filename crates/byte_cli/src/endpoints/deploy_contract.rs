@@ -99,7 +99,6 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
     })?;
 
     // Write Move contract
-
     let move_path = &sources_dir.join(format!("{module_name}.move"));
     let mut move_file = File::create(move_path).map_err(|err| {
         anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
@@ -118,15 +117,11 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 }
 
 pub async fn publish_contract(
-    schema: &mut Schema,
     gas_budget: usize,
     contract_dir: &Path,
 ) -> Result<CollectionState> {
     let collection_state =
         publish::publish_contract(contract_dir, gas_budget as u64).await?;
-
-    schema.contract =
-        Some(collection_state.contract.as_ref().unwrap().to_string());
 
     Ok(collection_state)
 }

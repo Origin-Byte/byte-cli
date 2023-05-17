@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use super::{default_admin, market::Market};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct Listings(pub Vec<Listing>);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Listing {
     #[serde(default = "default_admin")]
     pub admin: String,

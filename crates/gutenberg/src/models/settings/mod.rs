@@ -14,10 +14,10 @@ use serde::{Deserialize, Serialize};
 
 use super::collection::CollectionData;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    pub royalties: Option<RoyaltyPolicy>, // Done
+    pub royalties: Option<RoyaltyPolicy>,
     pub mint_policies: MintPolicies,
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,

@@ -10,7 +10,7 @@ use crate::{err::GutenError, utils::validate_address};
 use super::default_admin;
 
 /// Contains the market configurations of the marketplace
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Marketplace {
     #[serde(default = "default_admin")]
     pub admin: String,

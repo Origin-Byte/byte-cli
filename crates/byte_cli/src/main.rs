@@ -10,7 +10,6 @@ pub mod prelude;
 use std::path::{Path, PathBuf};
 
 use crate::prelude::*;
-use byte_cli::utils::assert_no_unstable_features;
 use endpoints::*;
 
 use anyhow::Result;
@@ -45,38 +44,38 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_config(&file_path)?;
+            let mut builder = io::try_read_schema(&file_path)?;
 
-            schema =
-                config_collection::init_collection_config(schema, complete)?;
+            builder =
+                config_collection::init_collection_config(builder, complete)?;
 
-            io::write_config(&schema, &file_path)?;
+            io::write_schema(&builder, &file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_config(&file_path)?;
+            let uploader = config_upload::init_upload_config()?;
 
-            schema = config_upload::init_upload_config(schema)?;
-
-            io::write_config(&schema, &file_path)?;
+            io::write_uploader(&uploader, &file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_config(&file_path)?;
+            let mut schema = io::try_read_schema(&file_path)?;
 
             schema = config_collection::init_collection_config(schema, false)?;
-            schema = config_upload::init_upload_config(schema)?;
+            let uploader = config_upload::init_upload_config()?;
 
-            io::write_config(&schema, &file_path)?;
+            io::write_schema(&schema, &file_path)?;
+            io::write_uploader(&uploader, &file_path)?;
         }
         Commands::DeployAssets { project_dir } => {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
 
             let mut file_path = project_path.clone();
+            // TODO: Incorrect since we separated files
             file_path.push("config.json");
 
             let mut assets_path = project_path.clone();
@@ -84,12 +83,9 @@ async fn run() -> Result<()> {
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            let schema = io::try_read_config(&file_path)?;
+            let uploader = io::read_uploader(&file_path)?;
 
-            // TODO: Remove this once all unstable features are completed
-            assert_no_unstable_features(&schema)?;
-
-            deploy_assets::deploy_assets(&schema, assets_path, metadata_path)
+            deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
                 .await?
         }
         Commands::GenerateContract { project_dir } => {
@@ -98,9 +94,6 @@ async fn run() -> Result<()> {
             file_path.push("config.json");
 
             let schema = deploy_contract::parse_config(file_path.as_path())?;
-
-            // TODO: Remove this once all unstable features are completed
-            assert_no_unstable_features(&schema)?;
 
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
@@ -121,11 +114,7 @@ async fn run() -> Result<()> {
             let mut state_path = project_path.clone();
             state_path.push("objects.json");
 
-            let mut schema =
-                deploy_contract::parse_config(file_path.as_path())?;
-
-            // TODO: Remove this once all unstable features are completed
-            assert_no_unstable_features(&schema)?;
+            let schema = deploy_contract::parse_config(file_path.as_path())?;
 
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
@@ -138,14 +127,11 @@ async fn run() -> Result<()> {
             }
 
             let state = deploy_contract::publish_contract(
-                &mut schema,
                 gas_budget,
                 contract_dir.as_path(),
             )
             .await?;
 
-            // Updating with contract ID
-            io::write_config(&schema, &file_path)?;
             io::write_collection_state(&state, &state_path)?;
         }
         Commands::MintNfts {
@@ -184,34 +170,6 @@ async fn run() -> Result<()> {
 
             //     io::write_collection_state(&state, &state_path)?;
             // }
-        }
-        Commands::ConfigMarketplace { project_dir } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
-
-            let mut schema = io::try_read_config(&file_path)?;
-
-            // TODO: Remove this once all unstable features are completed
-            assert_no_unstable_features(&schema)?;
-
-            schema = config_marketplace::init_marketplace_config(schema)?;
-
-            io::write_config(&schema, &file_path)?;
-        }
-        Commands::AddListingConfig {
-            project_dir,
-            skip_marketplace: _,
-        } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
-
-            let mut schema = io::try_read_config(&file_path)?;
-            // TODO: Remove this once all unstable features are completed
-            assert_no_unstable_features(&schema)?;
-
-            schema = add_listing::add_listing_config(schema)?;
-
-            io::write_config(&schema, &file_path)?;
         }
     }
 
