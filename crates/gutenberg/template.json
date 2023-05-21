@@ -18,7 +18,7 @@
         "creators": [
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
         ],
-        // Tags for the NFTs. All possible values are included. Custom tags can be added manually to the contract at the moment.
+        // Tags for the NFTs. Custom tags are supported as well
         "tags": [
             "Art",
             "ProfilePicture",
