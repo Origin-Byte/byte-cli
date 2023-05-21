@@ -99,7 +99,7 @@ fn input_creators() -> Result<(), GutenError> {
             .to_string(),
     )?];
 
-    assert_eq!(collection.creators(), creators_);
+    assert_eq!(collection.creators(), &creators_);
 
     let creators = vec![
         String::from("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"),
@@ -114,7 +114,7 @@ fn input_creators() -> Result<(), GutenError> {
         Address::new("0x582547ac2b368b17409a3f3672fe2eea9767b80830497fb2e31a15bc492f5516".to_string())?,
         Address::new("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df".to_string())?,
     ];
-    assert_eq!(collection.creators(), creators_);
+    assert_eq!(collection.creators(), &creators_);
 
     Ok(())
 }

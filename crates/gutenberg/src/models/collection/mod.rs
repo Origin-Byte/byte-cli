@@ -233,7 +233,7 @@ impl CollectionData {
     pub fn write_tags(&self) -> String {
         self.tags
             .as_ref()
-            .map(|tags| tags.write_tags_vec())
+            .map(|tags| tags.write_move())
             .unwrap_or_default()
     }
 }

@@ -13,27 +13,30 @@ impl Orderbook {
         match self {
             Orderbook::Unprotected => format!(
                 "
+
         liquidity_layer_v1::orderbook::create_unprotected<{type_name}, sui::sui::SUI>(
             delegated_witness, &transfer_policy, ctx,
         );"
             ),
             Orderbook::Protected => format!(
                 "
+
         // Protected orderbook such that trading is not initially possible
         let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<{type_name}, sui::sui::SUI>(
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);"
-            ),            
+            ),
             Orderbook::None => String::new(), // do nothing
         }
     }
 
     pub fn write_entry_fns(&self, type_name: &String) -> String {
-         match self {
+        match self {
             Orderbook::Unprotected => String::new(), // do nothing
             Orderbook::Protected => format!(
                 "
+
     // Protected orderbook functions
     public entry fun enable_orderbook(
         publisher: &sui::package::Publisher,
@@ -56,7 +59,7 @@ impl Orderbook {
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
     }}"
-            ),            
+            ),
             Orderbook::None => String::new(), // do nothing
         }
     }

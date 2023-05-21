@@ -1,7 +1,7 @@
 pub mod protocol;
 pub use protocol::{
-    CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, MintCapMod,
-    NftMod, RoyaltiesMod, RoyaltyMod, WarehouseMod, WitnessMod,
+    CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, NftMod,
+    RoyaltiesMod, RoyaltyMod, WarehouseMod, WitnessMod,
 };
 
 use serde::{Deserialize, Serialize};
