@@ -9,27 +9,23 @@ use self::tags::Tags;
 use super::Address;
 use crate::{contract::modules::DisplayInfoMod, err::GutenError};
 use serde::{Deserialize, Serialize};
-use supply::SupplyPolicy;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    pub name: String,
+    name: String,
     /// The description of the collection
-    pub description: Option<String>,
+    description: Option<String>,
     /// The symbol/ticker of the collection
-    pub symbol: Option<String>,
+    symbol: Option<String>,
     /// The URL of the collection website
-    pub url: Option<String>,
+    url: Option<String>,
     #[serde(default)]
     /// The addresses of creators
-    pub creators: Vec<Address>,
-    #[serde(default)]
-    pub supply_policy: SupplyPolicy,
-
-    pub tags: Option<Tags>,
+    creators: Vec<Address>,
+    tags: Option<Tags>,
 }
 
 impl CollectionData {
@@ -39,7 +35,6 @@ impl CollectionData {
         symbol: Option<String>,
         url: Option<String>,
         creators: Vec<Address>,
-        supply_policy: SupplyPolicy,
         tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
@@ -48,22 +43,62 @@ impl CollectionData {
             symbol,
             url,
             creators,
-            supply_policy,
             tags,
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.name.is_empty()
-            && self.description.is_none()
-            && self.symbol.is_none()
-            && self.url.is_none()
-            && self.creators.is_empty()
-            && self.tags.is_none()
+    pub fn name(&self) -> String {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        deunicode(&self.name)
+    }
+
+    pub fn description(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.description
+            .as_ref()
+            .map(|description| deunicode(description))
+    }
+
+    // Retains only alphanumeric characters
+    fn escaped_name(&self) -> String {
+        self.name()
+            .chars()
+            .filter_map(|char| match char {
+                '-' => Some('_'),
+                ' ' => Some('_'),
+                char => char.is_ascii_alphanumeric().then_some(char),
+            })
+            .collect()
+    }
+
+    pub fn package_name(&self) -> String {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.escaped_name().to_lowercase()
     }
 
     pub fn witness_name(&self) -> String {
-        self.name.to_uppercase().replace(' ', "")
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.escaped_name().to_uppercase()
+    }
+
+    pub fn url(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.url.clone()
+    }
+
+    pub fn symbol(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.symbol.clone()
+    }
+
+    pub fn creators(&self) -> &Vec<Address> {
+        &self.creators
     }
 
     pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
@@ -137,10 +172,6 @@ impl CollectionData {
         Ok(())
     }
 
-    pub fn set_supply_policy(&mut self, supply_policy: SupplyPolicy) {
-        self.supply_policy = supply_policy;
-    }
-
     pub fn write_domains(&self) -> String {
         let mut code = String::new();
 
@@ -205,4 +236,9 @@ impl CollectionData {
             .map(|tags| tags.write_tags_vec())
             .unwrap_or_default()
     }
+}
+
+/// De-unicodes and removes all unknown characters
+fn deunicode(unicode: &str) -> String {
+    deunicode::deunicode_with_tofu(unicode, "")
 }

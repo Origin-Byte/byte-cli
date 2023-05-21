@@ -74,37 +74,31 @@ impl DisplayInfoMod {
     pub fn add_collection_display_info(
         collection: &CollectionData,
     ) -> Option<String> {
-        collection.description.as_ref().map(|description| {
-            let escaped_desc = DisplayInfoMod::escape_newlines(description);
+        let name = collection.name();
+        collection.description().as_ref().map(|description| {
             format!(
                 "
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             nft_protocol::display_info::new(
-                std::string::utf8(b\"{collection_name}\"),
-                std::string::utf8(b\"{escaped_desc}\"),
+                std::string::utf8(b\"{name}\"),
+                std::string::utf8(b\"{description}\"),
             ),
-        );\n",
-                collection_name = collection.name
+        );\n"
             )
         })
     }
 
-    fn escape_newlines(input: &str) -> String {
-        input.replace("\n", "\\n")
-    }
-
     pub fn add_collection_url(collection: &CollectionData) -> Option<String> {
-        collection.url.as_ref().map(|url| {
+        collection.url().as_ref().map(|url| {
             format!(
                 "
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
-            {url}
-        );\n",
-                url = format!("sui::url::new_unsafe_from_bytes(b\"{}\"),", url)
+            sui::url::new_unsafe_from_bytes(b\"{url}\"),
+        );\n"
             )
         })
     }
@@ -112,7 +106,7 @@ impl DisplayInfoMod {
     pub fn add_collection_symbol(
         collection: &CollectionData,
     ) -> Option<String> {
-        collection.symbol.as_ref().map(|symbol| {
+        collection.symbol().as_ref().map(|symbol| {
             format!(
                 "
         nft_protocol::collection::add_domain(
@@ -236,15 +230,10 @@ impl CollectionMod {
                 delegated_witness,
                 &mut collection,
                 {domain},
-            );\n",
-            domain = domain
+            );\n"
         )
     }
 }
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct MintCapMod();
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]

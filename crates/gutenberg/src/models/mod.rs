@@ -9,6 +9,7 @@ pub mod launchpad;
 pub mod nft;
 pub mod settings;
 
+// TODO: Custom deserialize that validates address
 #[derive(
     Debug,
     Serialize,

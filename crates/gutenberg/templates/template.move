@@ -1,4 +1,4 @@
-module {package_name}::{module_name} {{
+module {package_name}::{package_name} {{
     /// One time witness is only instantiated in the init method
     struct {witness} has drop {{}}
 
