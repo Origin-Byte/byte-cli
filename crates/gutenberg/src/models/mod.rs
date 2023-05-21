@@ -9,7 +9,7 @@ pub mod launchpad;
 pub mod nft;
 pub mod settings;
 
-/// Contains the market configurations of the marketplace
+// TODO: Custom deserialize that validates address
 #[derive(
     Debug,
     Serialize,

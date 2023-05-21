@@ -1,9 +1,0 @@
-{
-    "ModuleAlias": "gutenberg",
-    "Collection": {
-        "name": "DomainCreators",
-        "creators": [
-            "0x64be9c21161c2305543e2bba67e056ebba8729e4"
-        ]
-    }
-}
