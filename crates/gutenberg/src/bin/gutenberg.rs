@@ -1,9 +1,25 @@
-use clap::Parser;
-use gutenberg::cli::{Cli, Commands};
+use clap::{Parser, Subcommand};
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::Path;
+
+#[derive(Parser)]
+#[clap(author, version, about)]
+pub struct Cli {
+    #[clap(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Generate {
+        input_config_path: String,
+        output_dir: String,
+    },
+
+    GenerateTests,
+}
 
 fn main() {
     let cli = Cli::parse();

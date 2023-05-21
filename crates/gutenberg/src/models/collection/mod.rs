@@ -5,19 +5,11 @@
 pub mod supply;
 pub mod tags;
 
-use serde::{Deserialize, Serialize};
-
-use crate::{
-    consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
-    contract::modules::DisplayInfoMod,
-    err::GutenError,
-};
-
-use supply::SupplyPolicy;
-
 use self::tags::Tags;
-
 use super::Address;
+use crate::{contract::modules::DisplayInfoMod, err::GutenError};
+use serde::{Deserialize, Serialize};
+use supply::SupplyPolicy;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -100,15 +92,6 @@ impl CollectionData {
             )));
         }
 
-        if symbol.len() > MAX_SYMBOL_LENGTH {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The collection symbol `{}` has {} characters, which is above the maximum length of {}.",
-                symbol,
-                symbol.len(),
-                MAX_SYMBOL_LENGTH
-            )));
-        }
-
         symbol = symbol.to_uppercase();
         self.symbol = Some(symbol);
 
@@ -142,13 +125,6 @@ impl CollectionData {
         &mut self,
         creators: Vec<String>,
     ) -> Result<(), GutenError> {
-        if creators.len() > MAX_CREATORS_LENGTH {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The creators list provided surpasses the limit of {}. The list provided has {} addresses.",
-                MAX_CREATORS_LENGTH, creators.len()
-            )));
-        }
-
         // Guarantees that creator addresses are valid
         let creator_addresses = creators
             .into_iter()

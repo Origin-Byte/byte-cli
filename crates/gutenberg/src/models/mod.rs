@@ -9,7 +9,6 @@ pub mod launchpad;
 pub mod nft;
 pub mod settings;
 
-/// Contains the market configurations of the marketplace
 #[derive(
     Debug,
     Serialize,
