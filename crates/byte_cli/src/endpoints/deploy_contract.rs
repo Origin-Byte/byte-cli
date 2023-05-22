@@ -6,7 +6,7 @@ use console::style;
 use gutenberg::{package, Schema};
 use serde::Serialize;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rust_sdk::{collection_state::CollectionState, publish};
 use std::fs::{self, File};
@@ -118,7 +118,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 
 pub async fn publish_contract(
     gas_budget: usize,
-    contract_dir: &Path,
+    contract_dir: &PathBuf,
 ) -> Result<CollectionState> {
     let collection_state =
         publish::publish_contract(contract_dir, gas_budget as u64).await?;

@@ -1,5 +1,6 @@
 use console::style;
-use std::{path::Path, sync::mpsc::Sender};
+use std::path::PathBuf;
+use std::sync::mpsc::Sender;
 use terminal_link::Link;
 use tokio::task::JoinSet;
 
@@ -17,6 +18,9 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 
+use move_package::BuildConfig as MoveBuildConfig;
+use sui_move::build::resolve_lock_file_path;
+
 use crate::{
     collection_state::{CollectionState, ObjectType as OBObjectType},
     consts::{NFT_PROTOCOL, VOLCANO_EMOJI},
@@ -25,10 +29,11 @@ use crate::{
 };
 
 pub async fn publish_contract(
-    package_dir: &Path,
-    // TODO: Do we need gas budget
-    _gas_budget: u64,
+    package_dir: &PathBuf,
+    gas_budget: u64,
 ) -> Result<CollectionState, RustSdkError> {
+    let build_config = MoveBuildConfig::default();
+
     let context = get_context().await.unwrap();
     let client = get_client().await.unwrap();
     // Maybe get these from the context
@@ -49,18 +54,20 @@ pub async fn publish_contract(
     println!("{} Preparing transaction", style("WIP").cyan().bold());
 
     // TODO: Add OriginByte Package addresses
-    let dep_ids: Vec<ObjectID> = vec![];
+    let dep_ids: Vec<ObjectID> = get_dependencies(&build_config, package_dir)?;
 
     let mut builder = ProgrammableTransactionBuilder::new();
 
-    let _res = builder.publish_upgradeable(compiled_modules, dep_ids);
+    let upgrade_cap = builder.publish_upgradeable(compiled_modules, dep_ids);
+
+    builder.transfer_arg(sender, upgrade_cap);
 
     let data = TransactionData::new_programmable(
         sender,
         vec![], // Gas Objects
         builder.finish(),
-        10_000, // Gas Budget
-        1,      // Gas Price
+        gas_budget, // Gas Budget
+        1,          // Gas Price
     );
 
     // Sign transaction.
@@ -166,6 +173,31 @@ pub async fn publish_contract(
     );
 
     Ok(collection_state)
+}
+
+fn get_dependencies(
+    build_config: &MoveBuildConfig,
+    package_path: &PathBuf,
+) -> Result<Vec<ObjectID>, RustSdkError> {
+    let build_config = resolve_lock_file_path(
+        build_config.clone(),
+        Some(package_path.clone()),
+    )?;
+    let compiled_package = BuildConfig {
+        config: build_config,
+        run_bytecode_verifier: true,
+        print_diags_to_stderr: true,
+    }
+    .build(package_path.clone())?;
+
+    let deps = compiled_package
+        .dependency_ids
+        .published
+        .iter()
+        .map(|t| *t.1)
+        .collect();
+
+    Ok(deps)
 }
 
 async fn print_object(

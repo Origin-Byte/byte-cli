@@ -4,10 +4,7 @@ use super::{
     address_validator, name_validator, positive_integer_validator,
     symbol_validator, url_validator, FromPrompt,
 };
-use crate::{
-    consts::{DEFAULT_SENDER_MSG, MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
-    prelude::get_dialoguer_theme,
-};
+use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::{models::collection::CollectionData, schema::SchemaBuilder};
@@ -75,20 +72,15 @@ impl FromPrompt for CollectionData {
         for i in 0..creators_num {
             // Loop checks if address is not duplicated
             let address = loop {
-                let mut address = Input::with_theme(&theme)
+                let address = Input::with_theme(&theme)
                     .with_prompt(format!(
                         "Please input address of the creator number {}:",
                         i + 1,
                         // if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
                     ))
-                    .default(DEFAULT_SENDER_MSG.to_string())
                     .validate_with(address_validator)
                     .interact()
                     .unwrap();
-
-                if address == DEFAULT_SENDER_MSG.to_string() {
-                    address = TX_SENDER_ADDRESS.to_string();
-                }
 
                 if creators.contains(&address) {
                     println!("The address {} has already been added, please provide a different one.", address)

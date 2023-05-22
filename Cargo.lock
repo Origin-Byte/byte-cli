@@ -8837,6 +8837,7 @@ dependencies = [
  "hex",
  "mime_guess",
  "move-core-types",
+ "move-package",
  "pretty_assertions",
  "proc-macro2 1.0.58",
  "serde 1.0.163",
@@ -8851,6 +8852,7 @@ dependencies = [
  "sui-json",
  "sui-json-rpc-types",
  "sui-keys",
+ "sui-move",
  "sui-move-build",
  "sui-sdk",
  "sui-source-validation",
@@ -10194,6 +10196,41 @@ dependencies = [
  "sui-proc-macros",
  "tracing",
  "workspace-hack",
+]
+
+[[package]]
+name = "sui-move"
+version = "1.0.0"
+source = "git+https://github.com/MystenLabs/sui?rev=ae1212baf8f0837e25926d941db3d26a61c1bea2#ae1212baf8f0837e25926d941db3d26a61c1bea2"
+dependencies = [
+ "anyhow",
+ "clap 3.2.25",
+ "colored",
+ "const-str",
+ "fastcrypto",
+ "git-version",
+ "jemalloc-ctl",
+ "move-binary-format",
+ "move-cli",
+ "move-disassembler",
+ "move-ir-types",
+ "move-package",
+ "move-prover",
+ "move-prover-boogie-backend",
+ "move-unit-test",
+ "move-vm-runtime",
+ "move-vm-test-utils",
+ "prometheus",
+ "serde_json",
+ "serde_yaml 0.8.26",
+ "sui-cost-tables",
+ "sui-move-build",
+ "sui-move-natives",
+ "sui-protocol-config",
+ "sui-types",
+ "telemetry-subscribers",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

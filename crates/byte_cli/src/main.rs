@@ -128,7 +128,7 @@ async fn run() -> Result<()> {
 
             let state = deploy_contract::publish_contract(
                 gas_budget,
-                contract_dir.as_path(),
+                &PathBuf::from(contract_dir.as_path()),
             )
             .await?;
 

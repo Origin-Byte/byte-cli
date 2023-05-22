@@ -28,8 +28,6 @@ pub const TAG_OPTIONS: [&str; 11] = [
     "Ticket",
     "License",
 ];
-pub const DEFAULT_SENDER_MSG: &str =
-    "Leave blank to default to transaction sender";
 
 pub const MINTING_OPTIONS_: [&str; 2] = ["launchpad", "airdrop"];
 pub const MARKET_OPTIONS_: [&str; 2] = ["Fixed price", "Dutch auction"];

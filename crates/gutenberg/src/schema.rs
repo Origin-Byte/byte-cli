@@ -4,7 +4,6 @@
 //! by the caller.
 use crate::contract::modules::Display;
 use crate::err::GutenError;
-use crate::models::launchpad::Launchpad;
 use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 
@@ -28,7 +27,6 @@ pub struct Schema {
     pub nft: NftData,
     #[builder(field(public))]
     pub settings: Settings,
-    pub launchpad: Option<Launchpad>,
 }
 
 impl Schema {
@@ -36,14 +34,12 @@ impl Schema {
         collection: CollectionData,
         nft: NftData,
         settings: Settings,
-        launchpad: Option<Launchpad>,
     ) -> Schema {
         Schema {
             package_name: None,
             collection,
             nft,
             settings,
-            launchpad,
         }
     }
 
