@@ -6,7 +6,9 @@
     "creators": [
       "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
     ],
-    "tags": ["Gaming"]
+    "tags": [
+      "Gaming"
+    ]
   },
   "nft": {
     "typeName": "AurahmaPreReveal"
@@ -19,6 +21,7 @@
     },
     "requestPolicies": {
       "transfer": true,
+      "withdraw": false,
       "borrow": false
     },
     "royalties": {

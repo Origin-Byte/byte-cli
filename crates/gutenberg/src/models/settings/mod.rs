@@ -58,32 +58,50 @@ impl Settings {
         code
     }
 
+    pub fn write_request_policies(&self, type_name: &String) -> String {
+        let require_withdraw = self.burn.is_permissionless();
+
+        self.request_policies
+            .write_policies(type_name, require_withdraw)
+    }
+
     pub fn write_transfer_fns(&self) -> String {
         let mut code = String::new();
 
-        code.push_str(&format!(
+        code.push_str(
             "
+
         // Setup Transfers
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(collection);
-        "
-        ));
+        sui::transfer::public_share_object(collection);",
+        );
 
         if self.request_policies.transfer {
-            code.push_str(&format!(
+            code.push_str(
                 "
+
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(transfer_policy);\n"
-            ));
+        sui::transfer::public_share_object(transfer_policy);"
+            );
+        }
+
+        if self.request_policies.borrow || self.burn.is_permissionless() {
+            code.push_str(
+                "
+
+        sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(withdraw_policy);"
+            );
         }
 
         if self.request_policies.borrow {
-            code.push_str(&format!(
+            code.push_str(
                 "
+
         sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(borrow_policy);\n"
-            ));
+        sui::transfer::public_share_object(borrow_policy);"
+            );
         }
 
         code

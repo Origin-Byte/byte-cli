@@ -92,7 +92,7 @@ impl RoyaltyPolicy {
             nft_protocol::royalty::from_shares(royalty_map, ctx),
             {},
             ctx,
-        );\n\n",
+        );",
                     bps
                 ),
             ),
