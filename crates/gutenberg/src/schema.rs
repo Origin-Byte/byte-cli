@@ -77,7 +77,7 @@ impl Schema {
         let create_collection = self
             .settings
             .mint_policies
-            .write_collection_create_with_mint_cap(&witness, &type_name);
+            .write_collection_create_with_mint_cap(&witness, type_name);
 
         let transfer_fns = self.settings.write_transfer_fns();
 
@@ -113,7 +113,7 @@ impl Schema {
 
         code.push_str(orderbook_fns.as_str());
 
-        code.push_str(&&self.settings.burn.write_burn_fns(&self.nft.type_name));
+        code.push_str(&self.settings.burn.write_burn_fns(&self.nft.type_name));
 
         code
     }
