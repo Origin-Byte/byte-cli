@@ -18,8 +18,8 @@ use crate::contract::modules::Display;
 pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
-    pub collection: CollectionData,
-    pub nft: NftData,
+    collection: CollectionData,
+    nft: NftData,
     pub settings: Settings,
     pub launchpad: Option<Launchpad>,
 }
@@ -61,14 +61,12 @@ impl Schema {
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let transfer_fns = self.settings.write_transfer_fns();
-
         let tags = self.collection.write_tags();
+
         let display = Display::write_display(&self.nft.type_name);
-        let request_policies = self
-            .settings
-            .request_policies
-            .write_policies(&self.nft.type_name);
+
+        let request_policies =
+            self.settings.write_request_policies(&self.nft.type_name);
 
         let orderbook =
             self.settings.orderbook.write_orderbook(&self.nft.type_name);
@@ -80,6 +78,8 @@ impl Schema {
             .settings
             .mint_policies
             .write_collection_create_with_mint_cap(&witness, &type_name);
+
+        let transfer_fns = self.settings.write_transfer_fns();
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
@@ -93,7 +93,8 @@ impl Schema {
         {display}
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}"
+{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}
+    }}"
         )
     }
 
@@ -112,11 +113,7 @@ impl Schema {
 
         code.push_str(orderbook_fns.as_str());
 
-        if self.settings.burn != crate::models::settings::Burn::None {
-            code.push_str(
-                &&self.settings.burn.write_burn_fns(&self.nft.type_name),
-            );
-        }
+        code.push_str(&&self.settings.burn.write_burn_fns(&self.nft.type_name));
 
         code
     }

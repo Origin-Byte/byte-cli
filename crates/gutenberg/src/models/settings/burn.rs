@@ -9,20 +9,43 @@ pub enum Burn {
 }
 
 impl Burn {
+    pub fn is_none(&self) -> bool {
+        match self {
+            Burn::None => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_permissioned(&self) -> bool {
+        match self {
+            Burn::Permissioned => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_permissionless(&self) -> bool {
+        match self {
+            Burn::Permissionless => true,
+            _ => false,
+        }
+    }
+
     pub fn write_burn_fns(&self, nft_type_name: &String) -> String {
         let mut code = String::new();
+
+        if let Burn::None = self {
+            return code;
+        }
 
         code.push_str(&format!(
             "
 
-    // Burn functions
-    public entry fun burn_nft(
-        publisher: &sui::package::Publisher,
+    public fun burn_nft(
+        delegated_witness: ob_permissions::witness::Witness<{nft_type_name}>,
         collection: &nft_protocol::collection::Collection<{nft_type_name}>,
         nft: {nft_type_name},
     ) {{
-        let dw = ob_permissions::witness::from_publisher(publisher);
-        let guard = nft_protocol::mint_event::start_burn(dw, &nft);
+        let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
 
         let {nft_type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
 
@@ -40,8 +63,10 @@ impl Burn {
         inventory_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
         let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
-        burn_nft(publisher, collection, nft);
+        burn_nft(delegated_witness, collection, nft);
     }}"
         ));
 
@@ -56,8 +81,10 @@ impl Burn {
         nft_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
         let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
-        burn_nft(publisher, collection, nft);
+        burn_nft(delegated_witness, collection, nft);
     }}"
         ));
 
@@ -124,7 +151,7 @@ impl Burn {
             nft_protocol::collection::Collection<{nft_type_name}>
         >(&scenario);
 
-        let borrow_policy = sui::test_scenario::take_shared<
+        let withdraw_policy = sui::test_scenario::take_shared<
             ob_request::request::Policy<
                 ob_request::request::WithNft<{nft_type_name}, ob_request::withdraw_request::WITHDRAW_REQ>
             >
@@ -148,14 +175,14 @@ impl Burn {
             &collection,
             &mut kiosk,
             nft_id,
-            &borrow_policy,
+            &withdraw_policy,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::return_to_address(CREATOR, publisher);
         sui::test_scenario::return_shared(collection);
-        sui::test_scenario::return_shared(borrow_policy);
+        sui::test_scenario::return_shared(withdraw_policy);
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
     }}")

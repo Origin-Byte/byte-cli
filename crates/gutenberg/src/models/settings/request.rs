@@ -9,24 +9,34 @@ pub enum RequestType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestPolicies {
     pub transfer: bool,
+    pub withdraw: bool,
     pub borrow: bool,
 }
 
 impl RequestPolicies {
-    pub fn new(transfer: bool, borrow: bool) -> RequestPolicies {
-        RequestPolicies { transfer, borrow }
+    pub fn new(
+        transfer: bool,
+        withdraw: bool,
+        borrow: bool,
+    ) -> RequestPolicies {
+        RequestPolicies {
+            transfer,
+            withdraw,
+            borrow,
+        }
     }
 
-    pub fn is_empty(&self) -> bool {
-        !self.transfer && !self.borrow
-    }
-
-    pub fn write_policies(&self, type_name: &String) -> String {
+    pub fn write_policies(
+        &self,
+        type_name: &String,
+        require_withdraw: bool,
+    ) -> String {
         let mut request_policies = String::new();
 
         if self.transfer {
             request_policies.push_str(&format!(
                 "
+
         let (transfer_policy, transfer_policy_cap) =
             ob_request::transfer_request::init_policy<{type_name}>(&publisher, ctx);
 
@@ -38,12 +48,23 @@ impl RequestPolicies {
         );"
             ));
         }
+
         if self.borrow {
             request_policies.push_str(&format!(
                 "
+
         let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);\n"
+            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);"
             ));
+        }
+
+        if self.withdraw || require_withdraw {
+            request_policies.push_str(&format!(
+                "
+
+        let (withdraw_policy, withdraw_policy_cap) =
+            ob_request::withdraw_request::init_policy<{type_name}>(&publisher, ctx);"
+            ))
         }
 
         request_policies

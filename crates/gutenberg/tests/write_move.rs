@@ -21,18 +21,17 @@ fn scenarios() {
         });
 
     for path in files {
-        let expected_file =
-            path.file_stem().unwrap().to_str().unwrap().to_string();
+        let schema = assert_schema(&path);
+        let expected_file = schema.collection().package_name();
 
         let mut output = Vec::new();
-
-        assert_schema(&path)
+        schema
             .write_move(&mut output)
             .expect("Could not write move file");
 
         let output = String::from_utf8(output).unwrap();
 
-        let expected = assert_expected(&format!("{expected_file}.move"));
+        let expected = assert_expected(&expected_file);
         pretty_assertions::assert_eq!(output, expected);
     }
 }
@@ -45,7 +44,10 @@ fn template() {
 }
 
 fn assert_expected(expected: &str) -> String {
-    let expected_path = Path::new("./tests/packages/sources").join(expected);
+    let expected_path = Path::new("./tests/packages")
+        .join(expected)
+        .join("sources")
+        .join(&format!("{expected}.move"));
 
     match fs::read_to_string(&expected_path) {
         Ok(contract) => contract,

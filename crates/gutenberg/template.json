@@ -62,6 +62,9 @@
             // Specifies whether transfer requests are allowed.
             // Required
             "transfer": true,
+            // Specifies whether withdraw requests are allowed.
+            // Required
+            "withdraw": false,
             // Specifies whether borrowing requests are allowed.
             // Required
             "borrow": true

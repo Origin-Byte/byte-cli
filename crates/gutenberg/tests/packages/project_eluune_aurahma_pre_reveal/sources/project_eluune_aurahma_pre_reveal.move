@@ -72,7 +72,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             ctx,
         );
 
-
         let (transfer_policy, transfer_policy_cap) =
             ob_request::transfer_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
 
@@ -83,18 +82,25 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             &mut transfer_policy, &transfer_policy_cap,
         );
 
+        let (withdraw_policy, withdraw_policy_cap) =
+            ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+
         // Protected orderbook such that trading is not initially possible
         let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<AurahmaPreReveal, sui::sui::SUI>(
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);
+
         // Setup Transfers
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(collection);
-        
+
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);
+
+        sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(withdraw_policy);
     }
 
     public entry fun mint_nft(
@@ -217,14 +223,12 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         );
     }
 
-    // Burn functions
-    public entry fun burn_nft(
-        publisher: &sui::package::Publisher,
+    public fun burn_nft(
+        delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
         collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
         nft: AurahmaPreReveal,
     ) {
-        let dw = ob_permissions::witness::from_publisher(publisher);
-        let guard = nft_protocol::mint_event::start_burn(dw, &nft);
+        let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
 
         let AurahmaPreReveal { id, name: _, description: _, url: _, attributes: _ } = nft;
 
@@ -238,8 +242,10 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         inventory_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
         let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
-        burn_nft(publisher, collection, nft);
+        burn_nft(delegated_witness, collection, nft);
     }
 
     public entry fun burn_nft_in_listing_with_id(
@@ -250,8 +256,10 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         nft_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
     ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
         let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
-        burn_nft(publisher, collection, nft);
+        burn_nft(delegated_witness, collection, nft);
     }
 
     public entry fun burn_own_nft(
@@ -348,7 +356,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             nft_protocol::collection::Collection<AurahmaPreReveal>
         >(&scenario);
 
-        let borrow_policy = sui::test_scenario::take_shared<
+        let withdraw_policy = sui::test_scenario::take_shared<
             ob_request::request::Policy<
                 ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>
             >
@@ -372,14 +380,14 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             &collection,
             &mut kiosk,
             nft_id,
-            &borrow_policy,
+            &withdraw_policy,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::return_to_address(CREATOR, publisher);
         sui::test_scenario::return_shared(collection);
-        sui::test_scenario::return_shared(borrow_policy);
+        sui::test_scenario::return_shared(withdraw_policy);
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
     }
