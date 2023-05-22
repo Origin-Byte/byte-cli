@@ -12,6 +12,8 @@ The CLI has the following commands:
 
 #### 3. To deploy the contract on devnet:
 
+`cargo run --bin byte_cli generate-contract <PROJECT_FOLDER>`
+
 ```cargo run --bin byte_cli deploy-contract <PROJECT_FOLDER>```
 
 #### 4. To deploy assets to the storage server:

@@ -73,7 +73,8 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
                     PROTOCOL_PACKAGE_COMMIT.to_string(),
-                ),
+                )
+                .subdir("contracts/nft_protocol".to_string()),
             ),
         ]),
         addresses: package::Addresses::new([(

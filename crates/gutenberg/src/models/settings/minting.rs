@@ -164,6 +164,8 @@ impl MintPolicies {
         ctx: &mut sui::tx_context::TxContext,
     ) {{
         let nft = mint(
+        {params}
+        );
 
         let (kiosk, _) = ob_kiosk::ob_kiosk::new_for_address(receiver, ctx);
         ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, ctx);
