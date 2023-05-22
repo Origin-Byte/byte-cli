@@ -10,24 +10,15 @@ pub enum Burn {
 
 impl Burn {
     pub fn is_none(&self) -> bool {
-        match self {
-            Burn::None => true,
-            _ => false,
-        }
+        matches!(self, Burn::None)
     }
 
     pub fn is_permissioned(&self) -> bool {
-        match self {
-            Burn::Permissioned => true,
-            _ => false,
-        }
+        matches!(self, Burn::Permissioned)
     }
 
     pub fn is_permissionless(&self) -> bool {
-        match self {
-            Burn::Permissionless => true,
-            _ => false,
-        }
+        matches!(self, Burn::Permissionless)
     }
 
     pub fn write_burn_fns(&self, nft_type_name: &String) -> String {

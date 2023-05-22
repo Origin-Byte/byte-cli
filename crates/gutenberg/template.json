@@ -39,7 +39,14 @@
     "nft": {
         // The type name of the NFT.
         // Required
-        "typeName": "Gnome"
+        "typeName": "Gnome",
+        // If default, generates burn_nft, burn_nft_in_listing, burn_nft_in_listing_with_id functions.
+        // Permissionless generates burn_own_nft and burn_own_nft_in_kiosk functions.
+        // Possible values: [disabled, permissioned, permissionless]
+        // Required
+        "burn": "permissionless",
+        // If set, generates dynamic metadata methods
+        "dynamic": false
     },
     // Feature settings.
     // Required
@@ -103,11 +110,6 @@
         // "Unprotected" generates the orderbook on publishing
         // Required
         // Possible values: [none, unprotected, protected]
-        "orderbook": "protected",
-        // If default, generates burn_nft, burn_nft_in_listing, burn_nft_in_listing_with_id functions.
-        // Permissionless generates burn_own_nft and burn_own_nft_in_kiosk functions.
-        // Possible values: [disabled, permissioned, permissionless]
-        // Required
-        "burn": "permissionless"
+        "orderbook": "protected"
     }
 }
