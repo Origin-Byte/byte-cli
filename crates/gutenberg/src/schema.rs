@@ -8,9 +8,6 @@ use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 
 use serde::{Deserialize, Serialize};
-use strfmt::strfmt;
-
-use std::collections::HashMap;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -43,12 +40,19 @@ impl Schema {
         }
     }
 
-    pub fn module_name(&self) -> String {
-        self.collection.name.to_lowercase().replace(' ', "_")
+    pub fn package_name(&self) -> String {
+        match &self.package_name {
+            Some(package_name) => package_name.clone(),
+            None => self.collection().package_name(),
+        }
     }
 
-    pub fn witness_name(&self) -> String {
-        self.module_name().to_uppercase()
+    pub fn collection(&self) -> &CollectionData {
+        &self.collection
+    }
+
+    pub fn nft(&self) -> &NftData {
+        &self.nft
     }
 
     pub fn write_init_fn(&self) -> String {
@@ -57,25 +61,25 @@ impl Schema {
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let transfer_fns = self.settings.write_transfer_fns();
-
         let tags = self.collection.write_tags();
+
         let display = Display::write_display(&self.nft.type_name);
-        let request_policies = self
-            .settings
-            .request_policies
-            .write_policies(&self.nft.type_name);
+
+        let request_policies =
+            self.settings.write_request_policies(&self.nft.type_name);
 
         let orderbook =
             self.settings.orderbook.write_orderbook(&self.nft.type_name);
 
-        let witness = self.witness_name();
+        let witness = self.collection().witness_name();
         let type_name = &self.nft.type_name;
 
         let create_collection = self
             .settings
             .mint_policies
-            .write_collection_create_with_mint_cap(&witness, &type_name);
+            .write_collection_create_with_mint_cap(&witness, type_name);
+
+        let transfer_fns = self.settings.write_transfer_fns();
 
         format!(
             "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
@@ -83,15 +87,14 @@ impl Schema {
 
         // Init Publisher
         let publisher = sui::package::claim(witness, ctx);
-
-        // Init Tags
-        {tags}
+{tags}
 
         // Init Display
         {display}
 
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}    }}"
+{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}
+    }}"
         )
     }
 
@@ -110,18 +113,17 @@ impl Schema {
 
         code.push_str(orderbook_fns.as_str());
 
-        if self.settings.burn {
-            code.push_str(&self.settings.write_burn_fns(&self.nft.type_name));
-        }
+        code.push_str(&self.settings.burn.write_burn_fns(&self.nft.type_name));
 
         code
     }
 
     pub fn write_tests(&self) -> String {
         let type_name = &self.nft.type_name;
-        let witness = self.witness_name();
-        format!(
+        let witness = self.collection().witness_name();
+        let mut tests = format!(
             "
+
     #[test_only]
     const CREATOR: address = @0xA1C04;
 
@@ -172,7 +174,16 @@ impl Schema {
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::end(scenario);
-    }}")
+    }}");
+
+        tests.push_str(
+            self.settings
+                .burn
+                .write_burn_tests(&self.nft.type_name, &witness)
+                .as_str(),
+        );
+
+        tests
     }
 
     /// Higher level method responsible for generating Move code from the
@@ -183,56 +194,44 @@ impl Schema {
         &self,
         mut output: W,
     ) -> Result<(), GutenError> {
-        let module_name = self.module_name();
-        let witness = self.witness_name();
+        let witness = self.collection().witness_name();
+        let package_name = self.package_name();
 
         let type_declarations = self.settings.write_type_declarations();
-
-        let init_fn = self.write_init_fn();
-
-        let entry_fns = self.write_entry_fns();
-
+        let init_function = self.write_init_fn();
+        let entry_functions = self.write_entry_fns();
         let nft_struct = self.nft.write_struct();
-
-        let mut vars = HashMap::<&'static str, &str>::new();
 
         let tests = self.write_tests();
 
-        if let Some(package_name) = &self.package_name {
-            vars.insert("package_name", package_name);
-        } else {
-            vars.insert("package_name", &module_name);
-        }
+        let res = format!(
+            include_str!("../templates/template.move"),
+            witness = witness,
+            package_name = package_name,
+            type_declarations = type_declarations,
+            init_function = init_function,
+            entry_functions = entry_functions,
+            nft_struct = nft_struct,
+            tests = tests
+        );
 
-        vars.insert("module_name", &module_name);
-        vars.insert("witness", &witness);
-        vars.insert("type_declarations", &type_declarations);
-        vars.insert("init_function", &init_fn);
-        vars.insert("entry_functions", &entry_fns);
-        vars.insert("nft_struct", &nft_struct);
-        vars.insert("tests", &tests);
+        output.write_all(res.as_bytes())?;
 
-        // Marketplace and Listing objects
-        // vars.insert("init_marketplace", &init_marketplace);
-        // vars.insert("share_marketplace", &share_marketplace);
+        Ok(())
+    }
 
-        let vars: HashMap<String, String> = vars
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+    pub fn write_move_toml<W: std::io::Write>(
+        &self,
+        mut output: W,
+    ) -> Result<(), GutenError> {
+        let package_name = self.package_name();
 
-        output.write_all(
-            strfmt(include_str!("../templates/template.move"), &vars)
-                // This is expected not to result in an error since we
-                // have explicitly handled all error cases
-                .unwrap_or_else(|err| {
-                    panic!(
-                        "This error is not expected and should not occur: {}",
-                        err
-                    )
-                })
-                .as_bytes(),
-        )?;
+        let res = format!(
+            include_str!("../templates/Move.toml"),
+            package_name = package_name,
+        );
+
+        output.write_all(res.as_bytes())?;
 
         Ok(())
     }

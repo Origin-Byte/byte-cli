@@ -117,8 +117,7 @@ impl MintPolicies {
             args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
             let nft = format!(
-                "
-        let nft = {nft_type_name} {{
+                "let nft = {nft_type_name} {{
             id: sui::object::new(ctx),
             name,
             description,
@@ -128,7 +127,8 @@ impl MintPolicies {
             );
 
             code = format!(
-                "\n
+                "
+
     fun mint(
 {args}    ){return_type} {{
         {nft}
@@ -163,10 +163,7 @@ impl MintPolicies {
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-
         let nft = mint(
-        {params}
-        );
 
         let (kiosk, _) = ob_kiosk::ob_kiosk::new_for_address(receiver, ctx);
         ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, ctx);

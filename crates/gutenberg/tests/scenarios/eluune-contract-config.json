@@ -1,0 +1,45 @@
+{
+  "collection": {
+    "name": "Project Eluüne: Aurahma Pre-Reveal",
+    "description": "Project Eluüne is a gaming sci-fi fantasy universe brought to you by OG game veterans who built Call Of Duty, Dota2 and many of your favorite video games. As a player, you answer the call of Eluüne, a mysterious entity who has sent an SOS message to us humans from a hidden world… Techno-magical, teeming with fantastic life and rich secrecy spanning millions of years… Will you answer the call?",
+    "symbol": "PRAMA",
+    "creators": [
+      "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
+    ],
+    "tags": [
+      "Gaming"
+    ]
+  },
+  "nft": {
+    "typeName": "AurahmaPreReveal"
+  },
+  "settings": {
+    "mintPolicies": {
+      "supply": 600,
+      "launchpad": true,
+      "airdrop": true
+    },
+    "requestPolicies": {
+      "transfer": true,
+      "withdraw": false,
+      "borrow": false
+    },
+    "royalties": {
+      "proportional": {
+        "shares": [
+          {
+            "address": "0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5",
+            "shareBps": 9500
+          },
+          {
+            "address": "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f",
+            "shareBps": 500
+          }
+        ],
+        "collectionRoyaltyBps": 700
+      }
+    },
+    "orderbook": "protected",
+    "burn": "permissionless"
+  }
+}

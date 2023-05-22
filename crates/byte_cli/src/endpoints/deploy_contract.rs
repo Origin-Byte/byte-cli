@@ -45,7 +45,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
         )
     })?;
 
-    let module_name = schema.module_name();
+    let module_name = schema.collection.name();
 
     let package = package::Move {
         package: package::Package {

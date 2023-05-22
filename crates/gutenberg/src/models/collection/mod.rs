@@ -6,14 +6,10 @@ pub mod tags;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    consts::{MAX_CREATORS_LENGTH, MAX_SYMBOL_LENGTH},
-    contract::modules::DisplayInfoMod,
-    err::GutenError,
-    utils::validate_address,
-};
+use crate::{contract::modules::DisplayInfoMod, err::GutenError};
 
 use self::tags::Tags;
+use super::Address;
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -29,7 +25,7 @@ pub struct CollectionData {
     pub url: Option<String>,
     #[serde(default)]
     /// The addresses of creators
-    pub creators: Vec<String>,
+    pub creators: Vec<Address>,
     pub tags: Option<Tags>,
 }
 
@@ -39,7 +35,7 @@ impl CollectionData {
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,
-        creators: Vec<String>,
+        creators: Vec<Address>,
         tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
@@ -52,17 +48,58 @@ impl CollectionData {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.name.is_empty()
-            && self.description.is_none()
-            && self.symbol.is_none()
-            && self.url.is_none()
-            && self.creators.is_empty()
-            && self.tags.is_none()
+    pub fn name(&self) -> String {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        deunicode(&self.name)
+    }
+
+    pub fn description(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.description
+            .as_ref()
+            .map(|description| deunicode(description))
+    }
+
+    // Retains only alphanumeric characters
+    fn escaped_name(&self) -> String {
+        self.name()
+            .chars()
+            .filter_map(|char| match char {
+                '-' => Some('_'),
+                ' ' => Some('_'),
+                char => char.is_ascii_alphanumeric().then_some(char),
+            })
+            .collect()
+    }
+
+    pub fn package_name(&self) -> String {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.escaped_name().to_lowercase()
     }
 
     pub fn witness_name(&self) -> String {
-        self.name.to_uppercase().replace(' ', "")
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.escaped_name().to_uppercase()
+    }
+
+    pub fn url(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.url.clone()
+    }
+
+    pub fn symbol(&self) -> Option<String> {
+        // Since `CollectionData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.symbol.clone()
+    }
+
+    pub fn creators(&self) -> &Vec<Address> {
+        &self.creators
     }
 
     pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
@@ -88,15 +125,6 @@ impl CollectionData {
             return Err(GutenError::UnsupportedCollectionInput(format!(
                 "The collection symbol provided `{}` should only have alphanumeric characters.",
                 symbol
-            )));
-        }
-
-        if symbol.len() > MAX_SYMBOL_LENGTH {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The collection symbol `{}` has {} characters, which is above the maximum length of {}.",
-                symbol,
-                symbol.len(),
-                MAX_SYMBOL_LENGTH
             )));
         }
 
@@ -133,21 +161,14 @@ impl CollectionData {
         &mut self,
         creators: Vec<String>,
     ) -> Result<(), GutenError> {
-        if creators.len() > MAX_CREATORS_LENGTH {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The creators list provided surpasses the limit of {}. The list provided has {} addresses.",
-                MAX_CREATORS_LENGTH, creators.len()
-            )));
-        }
-
         // Guarantees that creator addresses are valid
-        creators
-            .iter()
-            .map(|creator| validate_address(creator))
-            .collect::<Result<(), GutenError>>()?;
+        let creator_addresses = creators
+            .into_iter()
+            .map(|creator| Address::new(creator))
+            .collect::<Result<Vec<Address>, GutenError>>()?;
 
         // Validate that creator strings are addresses
-        self.creators = creators;
+        self.creators = creator_addresses;
 
         Ok(())
     }
@@ -189,14 +210,8 @@ impl CollectionData {
         let creators = sui::vec_set::empty();\n",
             );
             for address in self.creators.iter() {
-                let address = if address == "sui::tx_context::sender(ctx)" {
-                    address.clone()
-                } else {
-                    format!("@{address}")
-                };
-
                 code.push_str(&format!(
-                    "        sui::vec_set::insert(&mut creators, {address});\n"
+                    "        sui::vec_set::insert(&mut creators, @{address});\n"
                 ));
             }
 
@@ -219,7 +234,12 @@ impl CollectionData {
     pub fn write_tags(&self) -> String {
         self.tags
             .as_ref()
-            .map(|tags| tags.write_tags_vec())
+            .map(|tags| tags.write_move())
             .unwrap_or_default()
     }
+}
+
+/// De-unicodes and removes all unknown characters
+fn deunicode(unicode: &str) -> String {
+    deunicode::deunicode_with_tofu(unicode, "")
 }

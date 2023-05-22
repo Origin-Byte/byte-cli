@@ -7,7 +7,10 @@ use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::{
-    models::settings::royalties::{RoyaltyPolicy, Share},
+    models::{
+        settings::royalties::{RoyaltyPolicy, Share},
+        Address,
+    },
     schema::SchemaBuilder,
 };
 
@@ -23,7 +26,7 @@ impl FromPrompt for RoyaltyPolicy {
             let shares = royalty_shares(creators);
             policy.add_beneficiary_vecs(creators, &shares);
         } else {
-            let mut beneficiaries = get_beneficiaries();
+            let mut beneficiaries = get_beneficiaries()?;
             policy.add_beneficiaries(&mut beneficiaries);
         };
 
@@ -56,7 +59,7 @@ pub fn are_royalty_owners_creators() -> bool {
         .unwrap()
 }
 
-pub fn get_beneficiaries() -> BTreeSet<Share> {
+pub fn get_beneficiaries() -> Result<BTreeSet<Share>> {
     let theme = get_dialoguer_theme();
 
     let beneficiary_num = Input::with_theme(&theme)
@@ -113,13 +116,13 @@ Note: Shares remaining: {}, please make sure the end sum amounts to 100% (i.e. 1
         };
 
         beneficiaries.push(address.clone());
-        shares.insert(Share::new(address, share));
+        shares.insert(Share::new(Address::new(address)?, share));
     }
 
-    shares
+    Ok(shares)
 }
 
-pub fn royalty_shares(addresses: &Vec<String>) -> Vec<u64> {
+pub fn royalty_shares(addresses: &Vec<Address>) -> Vec<u64> {
     let theme = get_dialoguer_theme();
 
     let shares = addresses.iter().map(|address| {

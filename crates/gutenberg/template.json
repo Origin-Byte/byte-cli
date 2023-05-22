@@ -17,6 +17,21 @@
         // Required. Can be empty.
         "creators": [
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
+        ],
+        // Tags for the NFTs. Custom tags are supported as well
+        "tags": [
+            "Art",
+            "ProfilePicture",
+            "Collectible",
+            "GameAsset",
+            "TokenisedAsset",
+            "Ticker",
+            "DomainName",
+            "Music",
+            "Video",
+            "Ticket",
+            "License",
+            "Utility"
         ]
     },
     // NFT details.
@@ -47,25 +62,13 @@
             // Specifies whether transfer requests are allowed.
             // Required
             "transfer": true,
+            // Specifies whether withdraw requests are allowed.
+            // Required
+            "withdraw": false,
             // Specifies whether borrowing requests are allowed.
             // Required
             "borrow": true
         },
-        // Tags for the NFTs. All possible values are included. Custom tags can be added manually to the contract at the moment.
-        "tags": [
-            "Art",
-            "ProfilePicture",
-            "Collectible",
-            "GameAsset",
-            "TokenisedAsset",
-            "Ticker",
-            "DomainName",
-            "Music",
-            "Video",
-            "Ticket",
-            "License",
-            "Utility"
-        ],
         // Royalty settings.
         "royalties": {
             // Proportional royalty settings. Currently, only this strategy is supported.
@@ -101,8 +104,10 @@
         // Required
         // Possible values: [none, unprotected, protected]
         "orderbook": "protected",
-        // If enabled, generates burn_nft, burn_nft_in_listing, burn_nft_in_listing_with_id functions
+        // If default, generates burn_nft, burn_nft_in_listing, burn_nft_in_listing_with_id functions.
+        // Permissionless generates burn_own_nft and burn_own_nft_in_kiosk functions.
+        // Possible values: [disabled, permissioned, permissionless]
         // Required
-        "burn": true
+        "burn": "permissionless"
     }
 }

@@ -4,7 +4,7 @@ use dialoguer::{Input, MultiSelect, Select};
 use gutenberg::{
     models::settings::{
         composability::Composability, minting::MintPolicies,
-        royalties::RoyaltyPolicy, Orderbook, RequestPolicies, Settings,
+        royalties::RoyaltyPolicy, Burn, Orderbook, RequestPolicies, Settings,
     },
     schema::SchemaBuilder,
 };
@@ -41,7 +41,7 @@ impl FromPrompt for Settings {
             };
 
         // TODO: Design this part
-        let requests = RequestPolicies::new(false, false); // TODO
+        let requests = RequestPolicies::new(false, false, false); // TODO
 
         let orderbook = if features
             .contains(&String::from("Immediate Secondary Market Trading"))
@@ -52,9 +52,10 @@ impl FromPrompt for Settings {
         };
 
         let burn = if features.contains(&String::from("NFT Burning")) {
-            true
+            // TODO: Add permissioned
+            Burn::Permissionless
         } else {
-            false
+            Burn::None
         };
 
         let settings = Settings::new(

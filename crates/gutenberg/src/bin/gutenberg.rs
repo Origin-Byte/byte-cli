@@ -1,9 +1,25 @@
-use clap::Parser;
-use gutenberg::cli::{Cli, Commands};
+use clap::{Parser, Subcommand};
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::Path;
+
+#[derive(Parser)]
+#[clap(author, version, about)]
+pub struct Cli {
+    #[clap(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Generate {
+        input_config_path: String,
+        output_dir: String,
+    },
+
+    GenerateTests,
+}
 
 fn main() {
     let cli = Cli::parse();
@@ -22,22 +38,32 @@ fn main() {
 }
 
 fn generate_contract(config_path: &Path, output_dir: &Path) {
-    let expected_file = config_path.file_stem().unwrap().to_str().unwrap();
-    let expected_file = format!("{expected_file}.move");
+    let schema = assert_schema(config_path);
 
-    // Create directory if it does not exist
-    std::fs::create_dir_all(output_dir).unwrap();
+    // Create main contract directory
+    let package_name = schema.collection().package_name();
+    let contract_dir = output_dir.join(&package_name);
+    let sources_dir = contract_dir.join("sources");
 
-    let mut output = File::create(output_dir.join(expected_file)).unwrap();
+    // Create directories
+    std::fs::create_dir_all(&sources_dir).unwrap();
 
-    assert_schema(config_path)
-        .write_move(&mut output)
-        .expect("Could not write move file");
+    // Create `Move.toml`
+    let move_file = File::create(contract_dir.join("Move.toml")).unwrap();
+    schema
+        .write_move_toml(move_file)
+        .expect("Could not write `Move.toml`");
+
+    let module_file =
+        File::create(sources_dir.join(format!("{package_name}.move"))).unwrap();
+    schema
+        .write_move(module_file)
+        .expect("Could not write Move module");
 }
 
 fn generate_tests() {
     let scenarios_path = Path::new("./tests/scenarios");
-    let modules_path = Path::new("./tests/packages/sources");
+    let modules_path = Path::new("./tests/packages");
 
     let files = std::fs::read_dir(scenarios_path)
         .unwrap()
