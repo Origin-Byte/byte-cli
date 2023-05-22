@@ -79,7 +79,9 @@ impl Schema {
         let transfer_fns = self.settings.write_transfer_fns(&self.nft);
 
         format!(
-            "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
+            "
+
+    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         {create_collection}
 
         // Init Publisher

@@ -13,7 +13,9 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         description: std::string::String,
         url: sui::url::Url,
         attributes: nft_protocol::attributes::Attributes,
-    }    fun init(witness: PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, ctx: &mut sui::tx_context::TxContext) {
+    }
+
+    fun init(witness: PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, ctx: &mut sui::tx_context::TxContext) {
         let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
             &witness, std::option::some(600), ctx
         );
