@@ -2,6 +2,7 @@ pub mod burn;
 pub mod dynamic;
 
 use burn::Burn;
+use dynamic::Dynamic;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -9,20 +10,12 @@ use serde::{Deserialize, Serialize};
 pub struct NftData {
     type_name: String,
     burn: Burn,
-    dynamic: bool,
+    dynamic: Dynamic,
 }
 
 impl NftData {
     pub fn type_name(&self) -> &String {
         &self.type_name
-    }
-
-    pub fn burn(&self) -> &Burn {
-        &self.burn
-    }
-
-    pub fn dynamic(&self) -> bool {
-        self.dynamic
     }
 
     /// Returns whether NFT requires withdraw policy to be created
@@ -32,7 +25,7 @@ impl NftData {
 
     /// Returns whether NFT requires borrow policy to be created
     pub fn requires_borrow(&self) -> bool {
-        self.dynamic
+        self.dynamic.is_dynamic()
     }
 
     pub fn write_struct(&self) -> String {
@@ -47,6 +40,15 @@ impl NftData {
         attributes: nft_protocol::attributes::Attributes,
     }}"
         )
+    }
+
+    pub fn write_dynamic_fns(&self) -> String {
+        self.dynamic.write_dynamic_fns(self.type_name())
+    }
+
+    pub fn write_dynamic_tests(&self, witness_type: &String) -> String {
+        self.dynamic
+            .write_dynamic_tests(self.type_name(), witness_type)
     }
 
     pub fn write_burn_fns(&self) -> String {

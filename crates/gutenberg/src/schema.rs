@@ -106,8 +106,8 @@ impl Schema {
         let orderbook_fns = self.settings.orderbook.write_entry_fns(type_name);
 
         code.push_str(orderbook_fns.as_str());
-
-        code.push_str(&self.nft.burn().write_burn_fns(type_name));
+        code.push_str(&&self.nft.write_dynamic_fns());
+        code.push_str(&self.nft.write_burn_fns());
 
         code
     }
@@ -170,7 +170,8 @@ impl Schema {
         sui::test_scenario::end(scenario);
     }}");
 
-        tests.push_str(self.nft.write_burn_tests(&witness).as_str());
+        tests.push_str(&self.nft.write_dynamic_tests(&witness));
+        tests.push_str(&self.nft.write_burn_tests(&witness));
 
         tests
     }

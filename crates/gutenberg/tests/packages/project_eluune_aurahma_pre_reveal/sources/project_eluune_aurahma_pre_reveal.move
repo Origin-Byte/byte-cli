@@ -82,6 +82,9 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             &mut transfer_policy, &transfer_policy_cap,
         );
 
+        let (borrow_policy, borrow_policy_cap) =
+            ob_request::borrow_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+
         let (withdraw_policy, withdraw_policy_cap) =
             ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
 
@@ -101,6 +104,9 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(withdraw_policy);
+
+        sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(borrow_policy);
     }
 
     public entry fun mint_nft(
@@ -223,6 +229,47 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         );
     }
 
+    public fun set_metadata(
+        _delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
+        nft: &mut AurahmaPreReveal,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+    ) {
+        nft.url = sui::url::new_unsafe_from_bytes(url);
+        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
+    }
+
+    public entry fun set_metadata_as_publisher(
+        publisher: &sui::package::Publisher,
+        nft: &mut AurahmaPreReveal,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
+    }
+
+    public entry fun set_metadata_in_kiosk(
+        publisher: &sui::package::Publisher,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::borrow_request::BORROW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<AurahmaPreReveal>(kiosk, nft_id, std::option::none(), ctx);
+
+        let nft: &mut AurahmaPreReveal = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
+        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
+
+        ob_kiosk::ob_kiosk::return_nft<Witness, AurahmaPreReveal>(kiosk, borrow, policy);
+    }
+
     public fun burn_nft(
         delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
         collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
@@ -332,6 +379,58 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_sets_metadata() {
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init(PROJECT_ELUUNE_AURAHMA_PRE_REVEAL {}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<AurahmaPreReveal>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
+            &scenario,
+            CREATOR,
+        );
+
+        let borrow_policy: ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::borrow_request::BORROW_REQ>> =
+            sui::test_scenario::take_shared(&mut scenario);
+
+        let nft = mint(
+            std::string::utf8(b"TEST NAME"),
+            std::string::utf8(b"TEST DESCRIPTION"),
+            b"https://originbyte.io/",
+            vector[std::ascii::string(b"avg_return")],
+            vector[std::ascii::string(b"24%")],
+            &mut mint_cap,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+        let nft_id = sui::object::id(&nft);
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
+
+        set_metadata_in_kiosk(
+            &publisher,
+            &mut kiosk,
+            nft_id,
+            b"https://docs.originbyte.io/",
+            vector[std::ascii::string(b"reveal")],
+            vector[std::ascii::string(b"revealed")],
+            &borrow_policy,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_to_address(CREATOR, publisher);
+        sui::test_scenario::return_shared(borrow_policy);
+        sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
     }
 
