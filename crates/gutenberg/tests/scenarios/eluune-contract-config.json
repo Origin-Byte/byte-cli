@@ -11,7 +11,9 @@
     ]
   },
   "nft": {
-    "typeName": "AurahmaPreReveal"
+    "typeName": "AurahmaPreReveal",
+    "burn": "permissionless",
+    "dynamic": false
   },
   "settings": {
     "mintPolicies": {
@@ -39,7 +41,6 @@
         "collectionRoyaltyBps": 700
       }
     },
-    "orderbook": "protected",
-    "burn": "permissionless"
+    "orderbook": "protected"
   }
 }

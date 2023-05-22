@@ -1,11 +1,9 @@
-pub mod burn;
 pub mod composability;
 pub mod minting;
 pub mod orderbook;
 pub mod request;
 pub mod royalties;
 
-pub use burn::Burn;
 pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
@@ -14,7 +12,8 @@ pub use royalties::RoyaltyPolicy;
 
 use serde::{Deserialize, Serialize};
 
-use super::collection::CollectionData;
+use super::{collection::CollectionData, nft::NftData};
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -23,7 +22,6 @@ pub struct Settings {
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,
     pub orderbook: Orderbook,
-    pub burn: Burn,
 }
 
 impl Settings {
@@ -33,7 +31,6 @@ impl Settings {
         request_policies: RequestPolicies,
         composability: Option<Composability>,
         orderbook: Orderbook,
-        burn: Burn,
     ) -> Settings {
         Settings {
             royalties,
@@ -41,7 +38,6 @@ impl Settings {
             request_policies,
             composability,
             orderbook,
-            burn,
         }
     }
 
@@ -58,14 +54,11 @@ impl Settings {
         code
     }
 
-    pub fn write_request_policies(&self, type_name: &String) -> String {
-        let require_withdraw = self.burn.is_permissionless();
-
-        self.request_policies
-            .write_policies(type_name, require_withdraw)
+    pub fn write_request_policies(&self, nft_data: &NftData) -> String {
+        self.request_policies.write_policies(nft_data)
     }
 
-    pub fn write_transfer_fns(&self) -> String {
+    pub fn write_transfer_fns(&self, nft_data: &NftData) -> String {
         let mut code = String::new();
 
         code.push_str(
@@ -86,7 +79,7 @@ impl Settings {
             );
         }
 
-        if self.request_policies.borrow || self.burn.is_permissionless() {
+        if self.request_policies.withdraw || nft_data.requires_withdraw() {
             code.push_str(
                 "
 
@@ -95,7 +88,7 @@ impl Settings {
             );
         }
 
-        if self.request_policies.borrow {
+        if self.request_policies.borrow || nft_data.requires_borrow() {
             code.push_str(
                 "
 
