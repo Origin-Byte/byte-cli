@@ -19,7 +19,6 @@ pub enum Tag {
     Video,
     Ticket,
     License,
-    Utility,
     Custom(String),
 }
 
@@ -37,7 +36,6 @@ impl Tag {
             Tag::Video => "video",
             Tag::Ticket => "ticket",
             Tag::License => "license",
-            Tag::Utility => "utility",
             Tag::Custom(_) => "",
         }
     }
@@ -73,7 +71,6 @@ impl Display for Tag {
             Tag::Video => "Video",
             Tag::Ticket => "Ticket",
             Tag::License => "License",
-            Tag::Utility => "Utility",
             Tag::Custom(tag) => tag,
         };
 
@@ -97,7 +94,6 @@ impl FromStr for Tag {
             "Video" => Ok(Tag::Video),
             "Ticket" => Ok(Tag::Ticket),
             "License" => Ok(Tag::License),
-            "Utility" => Ok(Tag::Utility),
             tag => Ok(Tag::Custom(tag.to_string())),
         }
     }
