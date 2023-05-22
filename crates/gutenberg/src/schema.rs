@@ -87,9 +87,7 @@ impl Schema {
 
         // Init Publisher
         let publisher = sui::package::claim(witness, ctx);
-
-        // Init Tags
-        {tags}
+{tags}
 
         // Init Display
         {display}
@@ -128,6 +126,7 @@ impl Schema {
         let witness = self.collection().witness_name();
         let mut tests = format!(
             "
+
     #[test_only]
     const CREATOR: address = @0xA1C04;
 

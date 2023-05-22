@@ -14,6 +14,7 @@ impl Burn {
 
         code.push_str(&format!(
             "
+
     // Burn functions
     public entry fun burn_nft(
         publisher: &sui::package::Publisher,
@@ -26,12 +27,12 @@ impl Burn {
         let {nft_type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
 
         nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
-    }}
-        "
+    }}"
         ));
 
         code.push_str(&format!(
             "
+
     public entry fun burn_nft_in_listing(
         publisher: &sui::package::Publisher,
         collection: &nft_protocol::collection::Collection<{nft_type_name}>,
@@ -41,12 +42,12 @@ impl Burn {
     ) {{
         let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
         burn_nft(publisher, collection, nft);
-    }}
-        "
+    }}"
         ));
 
         code.push_str(&format!(
             "
+
     public entry fun burn_nft_in_listing_with_id(
         publisher: &sui::package::Publisher,
         collection: &nft_protocol::collection::Collection<{nft_type_name}>,
@@ -57,13 +58,13 @@ impl Burn {
     ) {{
         let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
         burn_nft(publisher, collection, nft);
-    }}
-        "
+    }}"
         ));
 
         if self == &Burn::Permissionless {
             code.push_str(&format!(
             "
+
     public entry fun burn_own_nft(
         collection: &nft_protocol::collection::Collection<{nft_type_name}>,
         nft: {nft_type_name},
@@ -83,8 +84,7 @@ impl Burn {
         ob_request::withdraw_request::confirm(withdraw_request, policy);
 
         burn_own_nft(collection, nft);
-    }}
-        "
+    }}"
         ));
         }
 
@@ -102,6 +102,7 @@ impl Burn {
             Burn::Permissionless => {
                 format!(
                 "
+
     #[test]
     fun it_burns_own_nft() {{
         let scenario = sui::test_scenario::begin(CREATOR);
@@ -157,8 +158,7 @@ impl Burn {
         sui::test_scenario::return_shared(borrow_policy);
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
-    }}
-                ")
+    }}")
             }
         }
     }

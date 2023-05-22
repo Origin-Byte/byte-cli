@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -6,7 +6,7 @@ use std::{
 
 use crate::err::GutenError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum Tag {
     Art,
     ProfilePicture,
@@ -19,15 +19,12 @@ pub enum Tag {
     Video,
     Ticket,
     License,
-    Utility,
+    Custom(String),
 }
 
-// The ToString trait is automatically implemented for any type which
-// implements the Display trait. As such, ToString shouldn't be
-// implemented directly.
-impl Display for Tag {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let tag = match self {
+impl Tag {
+    fn function_name(&self) -> &'static str {
+        match self {
             Tag::Art => "art",
             Tag::ProfilePicture => "profile_picture",
             Tag::Collectible => "collectible",
@@ -39,10 +36,45 @@ impl Display for Tag {
             Tag::Video => "video",
             Tag::Ticket => "ticket",
             Tag::License => "license",
-            Tag::Utility => "utility",
+            Tag::Custom(_) => "",
+        }
+    }
+
+    pub fn write_move(&self) -> String {
+        match self {
+            Tag::Custom(tag) => format!(
+                "
+        std::vector::push_back(&mut tags, std::string::utf8(b\"{tag}\"));"
+            ),
+            tag => {
+                let function_name = tag.function_name();
+                format!(
+                    "
+        std::vector::push_back(&mut tags, nft_protocol::tags::{function_name}());"
+                )
+            }
+        }
+    }
+}
+
+impl Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let tag = match self {
+            Tag::Art => "Art",
+            Tag::ProfilePicture => "ProfilePicture",
+            Tag::Collectible => "Collectible",
+            Tag::GameAsset => "GameAsset",
+            Tag::TokenisedAsset => "TokenisedAsset",
+            Tag::Ticker => "Ticker",
+            Tag::DomainName => "DomainName",
+            Tag::Music => "Music",
+            Tag::Video => "Video",
+            Tag::Ticket => "Ticket",
+            Tag::License => "License",
+            Tag::Custom(tag) => tag,
         };
 
-        write!(f, "{}", tag)
+        f.write_str(tag)
     }
 }
 
@@ -62,9 +94,44 @@ impl FromStr for Tag {
             "Video" => Ok(Tag::Video),
             "Ticket" => Ok(Tag::Ticket),
             "License" => Ok(Tag::License),
-            "Utility" => Ok(Tag::Utility),
-            _ => Err(()),
+            tag => Ok(Tag::Custom(tag.to_string())),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for Tag {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct TagVisitor;
+
+        impl<'v> Visitor<'v> for TagVisitor {
+            type Value = Tag;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Tag::from_str(v)
+                    .map_err(|_err| E::custom("Could not parse tag"))
+            }
+        }
+
+        deserializer.deserialize_str(TagVisitor {})
+    }
+}
+
+impl Serialize for Tag {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{self}"))
     }
 }
 
@@ -73,36 +140,31 @@ impl FromStr for Tag {
 pub struct Tags(Vec<Tag>);
 
 impl Tags {
-    pub fn new(tags: &[String]) -> Result<Self, GutenError> {
+    pub fn new(tags: &[String]) -> Self {
         let tags = tags
             .iter()
-            .map(|string| {
-                Tag::from_str(string).map_err(|_| GutenError::UnsupportedTag)
-            })
-            .collect::<Result<Vec<Tag>, GutenError>>()?;
+            .map(|string| Tag::from_str(string).unwrap())
+            .collect::<Vec<Tag>>();
 
-        Ok(Tags(tags))
+        Tags(tags)
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write_tags_vec(&self) -> String {
+    pub fn write_move(&self) -> String {
         let mut code = String::from(
-            "let tags: vector<std::string::String> = std::vector::empty();\n",
+            "
+        let tags: vector<std::string::String> = std::vector::empty();",
         );
 
-        for tag in self.0.iter().map(Tag::to_string) {
-            code.push_str(&format!(
-                "        std::vector::push_back(&mut tags, nft_protocol::tags::{tag}());\n",
-            ));
+        for tag in self.0.iter() {
+            code.push_str(&tag.write_move());
         }
 
         code
     }
 
     pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
-        let tag = Tag::from_str(tag_string.as_str())
-            .map_err(|_| GutenError::UnsupportedTag)?;
-
+        let tag = Tag::from_str(&tag_string).unwrap();
         self.0.push(tag);
 
         Ok(())

@@ -15,10 +15,6 @@ pub struct MintPolicies {
 }
 
 impl MintPolicies {
-    pub fn is_empty(&self) -> bool {
-        !self.launchpad && !self.airdrop
-    }
-
     pub fn write_mint_fn(
         &self,
         mint_policy: Option<MintType>,
@@ -109,8 +105,7 @@ impl MintPolicies {
             args.push_str("        ctx: &mut sui::tx_context::TxContext,\n");
 
             let nft = format!(
-                "
-        let nft = {nft_type_name} {{
+                "let nft = {nft_type_name} {{
             id: sui::object::new(ctx),
             name,
             description,
@@ -120,7 +115,8 @@ impl MintPolicies {
             );
 
             code = format!(
-                "\n
+                "
+
     fun mint(
 {args}    ){return_type} {{
         {nft}
@@ -155,9 +151,8 @@ impl MintPolicies {
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-    
         let nft = mint(
-        {params}
+{params}
         );
 
         let (kiosk, _) = ob_kiosk::ob_kiosk::new_for_address(receiver, ctx);
@@ -187,13 +182,17 @@ impl MintPolicies {
         mint_fns
     }
 
-    pub fn write_collection_create_with_mint_cap(&self, witness: &str, nft_type_name: &str ) -> String {
+    pub fn write_collection_create_with_mint_cap(
+        &self,
+        witness: &str,
+        nft_type_name: &str,
+    ) -> String {
         match self.supply {
             Some(supply) => format!(
 "let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
             &witness, std::option::some({supply}), ctx
         );"),
-            None => 
+            None =>
             format!(
 "let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
             &witness, std::option::none(), ctx
