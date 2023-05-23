@@ -1,17 +1,23 @@
 use crate::{
     consts::NFT_PROTOCOL,
     err::{self, RustSdkError},
-    utils::{get_context, MoveType},
+    utils::{
+        get_active_address, get_client, get_context, get_keystore, MoveType,
+    },
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use gag::Gag;
 use move_core_types::identifier::Identifier;
+use move_package::BuildConfig as MoveBuildConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shared_crypto::intent::Intent;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use std::{thread, time};
-use sui_json_rpc_types::SuiTransactionBlockEffects;
+use sui_json_rpc_types::{
+    Coin, SuiObjectDataOptions, SuiObjectResponseQuery,
+    SuiTransactionBlockEffects,
+};
 use sui_keys::keystore::{AccountKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -21,7 +27,16 @@ use sui_sdk::{
     },
     SuiClient,
 };
-use sui_types::{base_types::ObjectRef, parse_sui_type_tag};
+use sui_transaction_builder::TransactionBuilder;
+// use sui_transaction_builder::{DataReader, TransactionBuilder};
+use sui_types::{
+    base_types::ObjectRef,
+    coin,
+    gas_coin::GasCoin,
+    messages::{CallArg, ObjectArg, ProgrammableTransaction},
+    object::Object,
+    parse_sui_type_tag, TypeTag, SUI_FRAMEWORK_OBJECT_ID,
+};
 use sui_types::{
     crypto::Signature, messages::TransactionData,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
@@ -266,8 +281,6 @@ pub async fn mint_nft(
         SuiTransactionBlockEffects::V1(effects) => effects,
     };
 
-    println!("{:?}", effects);
-
     // We know `mint_nft` move function will create 1 object.
     let nft_ids = effects.created;
     // .first().unwrap().reference.object_id;
@@ -285,6 +298,249 @@ pub async fn mint_nft(
     Ok(nfts)
 }
 
+pub async fn split(
+    // coin_id: ObjectID,
+    amount: u64,
+    count: u64,
+    gas_budget: u64,
+) -> Result<(), RustSdkError> {
+    let context = get_context().await.unwrap();
+    let client = get_client().await.unwrap();
+    // Maybe get these from the context
+    let keystore = get_keystore().await.unwrap();
+    let sender = get_active_address(&keystore).unwrap();
+
+    // // Get gas object
+    // let coins: Vec<ObjectRef> = context
+    //     .gas_objects(sender)
+    //     .await?
+    //     .iter()
+    //     // Ok to unwrap() since `get_gas_objects` guarantees gas
+    //     .map(|(_val, object)| {
+    //         // let gas = GasCoin::try_from(object).unwrap();
+    //         (object.object_id, object.version, object.digest)
+    //     })
+    //     .collect();
+
+    let coin = select_coin(&client, sender).await?;
+
+    let split_amount = amount / count;
+    let split_amounts = vec![split_amount; count as usize];
+
+    if count <= 0 {
+        return Err(RustSdkError::AnyhowError(anyhow!(
+            "Coin split count must be greater than 0"
+        )));
+    }
+
+    let data = client
+        .transaction_builder()
+        .split_coin(
+            sender,
+            coin.coin_object_id,
+            split_amounts,
+            None,
+            gas_budget,
+        )
+        .await?;
+
+    // Sign transaction.
+    let mut signatures: Vec<Signature> = vec![];
+
+    let signature = context.config.keystore.sign_secure(
+        &sender,
+        &data,
+        Intent::sui_transaction(),
+    )?;
+
+    signatures.push(signature);
+
+    let response = context
+        .execute_transaction_block(
+            Transaction::from_data(data, Intent::sui_transaction(), signatures)
+                .verify()?,
+        )
+        .await?;
+
+    let effects = match response.effects.unwrap() {
+        SuiTransactionBlockEffects::V1(effects) => effects,
+    };
+
+    println!("{:?}", effects);
+
+    assert!(effects.status.is_ok());
+
+    Ok(())
+}
+
+pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
+    let context = get_context().await.unwrap();
+    let client = get_client().await.unwrap();
+    // Maybe get these from the context
+    let keystore = get_keystore().await.unwrap();
+    let sender = get_active_address(&keystore).unwrap();
+
+    let (main_coin, gas_coin, coins_to_merge) =
+        get_main_coin_separated(&client, sender).await?;
+
+    println!("madonaa");
+
+    let pt =
+        merge_coins(sender, &main_coin, &coins_to_merge, gas_budget).await?;
+    println!("ma che cazzooooo");
+    println!("pt: {:?}", pt);
+
+    let gas_coin_ref =
+        (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest);
+
+    let data = TransactionData::new_programmable(
+        sender,
+        vec![gas_coin_ref], // Gas Objects
+        pt,
+        gas_budget, // Gas Budget
+        1_000,      // Gas Price
+    );
+
+    // Sign transaction.
+    let mut signatures: Vec<Signature> = vec![];
+
+    let signature = context.config.keystore.sign_secure(
+        &sender,
+        &data,
+        Intent::sui_transaction(),
+    )?;
+
+    signatures.push(signature);
+
+    println!("putana");
+    let response = context
+        .execute_transaction_block(
+            Transaction::from_data(data, Intent::sui_transaction(), signatures)
+                .verify()?,
+        )
+        .await?;
+
+    let effects = match response.effects.unwrap() {
+        SuiTransactionBlockEffects::V1(effects) => effects,
+    };
+
+    println!("{:?}", effects);
+
+    assert!(effects.status.is_ok());
+
+    Ok(())
+}
+
 pub async fn collect_royalties() {
     todo!()
+}
+
+pub async fn select_coin(
+    client: &SuiClient,
+    signer: SuiAddress,
+) -> Result<Coin, RustSdkError> {
+    let mut coins = client
+        .coin_read_api()
+        .get_coins(signer, Some("0x2::sui::SUI".into()), None, None)
+        .await?
+        .data;
+
+    let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
+    // let coin_obj = coins.iter().find(|&c| c.balance == max_balance).unwrap();
+
+    let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
+
+    let coin_obj = coins.remove(index);
+
+    Ok(coin_obj)
+}
+
+pub async fn get_main_coin_separated(
+    client: &SuiClient,
+    signer: SuiAddress,
+) -> Result<(Coin, Coin, Vec<Coin>), RustSdkError> {
+    let mut coins = client
+        .coin_read_api()
+        .get_coins(signer, Some("0x2::sui::SUI".into()), None, None)
+        .await?
+        .data;
+
+    let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
+    // let coin_obj = coins.iter().find(|&c| c.balance == max_balance).unwrap();
+
+    let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
+    let coin_obj = coins.remove(index);
+
+    let gas_id = ObjectID::from_str("0x4c4d1bf82887fa5341eae3173ca63a6b177e8a9ef96fb7edfd65c6f8a0d71e29")
+        .map_err(|err| err::object_id(err, "0x4c4d1bf82887fa5341eae3173ca63a6b177e8a9ef96fb7edfd65c6f8a0d71e29"))?;
+
+    let gas_index = coins
+        .iter()
+        .position(|c| c.coin_object_id == gas_id)
+        .unwrap();
+
+    let gas_obj = coins.remove(gas_index);
+
+    Ok((coin_obj, gas_obj, coins))
+}
+
+pub async fn merge_coins(
+    signer: SuiAddress,
+    main_coin: &Coin,
+    coins_to_merge: &Vec<Coin>,
+    // gas: &Coin,
+    gas_budget: u64,
+) -> anyhow::Result<ProgrammableTransaction> {
+    let mut builder = ProgrammableTransactionBuilder::new();
+
+    let coins_to_merge_ref: Vec<ObjectRef> = coins_to_merge
+        .iter()
+        .map(|coin| (coin.coin_object_id, coin.version, coin.digest))
+        .collect();
+    let primary_coin_ref: ObjectRef = (
+        main_coin.coin_object_id,
+        main_coin.version,
+        main_coin.digest,
+    );
+    // let gas_coin_ref = (gas.coin_object_id, gas.version, gas.digest);
+
+    let mut coins_to_merge_args: Vec<CallArg> = coins_to_merge_ref
+        .iter()
+        .map(|coin_ref| CallArg::Object(ObjectArg::ImmOrOwnedObject(*coin_ref)))
+        .collect();
+
+    println!("THE MAJOR COOOOOOIN: {:?}", primary_coin_ref);
+    println!("THE LOWER CAST:: {:?}", coins_to_merge_ref);
+
+    let main_arg =
+        CallArg::Object(ObjectArg::ImmOrOwnedObject(primary_coin_ref));
+
+    // call_args.append(&mut coins_to_merge_args);
+
+    let type_param = TypeTag::from_str(main_coin.coin_type.as_str()).unwrap();
+    let type_args = vec![type_param];
+    let gas_price = 1_000;
+
+    coins_to_merge_args
+        .iter()
+        .map(|coin| {
+            builder.move_call(
+                SUI_FRAMEWORK_OBJECT_ID,              // Package ID
+                coin::PAY_MODULE_NAME.to_owned(),     // Module Name
+                coin::PAY_JOIN_FUNC_NAME.to_owned(),  // Function Name
+                type_args.clone(),                    // Type Arguments
+                vec![main_arg.clone(), coin.clone()], // Call Arguments
+            )
+        })
+        .collect::<Result<()>>()?;
+
+    // let _res = builder.move_call(
+    //     SUI_FRAMEWORK_OBJECT_ID,             // Package ID
+    //     coin::PAY_MODULE_NAME.to_owned(),    // Module Name
+    //     coin::PAY_JOIN_FUNC_NAME.to_owned(), // Function Name
+    //     type_args,                           // Type Arguments
+    //     [main_arg, ],                           // Call Arguments
+    // );
+
+    Ok(builder.finish())
 }

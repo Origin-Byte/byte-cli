@@ -8884,6 +8884,7 @@ dependencies = [
  "sui-move-build",
  "sui-sdk",
  "sui-source-validation",
+ "sui-transaction-builder",
  "sui-types",
  "terminal-link",
  "thiserror",

@@ -72,6 +72,8 @@ pub async fn publish_contract(
 
     builder.transfer_arg(sender, upgrade_cap);
 
+    let print_gag = Gag::stderr().unwrap();
+
     // Get gas object
     let coins: Vec<ObjectRef> = context
         .gas_objects(sender)
@@ -91,6 +93,8 @@ pub async fn publish_contract(
         gas_budget, // Gas Budget
         1000,       // Gas Price
     );
+
+    drop(print_gag);
 
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
@@ -189,7 +193,7 @@ pub async fn publish_contract(
     }
 
     let explorer_link = format!(
-        "https://explorer.sui.io/object/{}?network=devnet",
+        "https://explorer.sui.io/object/{}?network=testnet",
         collection_state.contract.as_ref().unwrap()
     );
 

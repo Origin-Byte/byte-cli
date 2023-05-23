@@ -20,6 +20,7 @@ shared-crypto = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0
 move-core-types = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-move = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2", features = ["build"]}
+sui-transaction-builder = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 
 gag = "1.0.0"
 proc-macro2 = "1.0.51"

@@ -16,6 +16,8 @@ use anyhow::Result;
 use clap::Parser;
 use console::style;
 
+use rust_sdk::mint;
+
 #[tokio::main]
 async fn main() {
     match run().await {
@@ -168,6 +170,17 @@ async fn run() -> Result<()> {
             .await?;
 
             io::write_collection_state(&state, &state_path)?;
+        }
+        Commands::SplitCoin {
+            gas_budget,
+            amount,
+            count,
+        } => {
+            mint::split(amount, count, gas_budget as u64).await?;
+        }
+        Commands::CombineCoins { gas_budget } => {
+            println!("oh la darata");
+            mint::combine(gas_budget as u64).await?;
         }
     }
 

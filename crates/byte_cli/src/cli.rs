@@ -76,6 +76,18 @@ pub enum Commands {
         #[clap(long, action)]
         warehouse_id: Option<String>,
     },
+    SplitCoin {
+        /// Gas budget
+        amount: u64,
+        count: u64,
+        #[clap(default_value_t = 50_000_000)]
+        gas_budget: usize,
+    },
+    CombineCoins {
+        /// Gas budget
+        #[clap(default_value_t = 50_000_000)]
+        gas_budget: usize,
+    },
 }
 
 pub fn get_dialoguer_theme() -> ColorfulTheme {
