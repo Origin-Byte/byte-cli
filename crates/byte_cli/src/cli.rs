@@ -60,7 +60,7 @@ pub enum Commands {
         #[clap(default_value = DEFAULT_FOLDER)]
         project_dir: String,
         /// Gas budget for running module initializers
-        #[clap(default_value_t = 60000)]
+        #[clap(default_value_t = 600_000_000)]
         gas_budget: usize,
         #[clap(short, long, action)]
         skip_generation: bool,
@@ -71,7 +71,7 @@ pub enum Commands {
         #[clap(default_value = DEFAULT_FOLDER)]
         project_dir: String,
         /// Gas budget for minting an NFT
-        #[clap(default_value_t = 60000)]
+        #[clap(default_value_t = 50_000_000_000)]
         gas_budget: usize,
         #[clap(long, action)]
         warehouse_id: Option<String>,

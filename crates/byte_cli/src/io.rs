@@ -1,4 +1,5 @@
 use std::{
+    // env,
     fs::File,
     path::{Path, PathBuf},
 };
@@ -95,7 +96,6 @@ pub fn write_uploader(
     })
 }
 
-// TODO: Reconfigure
 pub fn write_collection_state(
     state: &CollectionState,
     output_file: &Path,

@@ -19,7 +19,8 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
 pub async fn get_client() -> Result<SuiClient, RustSdkError> {
     let client_builder = SuiClientBuilder::default();
     let client = client_builder
-        .build("https://fullnode.devnet.sui.io:443")
+        // TODO: Should be according to active env
+        .build("https://fullnode.testnet.sui.io:443")
         .await?;
 
     Ok(client)

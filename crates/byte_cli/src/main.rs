@@ -135,41 +135,39 @@ async fn run() -> Result<()> {
             io::write_collection_state(&state, &state_path)?;
         }
         Commands::MintNfts {
-            project_dir: _,
-            gas_budget: _,
+            project_dir,
+            gas_budget,
             warehouse_id: _,
         } => {
-            // TODO: Add back endpoint
-            // let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            // let mut file_path = project_path.clone();
-            // file_path.push("config.json");
+            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+            let mut file_path = project_path.clone();
+            file_path.push("config.json");
 
-            // let mut state_path = project_path.clone();
-            // state_path.push("objects.json");
+            let mut state_path = project_path.clone();
+            state_path.push("objects.json");
 
-            // let mut metadata_path = project_path.clone();
-            // metadata_path.push("metadata/");
+            let mut metadata_path = project_path.clone();
+            metadata_path.push("metadata/");
 
             // let schema = deploy_contract::parse_config(file_path.as_path())?;
+            let mut state = deploy_contract::parse_state(state_path.as_path())?;
 
             // if schema.contract.is_none() {
             //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
             // }
 
-            // if let Some(_contract) = &schema.contract {
-            //     let mut state = CollectionState::try_read_config(&state_path)?;
+            // let mut state = CollectionState::try_read_config(&state_path)?;
 
-            //     state = mint_nfts::mint_nfts(
-            //         &schema,
-            //         gas_budget,
-            //         metadata_path,
-            //         warehouse_id,
-            //         state,
-            //     )
-            //     .await?;
+            state = mint_nfts::mint_nfts(
+                // &schema,
+                gas_budget,
+                // metadata_path,
+                // warehouse_id,
+                state,
+            )
+            .await?;
 
-            //     io::write_collection_state(&state, &state_path)?;
-            // }
+            io::write_collection_state(&state, &state_path)?;
         }
     }
 
