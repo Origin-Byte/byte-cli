@@ -44,7 +44,7 @@
         // Permissionless generates burn_own_nft and burn_own_nft_in_kiosk functions.
         // Possible values: [disabled, permissioned, permissionless]
         // Required
-        "burn": "permissionless",
+        "burn": "permissioned",
         // If set, generates dynamic metadata methods
         "dynamic": false
     },
