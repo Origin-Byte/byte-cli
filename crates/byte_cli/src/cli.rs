@@ -76,6 +76,15 @@ pub enum Commands {
         #[clap(long, action)]
         warehouse_id: Option<String>,
     },
+    ParallelMint {
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
+        /// Gas budget for minting an NFT
+        #[clap(default_value_t = 18_000_000_000)]
+        gas_budget: usize,
+        #[clap(long, action)]
+        warehouse_id: Option<String>,
+    },
     SplitCoin {
         /// Gas budget
         amount: u64,

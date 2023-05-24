@@ -8,16 +8,12 @@ use crate::{
 use anyhow::{anyhow, Result};
 use gag::Gag;
 use move_core_types::identifier::Identifier;
-use move_package::BuildConfig as MoveBuildConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shared_crypto::intent::Intent;
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use std::{thread, time};
-use sui_json_rpc_types::{
-    Coin, SuiObjectDataOptions, SuiObjectResponseQuery,
-    SuiTransactionBlockEffects,
-};
+use sui_json_rpc_types::{Coin, Page, SuiTransactionBlockEffects};
 use sui_keys::keystore::{AccountKeystore, Keystore};
 use sui_sdk::{
     json::SuiJsonValue,
@@ -27,14 +23,10 @@ use sui_sdk::{
     },
     SuiClient,
 };
-use sui_transaction_builder::TransactionBuilder;
-// use sui_transaction_builder::{DataReader, TransactionBuilder};
 use sui_types::{
     base_types::ObjectRef,
     coin,
-    gas_coin::GasCoin,
     messages::{CallArg, ObjectArg, ProgrammableTransaction},
-    object::Object,
     parse_sui_type_tag, TypeTag, SUI_FRAMEWORK_OBJECT_ID,
 };
 use sui_types::{
@@ -208,7 +200,7 @@ pub async fn mint_nft(
     let response = loop {
         let mut builder = ProgrammableTransactionBuilder::new();
 
-        for _ in 0..1000 {
+        for _ in 0..1 {
             builder.move_call(
                 package_id,
                 Identifier::new(module_name.as_str()).unwrap(),
@@ -298,9 +290,138 @@ pub async fn mint_nft(
     Ok(nfts)
 }
 
+pub async fn handle_parallel_mint_nft(
+    // sui: Arc<SuiClient>,
+    keystore: Arc<Keystore>,
+    // nft_data: NftData,
+    package_id: Arc<String>,
+    // warehouse_id: Arc<String>,
+    module_name: Arc<String>,
+    gas_budget: Arc<u64>,
+    gas_coin: Arc<ObjectRef>,
+    sender: SuiAddress,
+    // index: usize,
+    // mint_cap: Arc<String>,
+) -> JoinHandle<Result<Vec<ObjectID>, RustSdkError>> {
+    tokio::spawn(async move {
+        mint_nft_with_gas_coin(
+            // sui,
+            keystore,
+            // nft_data,
+            package_id,
+            // warehouse_id,
+            module_name,
+            gas_budget,
+            gas_coin,
+            sender,
+            // index,
+            // mint_cap,
+        )
+        .await
+    })
+}
+
+pub async fn mint_nft_with_gas_coin(
+    keystore: Arc<Keystore>,
+    // nft_data: NftData,
+    package_id: Arc<String>,
+    // warehouse_id: Arc<String>,
+    module_name: Arc<String>,
+    gas_budget: Arc<u64>,
+    gas_coin: Arc<ObjectRef>,
+    // SuiAddress implements Copy
+    sender: SuiAddress,
+    // index: usize,
+    // mint_cap: Arc<String>,
+) -> Result<Vec<ObjectID>, RustSdkError> {
+    let context = get_context().await.unwrap();
+    let package_id = ObjectID::from_str(package_id.as_str())
+        .map_err(|err| err::object_id(err, package_id.as_str()))?;
+
+    let mut retry = 0;
+    let response = loop {
+        let mut builder = ProgrammableTransactionBuilder::new();
+
+        // TODO: Change to 1_000
+        for _ in 0..1_000 {
+            builder.move_call(
+                package_id,
+                Identifier::new(module_name.as_str()).unwrap(),
+                Identifier::new("airdrop_nft").unwrap(),
+                vec![],
+                vec![],
+            )?;
+        }
+
+        // let print_gag = Gag::stderr().unwrap();
+
+        let data = TransactionData::new_programmable(
+            sender,
+            vec![*gas_coin], // Gas Objects
+            builder.finish(),
+            *gas_budget, // Gas Budget
+            1_000,       // Gas Price
+        );
+
+        // Sign transaction.
+        let mut signatures: Vec<Signature> = vec![];
+        signatures.push(keystore.sign_secure(
+            &sender,
+            &data,
+            Intent::sui_transaction(),
+        )?);
+
+        // Execute the transaction.
+        let response_ = context
+            .execute_transaction_block(
+                Transaction::from_data(
+                    data,
+                    Intent::sui_transaction(),
+                    signatures,
+                )
+                .verify()?,
+            )
+            .await;
+
+        // drop(print_gag);
+
+        if retry == 3 {
+            break response_?;
+        }
+
+        if response_.is_err() {
+            println!("Retrying mint...");
+            let ten_millis = time::Duration::from_millis(1000);
+            thread::sleep(ten_millis);
+            retry += 1;
+            continue;
+        }
+        break response_?;
+    };
+
+    let effects = match response.effects.unwrap() {
+        SuiTransactionBlockEffects::V1(effects) => effects,
+    };
+
+    // We know `mint_nft` move function will create 1 object.
+    let nft_ids = effects.created;
+    let mut i = 0;
+
+    let nfts = nft_ids
+        .iter()
+        .map(|obj_ref| {
+            println!("NFT minted: {:?}", obj_ref.reference.object_id);
+            i += 1;
+            obj_ref.reference.object_id
+        })
+        .collect::<Vec<ObjectID>>();
+
+    Ok(nfts)
+}
+
 pub async fn split(
     // coin_id: ObjectID,
-    amount: u64,
+    amount: Option<u64>,
     count: u64,
     gas_budget: u64,
 ) -> Result<(), RustSdkError> {
@@ -310,28 +431,22 @@ pub async fn split(
     let keystore = get_keystore().await.unwrap();
     let sender = get_active_address(&keystore).unwrap();
 
-    // // Get gas object
-    // let coins: Vec<ObjectRef> = context
-    //     .gas_objects(sender)
-    //     .await?
-    //     .iter()
-    //     // Ok to unwrap() since `get_gas_objects` guarantees gas
-    //     .map(|(_val, object)| {
-    //         // let gas = GasCoin::try_from(object).unwrap();
-    //         (object.object_id, object.version, object.digest)
-    //     })
-    //     .collect();
-
     let coin = select_coin(&client, sender).await?;
-
-    let split_amount = amount / count;
-    let split_amounts = vec![split_amount; count as usize];
 
     if count <= 0 {
         return Err(RustSdkError::AnyhowError(anyhow!(
             "Coin split count must be greater than 0"
         )));
     }
+
+    // Count is now 19
+    let (count, split_amount) = if amount.is_some() {
+        (count, amount.unwrap() / count)
+    } else {
+        (count - 1, coin.balance / count)
+    };
+
+    let split_amounts = vec![split_amount; count as usize];
 
     let data = client
         .transaction_builder()
@@ -366,8 +481,6 @@ pub async fn split(
         SuiTransactionBlockEffects::V1(effects) => effects,
     };
 
-    println!("{:?}", effects);
-
     assert!(effects.status.is_ok());
 
     Ok(())
@@ -383,12 +496,8 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
     let (main_coin, gas_coin, coins_to_merge) =
         get_main_coin_separated(&client, sender).await?;
 
-    println!("madonaa");
-
     let pt =
         merge_coins(sender, &main_coin, &coins_to_merge, gas_budget).await?;
-    println!("ma che cazzooooo");
-    println!("pt: {:?}", pt);
 
     let gas_coin_ref =
         (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest);
@@ -412,7 +521,6 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
 
     signatures.push(signature);
 
-    println!("putana");
     let response = context
         .execute_transaction_block(
             Transaction::from_data(data, Intent::sui_transaction(), signatures)
@@ -423,8 +531,6 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
     let effects = match response.effects.unwrap() {
         SuiTransactionBlockEffects::V1(effects) => effects,
     };
-
-    println!("{:?}", effects);
 
     assert!(effects.status.is_ok());
 
@@ -439,17 +545,11 @@ pub async fn select_coin(
     client: &SuiClient,
     signer: SuiAddress,
 ) -> Result<Coin, RustSdkError> {
-    let mut coins = client
-        .coin_read_api()
-        .get_coins(signer, Some("0x2::sui::SUI".into()), None, None)
-        .await?
-        .data;
+    let mut coins = get_coins(client, signer).await?;
 
     let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
-    // let coin_obj = coins.iter().find(|&c| c.balance == max_balance).unwrap();
 
     let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
-
     let coin_obj = coins.remove(index);
 
     Ok(coin_obj)
@@ -459,20 +559,10 @@ pub async fn get_main_coin_separated(
     client: &SuiClient,
     signer: SuiAddress,
 ) -> Result<(Coin, Coin, Vec<Coin>), RustSdkError> {
-    let mut coins = client
-        .coin_read_api()
-        .get_coins(signer, Some("0x2::sui::SUI".into()), None, None)
-        .await?
-        .data;
+    let mut coins = get_coins(client, signer).await?;
 
-    let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
-    // let coin_obj = coins.iter().find(|&c| c.balance == max_balance).unwrap();
-
-    let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
-    let coin_obj = coins.remove(index);
-
-    let gas_id = ObjectID::from_str("0x4c4d1bf82887fa5341eae3173ca63a6b177e8a9ef96fb7edfd65c6f8a0d71e29")
-        .map_err(|err| err::object_id(err, "0x4c4d1bf82887fa5341eae3173ca63a6b177e8a9ef96fb7edfd65c6f8a0d71e29"))?;
+    let gas_id = ObjectID::from_str("0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940")
+        .map_err(|err| err::object_id(err, "0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940"))?;
 
     let gas_index = coins
         .iter()
@@ -481,15 +571,71 @@ pub async fn get_main_coin_separated(
 
     let gas_obj = coins.remove(gas_index);
 
+    let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
+    // let coin_obj = coins.iter().find(|&c| c.balance == max_balance).unwrap();
+
+    let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
+    let coin_obj = coins.remove(index);
+
     Ok((coin_obj, gas_obj, coins))
 }
 
-pub async fn merge_coins(
+pub async fn get_coin_separated(
+    client: &SuiClient,
     signer: SuiAddress,
+) -> Result<(Coin, Vec<Coin>), RustSdkError> {
+    let mut coins = get_coins(client, signer).await?;
+
+    let gas_id = ObjectID::from_str("0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940")
+        .map_err(|err| err::object_id(err, "0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940"))?;
+
+    let gas_index = coins
+        .iter()
+        .position(|c| c.coin_object_id == gas_id)
+        .unwrap();
+
+    let gas_obj = coins.remove(gas_index);
+
+    Ok((gas_obj, coins))
+}
+
+pub async fn get_coins(
+    client: &SuiClient,
+    signer: SuiAddress,
+) -> Result<Vec<Coin>, RustSdkError> {
+    let mut coins: Vec<Coin> = vec![];
+    let mut cursor = None;
+
+    loop {
+        let coin_page = client
+            .coin_read_api()
+            .get_coins(signer, Some("0x2::sui::SUI".into()), cursor, None)
+            .await?;
+
+        let Page {
+            mut data,
+            next_cursor,
+            has_next_page,
+        } = coin_page;
+
+        coins.append(&mut data);
+
+        if has_next_page {
+            cursor = next_cursor;
+        } else {
+            break;
+        }
+    }
+
+    Ok(coins)
+}
+
+pub async fn merge_coins(
+    _signer: SuiAddress,
     main_coin: &Coin,
     coins_to_merge: &Vec<Coin>,
     // gas: &Coin,
-    gas_budget: u64,
+    _gas_budget: u64,
 ) -> anyhow::Result<ProgrammableTransaction> {
     let mut builder = ProgrammableTransactionBuilder::new();
 
@@ -504,13 +650,10 @@ pub async fn merge_coins(
     );
     // let gas_coin_ref = (gas.coin_object_id, gas.version, gas.digest);
 
-    let mut coins_to_merge_args: Vec<CallArg> = coins_to_merge_ref
+    let coins_to_merge_args: Vec<CallArg> = coins_to_merge_ref
         .iter()
         .map(|coin_ref| CallArg::Object(ObjectArg::ImmOrOwnedObject(*coin_ref)))
         .collect();
-
-    println!("THE MAJOR COOOOOOIN: {:?}", primary_coin_ref);
-    println!("THE LOWER CAST:: {:?}", coins_to_merge_ref);
 
     let main_arg =
         CallArg::Object(ObjectArg::ImmOrOwnedObject(primary_coin_ref));
@@ -519,7 +662,7 @@ pub async fn merge_coins(
 
     let type_param = TypeTag::from_str(main_coin.coin_type.as_str()).unwrap();
     let type_args = vec![type_param];
-    let gas_price = 1_000;
+    let _gas_price = 1_000;
 
     coins_to_merge_args
         .iter()
