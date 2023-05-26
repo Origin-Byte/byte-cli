@@ -30,10 +30,13 @@ use gutenberg::{
         },
         Address,
     },
+    schema::SchemaBuilder,
     Schema,
 };
+use io::{LocalRead, LocalWrite};
 use models::project::Project;
 use rust_sdk::coin;
+use uploader::writer::Storage;
 
 #[tokio::main]
 async fn main() {
@@ -95,8 +98,8 @@ async fn run() -> Result<()> {
                 ),
             );
 
-            io::write_schema(&schema, &schema_path)?;
-            io::write_project(&project, &project_path)?;
+            schema.write(&schema_path)?;
+            project.write(&project_path)?;
         }
         Commands::ConfigCollection {
             project_dir,
@@ -105,12 +108,12 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut builder = io::try_read_schema(&file_path)?;
+            let mut builder = SchemaBuilder::read(&file_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, complete)?;
 
-            io::write_schema_from_builder(&builder, &file_path)?;
+            builder.write(&file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -118,19 +121,20 @@ async fn run() -> Result<()> {
 
             let uploader = config_upload::init_upload_config()?;
 
-            io::write_uploader(&uploader, &file_path)?;
+            uploader.write(&file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("config.json");
 
-            let mut schema = io::try_read_schema(&file_path)?;
+            let mut builder = SchemaBuilder::read(&file_path)?;
 
-            schema = config_collection::init_collection_config(schema, false)?;
+            builder =
+                config_collection::init_collection_config(builder, false)?;
             let uploader = config_upload::init_upload_config()?;
 
-            io::write_schema_from_builder(&schema, &file_path)?;
-            io::write_uploader(&uploader, &file_path)?;
+            builder.write(&file_path)?;
+            uploader.write(&file_path)?;
         }
         Commands::DeployAssets { project_dir } => {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -144,7 +148,7 @@ async fn run() -> Result<()> {
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            let uploader = io::read_uploader(&file_path)?;
+            let uploader = Storage::read(&file_path)?;
 
             deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
                 .await?
@@ -193,7 +197,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            io::write_collection_state(&state, &state_path)?;
+            state.write(&state_path)?;
         }
         Commands::MintNfts {
             project_dir,
@@ -228,7 +232,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            io::write_collection_state(&state, &state_path)?;
+            state.write(&state_path)?;
         }
         Commands::ParallelMint {
             project_dir,
