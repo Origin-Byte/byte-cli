@@ -7,6 +7,7 @@ edition = "2021"
 gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
+sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 
 dialoguer = "0.10"
 thiserror = "1.0"

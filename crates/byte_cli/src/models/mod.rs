@@ -1,5 +1,6 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
-use gutenberg::schema::SchemaBuilder;
+use gutenberg::{models::Address, schema::SchemaBuilder};
+use sui_sdk::types::base_types::ObjectID;
 
 use crate::{
     consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
@@ -10,7 +11,8 @@ pub mod collection;
 pub mod nft;
 pub mod royalties;
 pub mod settings;
-pub mod sui_output;
+// pub mod sui_output;
+pub mod project;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {

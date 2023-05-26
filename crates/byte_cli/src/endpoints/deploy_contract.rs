@@ -5,6 +5,7 @@ use byte_cli::consts::{
 };
 use console::style;
 use gutenberg::{package, Schema};
+use rust_sdk::coin;
 use serde::Serialize;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -153,8 +154,18 @@ pub async fn publish_contract(
     gas_budget: usize,
     contract_dir: &PathBuf,
 ) -> Result<CollectionState> {
-    let collection_state =
-        publish::publish_contract(contract_dir, gas_budget as u64).await?;
+    let wallet_ctx = rust_sdk::utils::get_context().await?;
+
+    let gas_coin =
+        rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
+
+    let collection_state = publish::publish_contract(
+        &wallet_ctx,
+        contract_dir,
+        gas_coin,
+        gas_budget as u64,
+    )
+    .await?;
 
     Ok(collection_state)
 }

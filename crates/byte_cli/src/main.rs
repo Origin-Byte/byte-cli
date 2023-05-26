@@ -16,7 +16,7 @@ use anyhow::Result;
 use clap::Parser;
 use console::style;
 
-use rust_sdk::mint;
+use rust_sdk::{coin, mint};
 
 #[tokio::main]
 async fn main() {
@@ -151,7 +151,7 @@ async fn run() -> Result<()> {
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            // let schema = deploy_contract::parse_config(file_path.as_path())?;
+            let schema = deploy_contract::parse_config(file_path.as_path())?;
             let mut state = deploy_contract::parse_state(state_path.as_path())?;
 
             // if schema.contract.is_none() {
@@ -211,10 +211,10 @@ async fn run() -> Result<()> {
             amount,
             count,
         } => {
-            mint::split(Some(amount), count, gas_budget as u64).await?;
+            coin::split(Some(amount), count, gas_budget as u64).await?;
         }
         Commands::CombineCoins { gas_budget } => {
-            mint::combine(gas_budget as u64).await?;
+            coin::combine(gas_budget as u64).await?;
         }
     }
 

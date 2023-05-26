@@ -1,9 +1,9 @@
 use anyhow::anyhow;
 use console::style;
-use gag::Gag;
 use std::env;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+use sui_sdk::wallet_context::WalletContext;
 use terminal_link::Link;
 use tokio::task::JoinSet;
 
@@ -28,25 +28,24 @@ use crate::{
     collection_state::{CollectionState, ObjectType as OBObjectType},
     consts::VOLCANO_EMOJI,
     err::RustSdkError,
-    utils::{get_active_address, get_client, get_context, get_keystore},
+    utils::{get_active_address, get_client},
 };
 
 pub async fn publish_contract(
+    wallet_ctx: &WalletContext,
     package_dir: &PathBuf,
+    gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<CollectionState, RustSdkError> {
     let build_config = MoveBuildConfig::default();
 
-    let context = get_context().await.unwrap();
+    // TODO: get client from context.client: Arc<RwLock<Option<SuiClient>>>
     let client = get_client().await.unwrap();
-    // Maybe get these from the context
-    let keystore = get_keystore().await.unwrap();
-    let sender = get_active_address(&keystore).unwrap();
+    let sender = get_active_address(&wallet_ctx.config.keystore).unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
 
     let (compiled_modules, dep_ids) = {
-        let _print_gag = Gag::stderr().unwrap();
         let compiled_modules_base_64 = BuildConfig::default();
 
         let compiled_modules_base_64 = compiled_modules_base_64
@@ -72,34 +71,18 @@ pub async fn publish_contract(
 
     builder.transfer_arg(sender, upgrade_cap);
 
-    let print_gag = Gag::stderr().unwrap();
-
-    // Get gas object
-    let coins: Vec<ObjectRef> = context
-        .gas_objects(sender)
-        .await?
-        .iter()
-        // Ok to unwrap() since `get_gas_objects` guarantees gas
-        .map(|(_val, object)| {
-            // let gas = GasCoin::try_from(object).unwrap();
-            (object.object_id, object.version, object.digest)
-        })
-        .collect();
-
     let data = TransactionData::new_programmable(
         sender,
-        coins, // Gas Objects
+        vec![gas_coin], // Gas Objects
         builder.finish(),
         gas_budget, // Gas Budget
         1000,       // Gas Price
     );
 
-    drop(print_gag);
-
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
 
-    let signature = context.config.keystore.sign_secure(
+    let signature = wallet_ctx.config.keystore.sign_secure(
         &sender,
         &data,
         Intent::sui_transaction(),
@@ -115,7 +98,7 @@ pub async fn publish_contract(
         style("WIN").cyan().bold()
     );
 
-    let response = context
+    let response = wallet_ctx
         .execute_transaction_block(
             Transaction::from_data(data, Intent::sui_transaction(), signatures)
                 .verify()?,
@@ -257,7 +240,6 @@ async fn print_object(
         .unwrap();
 
     // TODO: Add Publisher + UpgradeCap
-
     if let Some(object_data) = object_read.data {
         let obj_type = object_data.type_.unwrap();
 
@@ -301,9 +283,4 @@ async fn print_object(
             }
         }
     }
-}
-
-pub enum SuiArgType {
-    StringSlice,
-    ObjectId,
 }
