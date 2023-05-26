@@ -13,6 +13,15 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    NewSimple {
+        name: String,
+        supply: usize,
+        royalty_bps: usize,
+        /// Path to the directory with the project file
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
+    },
+
     /// Creates or adds confiiguration to JSON config file to be read by
     /// Gutenberg for the purpose of building the Move module
     ConfigCollection {

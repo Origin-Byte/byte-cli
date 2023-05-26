@@ -7,16 +7,33 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeSet,
+    path::{Path, PathBuf},
+};
 
 use crate::prelude::*;
+use convert_case::{Case, Casing};
 use endpoints::*;
 
 use anyhow::Result;
 use clap::Parser;
 use console::style;
 
-use rust_sdk::{coin, mint};
+use gutenberg::{
+    models::{
+        collection::CollectionData,
+        nft::NftData,
+        settings::{
+            royalties::Share, Burn, MintPolicies, Orderbook, RequestPolicies,
+            RoyaltyPolicy, Settings,
+        },
+        Address,
+    },
+    Schema,
+};
+use models::project::Project;
+use rust_sdk::coin;
 
 #[tokio::main]
 async fn main() {
@@ -39,6 +56,48 @@ async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::NewSimple {
+            name,
+            supply,
+            royalty_bps,
+            project_dir,
+        } => {
+            let mut project_path =
+                PathBuf::from(Path::new(project_dir.as_str()));
+
+            let mut schema_path = project_path.clone();
+            schema_path.push("config.json");
+            project_path.push("project.json");
+
+            let keystore = rust_sdk::utils::get_keystore().await?;
+            let sender = rust_sdk::utils::get_active_address(&keystore)?;
+            let sender_string = Address::new(sender.to_string())?;
+
+            let nft_type = name.as_str().to_case(Case::Pascal);
+
+            let project = Project::new(name.clone(), sender);
+
+            let royalties = Some(RoyaltyPolicy::new(
+                BTreeSet::from([Share::new(sender_string, 10_000)]),
+                royalty_bps as u64,
+            ));
+
+            let schema = Schema::new(
+                CollectionData::new(name, None, None, None, vec![], None),
+                NftData::new(nft_type),
+                Settings::new(
+                    royalties,
+                    MintPolicies::new(Some(supply as u64), true, true),
+                    RequestPolicies::new(true, false, false),
+                    None,
+                    Orderbook::Protected,
+                    Burn::Permissionless,
+                ),
+            );
+
+            io::write_schema(&schema, &schema_path)?;
+            io::write_project(&project, &project_path)?;
+        }
         Commands::ConfigCollection {
             project_dir,
             complete,
@@ -51,7 +110,7 @@ async fn run() -> Result<()> {
             builder =
                 config_collection::init_collection_config(builder, complete)?;
 
-            io::write_schema(&builder, &file_path)?;
+            io::write_schema_from_builder(&builder, &file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -70,7 +129,7 @@ async fn run() -> Result<()> {
             schema = config_collection::init_collection_config(schema, false)?;
             let uploader = config_upload::init_upload_config()?;
 
-            io::write_schema(&schema, &file_path)?;
+            io::write_schema_from_builder(&schema, &file_path)?;
             io::write_uploader(&uploader, &file_path)?;
         }
         Commands::DeployAssets { project_dir } => {

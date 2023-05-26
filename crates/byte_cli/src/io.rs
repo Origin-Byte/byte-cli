@@ -1,9 +1,9 @@
 use std::{
-    // env,
     fs::File,
     path::{Path, PathBuf},
 };
 
+use crate::models::project::Project;
 use crate::prelude::CliError;
 use anyhow::anyhow;
 use gutenberg::schema::{Schema, SchemaBuilder};
@@ -26,7 +26,7 @@ pub fn try_read_schema(path_buf: &PathBuf) -> Result<SchemaBuilder, CliError> {
     Ok(schema)
 }
 
-pub fn write_schema(
+pub fn write_schema_from_builder(
     schema: &SchemaBuilder,
     output_file: &Path,
 ) -> Result<(), anyhow::Error> {
@@ -47,7 +47,7 @@ pub fn write_schema(
     })
 }
 
-pub fn write_schema_(
+pub fn write_schema(
     schema: &Schema,
     output_file: &Path,
 ) -> Result<(), anyhow::Error> {
@@ -61,6 +61,27 @@ pub fn write_schema_(
     let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
     let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
     schema.serialize(ser).map_err(|err| {
+        anyhow!(
+            r#"Could not write configuration file "{}": {err}"#,
+            output_file.display()
+        )
+    })
+}
+
+pub fn write_project(
+    project: &Project,
+    output_file: &Path,
+) -> Result<(), anyhow::Error> {
+    let file = File::create(output_file).map_err(|err| {
+        anyhow!(
+            r#"Could not create configuration file "{}": {err}"#,
+            output_file.display()
+        )
+    })?;
+
+    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
+    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
+    project.serialize(ser).map_err(|err| {
         anyhow!(
             r#"Could not write configuration file "{}": {err}"#,
             output_file.display()

@@ -14,6 +14,18 @@ pub enum RoyaltyPolicy {
     },
 }
 
+impl RoyaltyPolicy {
+    pub fn new(
+        shares: BTreeSet<Share>,
+        collection_royalty_bps: u64,
+    ) -> RoyaltyPolicy {
+        RoyaltyPolicy::Proportional {
+            shares,
+            collection_royalty_bps,
+        }
+    }
+}
+
 #[derive(
     Debug,
     Default,

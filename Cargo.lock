@@ -1937,6 +1937,7 @@ dependencies = [
  "aws-sdk-s3",
  "clap 4.2.7",
  "console",
+ "convert_case 0.6.0",
  "dialoguer",
  "dotenv",
  "glob",

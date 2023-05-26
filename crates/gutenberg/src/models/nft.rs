@@ -7,6 +7,10 @@ pub struct NftData {
 }
 
 impl NftData {
+    pub fn new(type_name: String) -> Self {
+        Self { type_name }
+    }
+
     pub fn write_struct(&self) -> String {
         let type_name = &self.type_name;
         format!(
