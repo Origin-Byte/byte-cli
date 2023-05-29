@@ -103,8 +103,7 @@ impl MintPolicies {
         );
 
         {transfer}
-    }}
-    {extra_fun}"
+    }}{extra_fun}"
             );
         } else {
             return_type.push_str(format!(": {}", nft_type_name).as_str());
@@ -149,6 +148,7 @@ impl MintPolicies {
     ) -> String {
         format!(
             "
+
     public entry fun airdrop_nft_into_new_kiosk(
         name: std::string::String,
         description: std::string::String,

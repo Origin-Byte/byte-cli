@@ -1,11 +1,8 @@
 use console::Emoji;
 
 // CLI Select options
-pub const ROYALTY_OPTIONS: [&str; 3] = [
-    "Percentage of trade price (in Basis Points)",
-    "Fixed royalty amount regardless of trading price (in SUI)",
-    "None",
-];
+pub const ROYALTY_OPTIONS: [&str; 2] =
+    ["Percentage of trade price (in Basis Points)", "None"];
 pub const FEATURE_OPTIONS: [&str; 3] = [
     "Tradeable Traits",
     "Immediate Secondary Market Trading",

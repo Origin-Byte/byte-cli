@@ -84,6 +84,12 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             &mut transfer_policy, &transfer_policy_cap,
         );
 
+        let (borrow_policy, borrow_policy_cap) =
+            ob_request::borrow_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+
+        let (withdraw_policy, withdraw_policy_cap) =
+            ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+
         // Protected orderbook such that trading is not initially possible
         let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<AurahmaPreReveal, sui::sui::SUI>(
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
@@ -97,6 +103,12 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);
+
+        sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(withdraw_policy);
+
+        sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(borrow_policy);
     }
 
     public entry fun mint_nft(
@@ -121,7 +133,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         ob_launchpad::warehouse::deposit_nft(warehouse, nft);
     }
-
 
     public entry fun airdrop_nft(
         name: std::string::String,
