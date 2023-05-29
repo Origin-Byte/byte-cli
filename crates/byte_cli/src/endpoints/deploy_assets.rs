@@ -2,20 +2,23 @@ use anyhow::Result;
 use console::style;
 use dotenv::dotenv;
 use glob::glob;
-use gutenberg::storage::{NftStorageSetup, PinataSetup};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use gutenberg::storage::{aws::AWSSetup, Asset, Storage, Uploader};
-use gutenberg::Schema;
+use uploader::{
+    storage::{
+        aws::AWSSetup, nft_storage::NftStorageSetup, pinata::PinataSetup,
+    },
+    uploader::{Asset, Uploader},
+    writer::Storage,
+};
 
 pub async fn deploy_assets(
-    schema: &Schema,
+    storage: &Storage,
     assets_dir: PathBuf,
     metadata_dir: PathBuf,
 ) -> Result<()> {
     let assets_dir = assets_dir.display().to_string();
-    let storage = schema.storage.as_ref().unwrap();
 
     dotenv().ok();
 

@@ -7,7 +7,7 @@ pub enum MintType {
     Launchpad,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     pub supply: Option<u64>,
     pub launchpad: bool,
@@ -15,6 +15,14 @@ pub struct MintPolicies {
 }
 
 impl MintPolicies {
+    pub fn new(supply: Option<u64>, launchpad: bool, airdrop: bool) -> Self {
+        Self {
+            supply,
+            launchpad,
+            airdrop,
+        }
+    }
+
     pub fn write_mint_fn(
         &self,
         mint_policy: Option<MintType>,

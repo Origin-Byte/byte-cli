@@ -1,9 +1,11 @@
+pub mod burn;
 pub mod composability;
 pub mod minting;
 pub mod orderbook;
 pub mod request;
 pub mod royalties;
 
+pub use burn::Burn;
 pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
@@ -14,10 +16,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{collection::CollectionData, nft::NftData};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    pub royalties: Option<RoyaltyPolicy>, // Done
+    pub royalties: Option<RoyaltyPolicy>,
     pub mint_policies: MintPolicies,
     pub request_policies: RequestPolicies,
     pub composability: Option<Composability>,

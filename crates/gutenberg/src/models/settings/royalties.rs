@@ -3,7 +3,8 @@ use std::{collections::BTreeSet, str::FromStr};
 
 use crate::models::Address;
 
-#[derive(Debug, Serialize, Deserialize)]
+// TODO: Doesn't need to be enum anymore
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum RoyaltyPolicy {
     #[serde(rename_all = "camelCase")]
@@ -14,7 +15,15 @@ pub enum RoyaltyPolicy {
 }
 
 #[derive(
-    Debug, Default, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Ord,
+    Debug,
+    Default,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Clone,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct Share {

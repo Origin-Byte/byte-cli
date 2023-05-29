@@ -2,7 +2,6 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-pub mod supply;
 pub mod tags;
 
 use self::tags::Tags;
@@ -11,7 +10,7 @@ use crate::{contract::modules::DisplayInfoMod, err::GutenError};
 use serde::{Deserialize, Serialize};
 
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection

@@ -1,17 +1,18 @@
 use console::Emoji;
 
 // CLI Select options
-pub const FIELD_OPTIONS: [&str; 3] =
-    ["Name & Description", "Url", "Attributes"];
 pub const ROYALTY_OPTIONS: [&str; 3] = [
     "Percentage of trade price (in Basis Points)",
     "Fixed royalty amount regardless of trading price (in SUI)",
     "None",
 ];
-pub const FEATURE_OPTIONS: [&str; 1] = ["tags"];
+pub const FEATURE_OPTIONS: [&str; 3] = [
+    "Tradeable Traits",
+    "Immediate Secondary Market Trading",
+    "NFT Burning",
+];
 pub const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-pub const MINTING_OPTIONS: [&str; 2] =
-    ["OriginByte Launchpad", "Mint directly to addresses"];
+pub const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 pub const MARKET_OPTIONS: [&str; 2] =
     ["Fixed price sale", "Dutch auction sale"];
 pub const TAG_OPTIONS: [&str; 11] = [
@@ -27,11 +28,7 @@ pub const TAG_OPTIONS: [&str; 11] = [
     "Ticket",
     "License",
 ];
-pub const DEFAULT_SENDER_MSG: &str =
-    "Leave blank to default to transaction sender";
 
-pub const FIELD_OPTIONS_: [&str; 3] = ["display", "url", "attributes"];
-pub const ROYALTY_OPTIONS_: [&str; 3] = ["Proportional", "Constant", "None"];
 pub const MINTING_OPTIONS_: [&str; 2] = ["launchpad", "airdrop"];
 pub const MARKET_OPTIONS_: [&str; 2] = ["Fixed price", "Dutch auction"];
 
@@ -46,8 +43,8 @@ pub const DEFAULT_CONFIG_FILENAME: &str = "config";
 pub const ROCKET_EMOJI: Emoji<'_, '_> = Emoji("🚀 ", "");
 
 // Package commits
-pub const SUI_PACKAGE_COMMIT: &str = "598f106ef5fbdfbe1b644236f0caf46c94f4d1b7";
+pub const SUI_PACKAGE_COMMIT: &str = "ae1212baf8f0837e25926d941db3d26a61c1bea2";
 pub const ORIGINMATE_PACKAGE_COMMIT: &str =
-    "ef4e6b505f3fb1546944b770c78091b1ac47e392";
+    "36e02283fa00451e8476a1bbc201af9a248396de";
 pub const PROTOCOL_PACKAGE_COMMIT: &str =
-    "af32600e5fa7a0eccb2c87e1b8c18e4bb9129fe2";
+    "b2dea4d1bee5608207d06d13ec0679a93d53962d";

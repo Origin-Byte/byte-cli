@@ -3,84 +3,51 @@ use std::collections::BTreeSet;
 use anyhow::Result;
 
 use super::{address_validator, bps_validator, number_validator, FromPrompt};
-use crate::{
-    consts::{ROYALTY_OPTIONS, ROYALTY_OPTIONS_, TX_SENDER_ADDRESS},
-    prelude::get_dialoguer_theme,
-};
+use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
-use dialoguer::{Confirm, Input, Select};
+use dialoguer::{Confirm, Input};
 use gutenberg::{
     models::{
         settings::royalties::{RoyaltyPolicy, Share},
         Address,
     },
-    Schema,
+    schema::SchemaBuilder,
 };
 
 impl FromPrompt for RoyaltyPolicy {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
-        let creators = &schema.collection.creators;
-        let policy = get_policy_type()?;
+        let creators = &schema.collection.as_ref().unwrap().creators;
+        let mut policy = get_policy_type()?;
 
-        match policy {
-            Some(mut policy) => {
-                if are_royalty_owners_creators() {
-                    let shares = royalty_shares(creators);
-                    policy.add_beneficiary_vecs(creators, &shares);
-                } else {
-                    let mut beneficiaries = get_beneficiaries()?;
-                    policy.add_beneficiaries(&mut beneficiaries);
-                }
-                Ok(Some(policy))
-            }
-            None => Ok(None),
-        }
+        if are_royalty_owners_creators() {
+            let shares = royalty_shares(creators);
+            policy.add_beneficiary_vecs(creators, &shares);
+        } else {
+            let mut beneficiaries = get_beneficiaries()?;
+            policy.add_beneficiaries(&mut beneficiaries);
+        };
+
+        Ok(policy)
     }
 }
 
-pub fn get_policy_type() -> Result<Option<RoyaltyPolicy>, anyhow::Error> {
+pub fn get_policy_type() -> Result<RoyaltyPolicy, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
-    let policy_index = Select::with_theme(&theme)
-        .with_prompt("Which royalty policies do you want on your collection? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
-        .items(&ROYALTY_OPTIONS)
-        .interact()
-        .unwrap();
+    // TODO: Check that the basis points do not surpass 100%
+    let bps = Input::with_theme(&theme)
+        .with_prompt("What is the proportional royalty fee in basis points?")
+        .validate_with(bps_validator)
+        .interact()?
+        .parse::<u64>()?;
 
-    match ROYALTY_OPTIONS_[policy_index] {
-        "Proportional" => {
-            // TODO: Check that the basis points do not surpass 100%
-            let bps = Input::with_theme(&theme)
-                .with_prompt(
-                    "What is the proportional royalty fee in basis points?",
-                )
-                .validate_with(bps_validator)
-                .interact()?
-                .parse::<u64>()?;
-
-            Ok(Some(RoyaltyPolicy::Proportional {
-                shares: BTreeSet::new(),
-                collection_royalty_bps: bps,
-            }))
-        }
-        "Constant" => {
-            let fee = Input::with_theme(&theme)
-                .with_prompt("What is the constant royalty fee in MIST?")
-                .validate_with(number_validator)
-                .interact()?
-                .parse::<u64>()?;
-
-            Ok(Some(RoyaltyPolicy::Constant {
-                shares: BTreeSet::new(),
-                fee,
-            }))
-        }
-        "None" => Ok(None),
-        _ => unreachable!(),
-    }
+    Ok(RoyaltyPolicy::Proportional {
+        shares: BTreeSet::new(),
+        collection_royalty_bps: bps,
+    })
 }
 
 pub fn are_royalty_owners_creators() -> bool {
