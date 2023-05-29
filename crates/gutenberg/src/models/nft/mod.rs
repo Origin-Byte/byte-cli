@@ -5,7 +5,7 @@ use burn::Burn;
 use dynamic::Dynamic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
     type_name: String,
@@ -14,6 +14,14 @@ pub struct NftData {
 }
 
 impl NftData {
+    pub fn new(type_name: String, burn: Burn, dynamic: bool) -> Self {
+        NftData {
+            type_name,
+            burn,
+            dynamic: dynamic.into(),
+        }
+    }
+
     pub fn type_name(&self) -> &String {
         &self.type_name
     }

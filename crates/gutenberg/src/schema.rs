@@ -9,8 +9,6 @@ use crate::models::{collection::CollectionData, nft::NftData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::contract::modules::Display;
-
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
 #[derive(Debug, Serialize, Deserialize, Builder)]
@@ -20,8 +18,11 @@ use crate::contract::modules::Display;
 pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
+    #[builder(field(public))]
     collection: CollectionData,
+    #[builder(field(public))]
     nft: NftData,
+    #[builder(field(public))]
     pub settings: Settings,
 }
 

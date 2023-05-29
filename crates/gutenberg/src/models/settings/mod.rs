@@ -1,11 +1,9 @@
-pub mod burn;
 pub mod composability;
 pub mod minting;
 pub mod orderbook;
 pub mod request;
 pub mod royalties;
 
-pub use burn::Burn;
 pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
