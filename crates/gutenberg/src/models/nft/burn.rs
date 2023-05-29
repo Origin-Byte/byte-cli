@@ -1,11 +1,45 @@
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+use crate::err::GutenError;
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Burn {
     None,
     Permissioned,
     Permissionless,
+}
+
+impl Display for Burn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let level = match self {
+            Burn::None => "None",
+            Burn::Permissioned => "Permissioned",
+            Burn::Permissionless => "Permissionless",
+        };
+
+        f.write_str(level)
+    }
+}
+
+impl FromStr for Burn {
+    type Err = GutenError;
+
+    fn from_str(level: &str) -> Result<Burn, Self::Err> {
+        match level {
+            "None" => Ok(Burn::None),
+            "Permissioned" => Ok(Burn::Permissioned),
+            "Permissionless" => Ok(Burn::Permissionless),
+            level => Err(GutenError::UnsupportedSettings(
+                format!("Burn level of `{level}` is unsupported. Supported levels include: [`None`, `Permissioned`, `Permissionless`].")
+            ))
+        }
+    }
 }
 
 impl Burn {

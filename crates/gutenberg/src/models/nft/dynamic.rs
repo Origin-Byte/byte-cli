@@ -1,8 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(transparent)]
 pub struct Dynamic(bool);
+
+impl From<bool> for Dynamic {
+    fn from(value: bool) -> Self {
+        Self(value)
+    }
+}
 
 impl Dynamic {
     pub fn is_dynamic(&self) -> bool {

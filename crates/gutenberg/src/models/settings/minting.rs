@@ -7,7 +7,7 @@ pub enum MintType {
     Launchpad,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     pub supply: Option<u64>,
     pub launchpad: bool,
@@ -15,6 +15,14 @@ pub struct MintPolicies {
 }
 
 impl MintPolicies {
+    pub fn new(supply: Option<u64>, launchpad: bool, airdrop: bool) -> Self {
+        Self {
+            supply,
+            launchpad,
+            airdrop,
+        }
+    }
+
     pub fn write_mint_fn(
         &self,
         mint_policy: Option<MintType>,
@@ -95,8 +103,7 @@ impl MintPolicies {
         );
 
         {transfer}
-    }}
-    {extra_fun}"
+    }}{extra_fun}"
             );
         } else {
             return_type.push_str(format!(": {}", nft_type_name).as_str());
@@ -141,6 +148,7 @@ impl MintPolicies {
     ) -> String {
         format!(
             "
+
     public entry fun airdrop_nft_into_new_kiosk(
         name: std::string::String,
         description: std::string::String,

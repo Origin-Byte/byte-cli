@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::nft::NftData;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RequestPolicies {
     pub transfer: bool,
     pub withdraw: bool,

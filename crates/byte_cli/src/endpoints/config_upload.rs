@@ -4,14 +4,14 @@ use anyhow::anyhow;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Password, Select};
 
-use gutenberg::{
-    storage::{aws, nft_storage, pinata, Storage},
-    Schema,
+use uploader::{
+    storage::{aws, nft_storage, pinata},
+    writer::Storage,
 };
 
 const STORAGE_OPTIONS: [&str; 2] = ["AWS", "Pinata"];
 
-pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
+pub fn init_upload_config() -> Result<Storage, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
     let number_validator = |input: &String| -> Result<(), String> {
@@ -57,9 +57,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
             let config =
                 aws::AWSConfig::new(bucket, directory, region, profile)?;
 
-            schema.storage = Some(Storage::Aws(config));
-
-            Ok(schema)
+            Ok(Storage::Aws(config))
         }
         "Pinata" => {
             let jwt = Password::with_theme(&theme)
@@ -96,9 +94,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
                 parallel_limit,
             );
 
-            schema.storage = Some(Storage::Pinata(config));
-
-            Ok(schema)
+            Ok(Storage::Pinata(config))
         }
         "NftStorage" => {
             let auth_token = Input::with_theme(&theme)
@@ -108,9 +104,7 @@ pub fn init_upload_config(mut schema: Schema) -> Result<Schema, anyhow::Error> {
 
             let config = nft_storage::NftStorageConfig::new(auth_token);
 
-            schema.storage = Some(Storage::NftStorage(config));
-
-            Ok(schema)
+            Ok(Storage::NftStorage(config))
         }
         // "Bundlr" => Ok(()),
         // "SHDW" => Ok(()),

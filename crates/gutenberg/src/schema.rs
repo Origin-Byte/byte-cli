@@ -2,26 +2,28 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use crate::contract::modules::Display;
 use crate::err::GutenError;
-use crate::models::launchpad::Launchpad;
 use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::contract::modules::Display;
-
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[builder(derive(Debug, Serialize, Deserialize))]
+#[builder(setter(into))]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
+    #[builder(field(public))]
     collection: CollectionData,
+    #[builder(field(public))]
     nft: NftData,
+    #[builder(field(public))]
     pub settings: Settings,
-    pub launchpad: Option<Launchpad>,
 }
 
 impl Schema {
@@ -29,14 +31,12 @@ impl Schema {
         collection: CollectionData,
         nft: NftData,
         settings: Settings,
-        launchpad: Option<Launchpad>,
     ) -> Schema {
         Schema {
             package_name: None,
             collection,
             nft,
             settings,
-            launchpad,
         }
     }
 

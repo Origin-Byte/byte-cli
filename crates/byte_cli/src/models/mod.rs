@@ -1,5 +1,5 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
-use gutenberg::Schema;
+use gutenberg::schema::SchemaBuilder;
 
 use crate::{
     consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
@@ -7,7 +7,6 @@ use crate::{
 };
 
 pub mod collection;
-pub mod marketplace;
 pub mod nft;
 pub mod royalties;
 pub mod settings;
@@ -15,7 +14,7 @@ pub mod sui_output;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized;
 }
@@ -163,6 +162,8 @@ pub fn multi_select<'a>(
     Ok(borrowed)
 }
 
+// This will be most likely added back
+#[allow(dead_code)]
 fn get_options<'a>(
     theme: &ColorfulTheme,
     prompt: &str,

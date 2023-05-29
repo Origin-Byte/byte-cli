@@ -133,7 +133,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         ob_launchpad::warehouse::deposit_nft(warehouse, nft);
     }
-    
 
     public entry fun airdrop_nft(
         name: std::string::String,
@@ -157,7 +156,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         ob_kiosk::ob_kiosk::deposit(receiver, nft, ctx);
     }
-    
+
     public entry fun airdrop_nft_into_new_kiosk(
         name: std::string::String,
         description: std::string::String,

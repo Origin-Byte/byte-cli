@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{err::GutenError, models::Address};
 
 /// Contains the market configurations of the marketplace
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Marketplace {
     pub admin: Address,
     pub receiver: Address,

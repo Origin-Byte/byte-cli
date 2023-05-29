@@ -6,7 +6,7 @@ use console::style;
 use gutenberg::{package, Schema};
 use serde::Serialize;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rust_sdk::{collection_state::CollectionState, publish};
 use std::fs::{self, File};
@@ -45,7 +45,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
         )
     })?;
 
-    let module_name = schema.module_name();
+    let module_name = schema.collection().name();
 
     let package = package::Move {
         package: package::Package {
@@ -73,7 +73,8 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
                     PROTOCOL_PACKAGE_COMMIT.to_string(),
-                ),
+                )
+                .subdir("contracts/nft_protocol".to_string()),
             ),
         ]),
         addresses: package::Addresses::new([(
@@ -99,7 +100,6 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
     })?;
 
     // Write Move contract
-
     let move_path = &sources_dir.join(format!("{module_name}.move"));
     let mut move_file = File::create(move_path).map_err(|err| {
         anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
@@ -118,15 +118,11 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 }
 
 pub async fn publish_contract(
-    schema: &mut Schema,
     gas_budget: usize,
-    contract_dir: &Path,
+    contract_dir: &PathBuf,
 ) -> Result<CollectionState> {
     let collection_state =
         publish::publish_contract(contract_dir, gas_budget as u64).await?;
-
-    schema.contract =
-        Some(collection_state.contract.as_ref().unwrap().to_string());
 
     Ok(collection_state)
 }

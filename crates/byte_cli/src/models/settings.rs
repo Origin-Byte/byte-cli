@@ -1,49 +1,29 @@
 use std::collections::BTreeSet;
 
-use dialoguer::{Confirm, Input, MultiSelect, Select};
+use dialoguer::{Input, MultiSelect, Select};
 use gutenberg::{
-    models::{
-        collection::supply::SupplyPolicy,
-        settings::{
-            composability::Composability, minting::MintPolicies,
-            royalties::RoyaltyPolicy, tags::Tags, Settings,
-        },
+    models::settings::{
+        composability::Composability, minting::MintPolicies,
+        royalties::RoyaltyPolicy, Orderbook, RequestPolicies, Settings,
     },
-    Schema,
+    schema::SchemaBuilder,
 };
 
-use super::{get_options, map_indices, number_validator, FromPrompt};
+use super::{map_indices, number_validator, FromPrompt};
 use crate::{
-    consts::{
-        FEATURE_OPTIONS, MINTING_OPTIONS, MINTING_OPTIONS_, SUPPLY_OPTIONS,
-        TAG_OPTIONS,
-    },
+    consts::{FEATURE_OPTIONS, MINTING_OPTIONS, SUPPLY_OPTIONS},
     prelude::get_dialoguer_theme,
 };
 
 impl FromPrompt for Settings {
-    fn from_prompt(schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
         let theme = get_dialoguer_theme();
 
-        let mut settings = Settings::default();
-
         let royalties = RoyaltyPolicy::from_prompt(schema)?;
-
-        if let Some(royalties) = royalties {
-            settings.set_royalties(royalties);
-        }
-
-        let mint_policies = get_options(
-            &theme,
-            "Which minting policies should the collection adhere to? Choose at least one (use [SPACEBAR] to select options)",
-            &MINTING_OPTIONS,
-            &MINTING_OPTIONS_,
-        )?;
-
-        settings.set_mint_policies(MintPolicies::new(mint_policies)?);
+        let mint_policies = MintPolicies::from_prompt(schema)?;
 
         let nft_features_indices = MultiSelect::with_theme(&theme)
             .with_prompt("Which NFT features do you want the NFTs to add? (use [SPACEBAR] to select options)")
@@ -53,34 +33,38 @@ impl FromPrompt for Settings {
 
         let features = map_indices(nft_features_indices, &FEATURE_OPTIONS);
 
-        if features.contains(&String::from("tags")) {
-            let tag_indices = MultiSelect::with_theme(&theme)
-                .with_prompt("Which tags do you want to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
-                .items(&TAG_OPTIONS)
-                .interact()
-                .unwrap();
+        let composability =
+            if features.contains(&String::from("Tradeable Traits")) {
+                Some(Composability::from_prompt(&schema)?)
+            } else {
+                None
+            };
 
-            let tags =
-                Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
+        // TODO: Design this part
+        let requests = RequestPolicies::new(false, false, false); // TODO
 
-            settings.set_tags(tags);
-        }
+        let orderbook = if features
+            .contains(&String::from("Immediate Secondary Market Trading"))
+        {
+            Orderbook::Unprotected
+        } else {
+            Orderbook::Protected
+        };
 
-        if features.contains(&String::from("tradeable_traits")) {
-            let composability = Composability::from_prompt(&schema)?.unwrap();
-            settings.set_composability(composability);
-        }
+        let settings = Settings::new(
+            Some(royalties),
+            mint_policies,
+            requests,
+            composability,
+            orderbook,
+        );
 
-        if features.contains(&String::from("loose")) {
-            settings.set_loose(true);
-        }
-
-        Ok(Some(settings))
+        Ok(settings)
     }
 }
 
 impl FromPrompt for Composability {
-    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -115,14 +99,12 @@ impl FromPrompt for Composability {
 
         let core_trait = traits.first().unwrap().clone();
 
-        Ok(Some(Composability::new_from_tradeable_traits(
-            traits, core_trait,
-        )))
+        Ok(Composability::new_from_tradeable_traits(traits, core_trait))
     }
 }
 
-impl FromPrompt for SupplyPolicy {
-    fn from_prompt(_schema: &Schema) -> Result<Option<Self>, anyhow::Error>
+impl FromPrompt for MintPolicies {
+    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -138,11 +120,8 @@ impl FromPrompt for SupplyPolicy {
 
         let supply_policy = SUPPLY_OPTIONS[supply_index];
 
-        let mut limit = Option::None;
-        let mut frozen = Option::None;
-
-        if supply_policy == "Limited" {
-            limit = Some(
+        let limit = if supply_policy == "Limited" {
+            Some(
                 Input::with_theme(&theme)
                     .with_prompt("What is the supply limit of the Collection?")
                     .validate_with(number_validator)
@@ -150,16 +129,32 @@ impl FromPrompt for SupplyPolicy {
                     .unwrap()
                     .parse::<u64>()
                     .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.")
-            );
+            )
+        } else {
+            None
+        };
 
-            frozen = Some(
-                Confirm::with_theme(&theme)
-                    .with_prompt("Do you want to freeze the supply? (You can also freeze later)")
-                    .interact()
-                    .unwrap()
-            );
-        }
+        let mint_options_indices = MultiSelect::with_theme(&theme)
+            .with_prompt("What minting options do you want to use? (use [SPACEBAR] to select options)")
+            .items(&MINTING_OPTIONS)
+            .interact()
+            .unwrap();
 
-        Ok(Some(SupplyPolicy::new(supply_policy, limit, frozen)?))
+        let mint_options = map_indices(mint_options_indices, &MINTING_OPTIONS);
+
+        let launchpad =
+            if mint_options.contains(&String::from("OriginByte Launchpad")) {
+                true
+            } else {
+                false
+            };
+
+        let airdrop = if mint_options.contains(&String::from("NFT Airdrop")) {
+            true
+        } else {
+            false
+        };
+
+        Ok(MintPolicies::new(limit, launchpad, airdrop))
     }
 }

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
+uploader = { path = "../uploader" }
 
 dialoguer = "0.10"
 thiserror = "1.0"

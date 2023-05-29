@@ -3,18 +3,18 @@ use crate::models::FromPrompt;
 use console::style;
 use gutenberg::{
     models::{collection::CollectionData, nft::NftData, settings::Settings},
-    Schema,
+    schema::SchemaBuilder,
 };
 
 pub fn init_collection_config(
-    mut schema: Schema,
+    mut builder: SchemaBuilder,
     to_complete: bool,
-) -> Result<Schema, anyhow::Error> {
+) -> Result<SchemaBuilder, anyhow::Error> {
     println!("{}",
         style("Welcome to Byte CLI! We're ready to begin setting up your NFT collection.").blue().bold().dim()
     );
 
-    if !to_complete || schema.collection.is_empty() {
+    if !to_complete || builder.collection.is_none() {
         println!(
             "{}",
             style("To begin, let's configure some collection level metadata.")
@@ -23,7 +23,7 @@ pub fn init_collection_config(
                 .dim()
         );
 
-        schema.collection = CollectionData::from_prompt(&schema)?.unwrap();
+        builder.collection = Some(CollectionData::from_prompt(&builder)?);
     }
 
     if !to_complete {
@@ -35,7 +35,7 @@ pub fn init_collection_config(
                 .dim()
         );
 
-        schema.nft = NftData::from_prompt(&schema)?.unwrap();
+        builder.nft = Some(NftData::from_prompt(&builder)?);
     }
 
     println!(
@@ -46,8 +46,8 @@ pub fn init_collection_config(
             .dim()
     );
 
-    if !to_complete || schema.settings.is_empty() {
-        schema.settings = Settings::from_prompt(&schema)?.unwrap();
+    if !to_complete || builder.settings.is_none() {
+        builder.settings = Some(Settings::from_prompt(&builder)?);
     }
 
     println!(
@@ -58,5 +58,5 @@ pub fn init_collection_config(
             .dim()
     );
 
-    Ok(schema)
+    Ok(builder)
 }

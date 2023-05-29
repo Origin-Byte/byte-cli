@@ -4,11 +4,11 @@ use crate::models::Address;
 
 use super::market::Market;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct Listings(pub Vec<Listing>);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Listing {
     pub admin: Address,
     pub receiver: Address,
