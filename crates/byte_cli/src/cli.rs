@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
 
-pub use crate::consts::{DEFAULT_CONFIG_FILENAME, DEFAULT_FOLDER};
+pub use crate::consts::DEFAULT_FOLDER;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -105,6 +105,10 @@ pub enum Commands {
         /// Gas budget
         #[clap(default_value_t = 50_000_000)]
         gas_budget: usize,
+    },
+    CheckDependencies {
+        #[clap(default_value = DEFAULT_FOLDER)]
+        project_dir: String,
     },
 }
 

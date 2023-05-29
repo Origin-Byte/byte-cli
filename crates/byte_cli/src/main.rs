@@ -9,10 +9,12 @@ pub mod prelude;
 
 use std::{
     collections::BTreeSet,
+    fs,
     path::{Path, PathBuf},
 };
 
-use crate::prelude::*;
+use crate::{models::toml::MoveToml, prelude::*};
+use byte_cli::consts::{BPS_100_PERCENT, CONFIG_FILENAME, PROJECT_FILENAME};
 use convert_case::{Case, Casing};
 use endpoints::*;
 
@@ -36,6 +38,7 @@ use gutenberg::{
 use io::{LocalRead, LocalWrite};
 use models::project::Project;
 use rust_sdk::coin;
+use toml::value::Table;
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -69,8 +72,8 @@ async fn run() -> Result<()> {
                 PathBuf::from(Path::new(project_dir.as_str()));
 
             let mut schema_path = project_path.clone();
-            schema_path.push("config.json");
-            project_path.push("project.json");
+            schema_path.push(CONFIG_FILENAME);
+            project_path.push(PROJECT_FILENAME);
 
             let keystore = rust_sdk::utils::get_keystore().await?;
             let sender = rust_sdk::utils::get_active_address(&keystore)?;
@@ -81,7 +84,7 @@ async fn run() -> Result<()> {
             let project = Project::new(name.clone(), sender);
 
             let royalties = Some(RoyaltyPolicy::new(
-                BTreeSet::from([Share::new(sender_string, 10_000)]),
+                BTreeSet::from([Share::new(sender_string, BPS_100_PERCENT)]),
                 royalty_bps as u64,
             ));
 
@@ -106,7 +109,7 @@ async fn run() -> Result<()> {
             complete,
         } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let mut builder = SchemaBuilder::read(&file_path)?;
 
@@ -117,7 +120,7 @@ async fn run() -> Result<()> {
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let uploader = config_upload::init_upload_config()?;
 
@@ -125,7 +128,7 @@ async fn run() -> Result<()> {
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let mut builder = SchemaBuilder::read(&file_path)?;
 
@@ -141,7 +144,7 @@ async fn run() -> Result<()> {
 
             let mut file_path = project_path.clone();
             // TODO: Incorrect since we separated files
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let mut assets_path = project_path.clone();
             assets_path.push("assets/");
@@ -278,6 +281,17 @@ async fn run() -> Result<()> {
         }
         Commands::CombineCoins { gas_budget } => {
             coin::combine(gas_budget as u64).await?;
+        }
+        Commands::CheckDependencies { project_dir } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("contract/Move.toml");
+
+            let toml_string: String = fs::read_to_string(file_path)?.parse()?;
+
+            let move_toml: MoveToml =
+                toml::from_str(toml_string.as_str()).unwrap();
+
+            println!("Move TOML: {:?}", move_toml);
         }
     }
 
