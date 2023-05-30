@@ -19,9 +19,9 @@ pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
     #[builder(field(public))]
-    pub collection: CollectionData,
+    collection: CollectionData,
     #[builder(field(public))]
-    pub nft: NftData,
+    nft: NftData,
     #[builder(field(public))]
     pub settings: Settings,
 }
@@ -63,26 +63,25 @@ impl Schema {
 
         let tags = self.collection.write_tags();
 
-        let display = Display::write_display(&self.nft.type_name);
+        let type_name = self.nft.type_name();
+        let display = Display::write_display(type_name);
 
-        let request_policies =
-            self.settings.write_request_policies(&self.nft.type_name);
-
-        let orderbook =
-            self.settings.orderbook.write_orderbook(&self.nft.type_name);
+        let orderbook = self.settings.orderbook.write_orderbook(type_name);
 
         let witness = self.collection().witness_name();
-        let type_name = &self.nft.type_name;
 
         let create_collection = self
             .settings
             .mint_policies
             .write_collection_create_with_mint_cap(&witness, type_name);
 
-        let transfer_fns = self.settings.write_transfer_fns();
+        let request_policies = self.settings.write_request_policies(&self.nft);
+        let transfer_fns = self.settings.write_transfer_fns(&self.nft);
 
         format!(
-            "    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
+            "
+
+    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         {create_collection}
 
         // Init Publisher
@@ -99,27 +98,24 @@ impl Schema {
     }
 
     pub fn write_entry_fns(&self) -> String {
+        let type_name = self.nft.type_name();
         let mut code = String::new();
 
-        let mint_fns = self
-            .settings
-            .mint_policies
-            .write_mint_fns(&self.nft.type_name);
+        let mint_fns = self.settings.mint_policies.write_mint_fns(type_name);
 
         code.push_str(mint_fns.as_str());
 
-        let orderbook_fns =
-            self.settings.orderbook.write_entry_fns(&self.nft.type_name);
+        let orderbook_fns = self.settings.orderbook.write_entry_fns(type_name);
 
         code.push_str(orderbook_fns.as_str());
-
-        code.push_str(&self.settings.burn.write_burn_fns(&self.nft.type_name));
+        code.push_str(&&self.nft.write_dynamic_fns());
+        code.push_str(&self.nft.write_burn_fns());
 
         code
     }
 
     pub fn write_tests(&self) -> String {
-        let type_name = &self.nft.type_name;
+        let type_name = self.nft.type_name();
         let witness = self.collection().witness_name();
         let mut tests = format!(
             "
@@ -176,12 +172,8 @@ impl Schema {
         sui::test_scenario::end(scenario);
     }}");
 
-        tests.push_str(
-            self.settings
-                .burn
-                .write_burn_tests(&self.nft.type_name, &witness)
-                .as_str(),
-        );
+        tests.push_str(&self.nft.write_dynamic_tests(&witness));
+        tests.push_str(&self.nft.write_burn_tests(&witness));
 
         tests
     }

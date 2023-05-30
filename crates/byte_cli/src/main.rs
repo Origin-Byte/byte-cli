@@ -25,9 +25,9 @@ use console::style;
 use gutenberg::{
     models::{
         collection::CollectionData,
-        nft::NftData,
+        nft::{burn::Burn, NftData},
         settings::{
-            royalties::Share, Burn, MintPolicies, Orderbook, RequestPolicies,
+            royalties::Share, MintPolicies, Orderbook, RequestPolicies,
             RoyaltyPolicy, Settings,
         },
         Address,
@@ -90,14 +90,13 @@ async fn run() -> Result<()> {
 
             let schema = Schema::new(
                 CollectionData::new(name, None, None, None, vec![], None),
-                NftData::new(nft_type),
+                NftData::new(nft_type, Burn::Permissionless, false),
                 Settings::new(
                     royalties,
                     MintPolicies::new(Some(supply as u64), true, true),
                     RequestPolicies::new(true, false, false),
                     None,
                     Orderbook::Protected,
-                    Burn::Permissionless,
                 ),
             );
 
@@ -217,7 +216,7 @@ async fn run() -> Result<()> {
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            let schema = deploy_contract::parse_config(file_path.as_path())?;
+            let _schema = deploy_contract::parse_config(file_path.as_path())?;
             let mut state = deploy_contract::parse_state(state_path.as_path())?;
 
             // if schema.contract.is_none() {

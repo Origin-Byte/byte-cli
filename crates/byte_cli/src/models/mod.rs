@@ -1,6 +1,5 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
-use gutenberg::{models::Address, schema::SchemaBuilder};
-use sui_sdk::types::base_types::ObjectID;
+use gutenberg::schema::SchemaBuilder;
 
 use crate::{
     consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
