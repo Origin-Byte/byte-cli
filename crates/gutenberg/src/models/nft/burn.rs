@@ -1,6 +1,13 @@
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+use crate::err::GutenError;
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Burn {
     None,
@@ -8,26 +15,44 @@ pub enum Burn {
     Permissionless,
 }
 
+impl Display for Burn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let level = match self {
+            Burn::None => "None",
+            Burn::Permissioned => "Permissioned",
+            Burn::Permissionless => "Permissionless",
+        };
+
+        f.write_str(level)
+    }
+}
+
+impl FromStr for Burn {
+    type Err = GutenError;
+
+    fn from_str(level: &str) -> Result<Burn, Self::Err> {
+        match level {
+            "None" => Ok(Burn::None),
+            "Permissioned" => Ok(Burn::Permissioned),
+            "Permissionless" => Ok(Burn::Permissionless),
+            level => Err(GutenError::UnsupportedSettings(
+                format!("Burn level of `{level}` is unsupported. Supported levels include: [`None`, `Permissioned`, `Permissionless`].")
+            ))
+        }
+    }
+}
+
 impl Burn {
     pub fn is_none(&self) -> bool {
-        match self {
-            Burn::None => true,
-            _ => false,
-        }
+        matches!(self, Burn::None)
     }
 
     pub fn is_permissioned(&self) -> bool {
-        match self {
-            Burn::Permissioned => true,
-            _ => false,
-        }
+        matches!(self, Burn::Permissioned)
     }
 
     pub fn is_permissionless(&self) -> bool {
-        match self {
-            Burn::Permissionless => true,
-            _ => false,
-        }
+        matches!(self, Burn::Permissionless)
     }
 
     pub fn write_burn_fns(&self, nft_type_name: &String) -> String {

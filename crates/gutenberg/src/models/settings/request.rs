@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub enum RequestType {
-    Transfer,
-    Borrow,
-    //Withdraw, TODO
-}
+use crate::models::nft::NftData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RequestPolicies {
@@ -26,11 +22,9 @@ impl RequestPolicies {
         }
     }
 
-    pub fn write_policies(
-        &self,
-        type_name: &String,
-        require_withdraw: bool,
-    ) -> String {
+    pub fn write_policies(&self, nft_data: &NftData) -> String {
+        let type_name = nft_data.type_name();
+
         let mut request_policies = String::new();
 
         if self.transfer {
@@ -49,7 +43,7 @@ impl RequestPolicies {
             ));
         }
 
-        if self.borrow {
+        if self.borrow || nft_data.requires_borrow() {
             request_policies.push_str(&format!(
                 "
 
@@ -58,7 +52,7 @@ impl RequestPolicies {
             ));
         }
 
-        if self.withdraw || require_withdraw {
+        if self.withdraw || nft_data.requires_withdraw() {
             request_policies.push_str(&format!(
                 "
 

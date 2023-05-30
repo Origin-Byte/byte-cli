@@ -19,7 +19,7 @@ impl FromPrompt for RoyaltyPolicy {
     where
         Self: Sized,
     {
-        let creators = &schema.collection.as_ref().unwrap().creators;
+        let creators = schema.collection.as_ref().unwrap().creators();
         let mut policy = get_policy_type()?;
 
         if are_royalty_owners_creators() {

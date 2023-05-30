@@ -1,4 +1,3 @@
-use gutenberg::models::Address;
 use serde::{Deserialize, Serialize};
 use sui_sdk::types::base_types::{ObjectID, SuiAddress};
 

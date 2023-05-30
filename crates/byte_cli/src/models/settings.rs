@@ -4,7 +4,7 @@ use dialoguer::{Input, MultiSelect, Select};
 use gutenberg::{
     models::settings::{
         composability::Composability, minting::MintPolicies,
-        royalties::RoyaltyPolicy, Burn, Orderbook, RequestPolicies, Settings,
+        royalties::RoyaltyPolicy, Orderbook, RequestPolicies, Settings,
     },
     schema::SchemaBuilder,
 };
@@ -51,20 +51,12 @@ impl FromPrompt for Settings {
             Orderbook::Protected
         };
 
-        let burn = if features.contains(&String::from("NFT Burning")) {
-            // TODO: Add permissioned
-            Burn::Permissionless
-        } else {
-            Burn::None
-        };
-
         let settings = Settings::new(
             Some(royalties),
             mint_policies,
             requests,
             composability,
             orderbook,
-            burn,
         );
 
         Ok(settings)

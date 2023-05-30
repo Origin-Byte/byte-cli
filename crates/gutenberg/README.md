@@ -20,13 +20,13 @@ There is an example configuration file, `template.json` which is aligned to the 
 To install the gutenberg CLI on your computer you can call:
 
 ```
-cargo install --path .
+cargo install --features=cli --path .
 ```
 
 ### Generate contract
 
 ```
-Usage: gutenberg.exe generate <INPUT_CONFIG_PATH> <OUTPUT_DIR>
+Usage: gutenberg generate <INPUT_CONFIG_PATH> <OUTPUT_DIR>
 
 Arguments:
   <INPUT_CONFIG_PATH>
@@ -39,7 +39,7 @@ Options:
 ### Generate tests
 
 ```
-Usage: gutenberg.exe generate-tests
+Usage: gutenberg generate-tests
 
 Options:
   -h, --help  Print help
