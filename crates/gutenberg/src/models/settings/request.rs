@@ -58,7 +58,17 @@ impl RequestPolicies {
 
         let (withdraw_policy, withdraw_policy_cap) =
             ob_request::withdraw_request::init_policy<{type_name}>(&publisher, ctx);"
-            ))
+            ));
+
+            // When `NftData` requires a withdraw policy we must be careful to
+            // protect it such that a malicious actor may not withdraw
+            // arbitrarily
+            if !self.withdraw {
+                request_policies.push_str(&format!(
+                    "
+        ob_request::request::enforce_rule_no_state<T, Witness>(policy, cap);"
+                ));
+            }
         }
 
         request_policies

@@ -133,6 +133,7 @@ impl Burn {
         ctx: &mut sui::tx_context::TxContext,
     ) {{
         let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
+        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {{}});
         ob_request::withdraw_request::confirm(withdraw_request, policy);
 
         burn_own_nft(collection, nft);
