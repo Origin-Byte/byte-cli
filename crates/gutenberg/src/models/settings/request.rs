@@ -66,7 +66,9 @@ impl RequestPolicies {
             if !self.withdraw {
                 request_policies.push_str(&format!(
                     "
-        ob_request::request::enforce_rule_no_state<T, Witness>(policy, cap);"
+        ob_request::request::enforce_rule_no_state<ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>, Witness>(
+            &mut withdraw_policy, &withdraw_policy_cap,
+        );"
                 ));
             }
         }
