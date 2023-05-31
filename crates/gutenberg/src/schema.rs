@@ -101,14 +101,19 @@ impl Schema {
         let type_name = self.nft.type_name();
         let mut code = String::new();
 
-        let mint_fns = self.settings.mint_policies.write_mint_fns(type_name);
+        code.push_str(
+            self.settings
+                .mint_policies
+                .write_mint_fns(type_name)
+                .as_str(),
+        );
 
-        code.push_str(mint_fns.as_str());
+        // TODO: Conditional on importing LiquidityLayer V1
+        code.push_str(
+            self.settings.orderbook.write_entry_fns(type_name).as_str(),
+        );
 
-        let orderbook_fns = self.settings.orderbook.write_entry_fns(type_name);
-
-        code.push_str(orderbook_fns.as_str());
-        code.push_str(&&self.nft.write_dynamic_fns());
+        code.push_str(&self.nft.write_dynamic_fns());
         code.push_str(&self.nft.write_burn_fns());
 
         code

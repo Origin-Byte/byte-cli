@@ -116,9 +116,11 @@ impl Settings {
 
     pub fn write_loose(&self, collection: &CollectionData) -> String {
         format!(
-            "\n        let templates = templates::new_templates<{witness}>(
+            "
+
+        let templates = templates::new_templates<{witness}>(
                 ctx,
-            );\n",
+            );",
             witness = collection.witness_name(),
         )
     }
