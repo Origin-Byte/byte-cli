@@ -79,7 +79,7 @@ impl RoyaltyPolicy {
     pub fn add_beneficiary_vecs(
         &mut self,
         beneficiaries_vec: &Vec<Address>,
-        shares_vec: &Vec<u64>,
+        shares_vec: &[u64],
     ) {
         let push_beneficiary =
             |beneficiaries_vec: &Vec<Address>, shares: &mut BTreeSet<Share>| {
@@ -138,7 +138,7 @@ impl RoyaltyPolicy {
                 })
                 .for_each(drop);
 
-            vecmap.push_str("\n");
+            vecmap.push('\n');
 
             vecmap
         };

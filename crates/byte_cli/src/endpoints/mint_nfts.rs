@@ -18,8 +18,7 @@ pub async fn mint_nfts(
     // mut warehouse_id: Option<String>,
     state: CollectionState,
 ) -> Result<CollectionState> {
-    let contract_id =
-        Arc::new(state.contract.as_ref().unwrap().clone().to_string());
+    let contract_id = Arc::new(state.contract.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let wallet_ctx = Arc::new(get_context().await.unwrap());
@@ -116,8 +115,7 @@ pub async fn parallel_mint_nfts(
     // mut warehouse_id: Option<String>,
     state: CollectionState,
 ) -> Result<CollectionState> {
-    let contract_id =
-        Arc::new(state.contract.as_ref().unwrap().clone().to_string());
+    let contract_id = Arc::new(state.contract.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let client = Arc::new(get_client().await.unwrap());
@@ -201,7 +199,7 @@ pub async fn parallel_mint_nfts(
     // }
     let split = 100;
 
-    coin::split(None, split, 500000000 as u64).await?;
+    coin::split(None, split, 500000000_u64).await?;
 
     let (_, mut coins_to_merge) =
         coin::get_coin_separated(&client, active_address).await?;
@@ -251,7 +249,7 @@ pub async fn parallel_mint_nfts(
     let ten_millis = time::Duration::from_millis(1_000);
     thread::sleep(ten_millis);
 
-    coin::combine(500000000 as u64).await?;
+    coin::combine(500000000_u64).await?;
 
     println!(
         "{} Minting 100,000 NFTs on-chain",

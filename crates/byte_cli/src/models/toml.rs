@@ -2,19 +2,17 @@ use anyhow::anyhow;
 use convert_case::{Case, Casing};
 use gutenberg::models::Address;
 use serde::{
-    de::{self, MapAccess, Unexpected, Visitor},
+    de::{self, Unexpected, Visitor},
     Deserialize, Deserializer,
 };
 use std::{
     cmp::Ordering,
     collections::{BTreeMap, HashMap},
-    ffi::OsStr,
     fmt,
     marker::PhantomData,
-    process::{Command, Stdio},
 };
 
-use crate::{cli::Cli, consts::OB_PACKAGES, err::CliError, io::LocalWrite};
+use crate::{consts::OB_PACKAGES, err::CliError};
 
 use super::dependencies::{Contract, ContractRef, PackageMap};
 
@@ -88,13 +86,9 @@ impl MoveToml {
             .dependencies
             .iter()
             .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).expect(
-                    format!(
-                        "Could not find Package Name {} in PackageMap",
-                        name,
-                    )
-                    .as_str(),
-                );
+                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
+                    panic!("Could not find Package Name {} in PackageMap", name)
+                });
 
                 get_object_id_from_rev(dep_pack, &specs.rev)
             })
@@ -111,15 +105,11 @@ impl MoveToml {
             .dependencies
             .iter()
             .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).expect(
-                    format!(
-                        "Could not find Package Name {} in PackageMap",
-                        name,
-                    )
-                    .as_str(),
-                );
+                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
+                    panic!("Could not find Package Name {} in PackageMap", name)
+                });
 
-                get_contract_ref(&specs, dep_pack)
+                get_contract_ref(specs, dep_pack)
             })
             .collect::<Vec<ContractRef>>();
 
@@ -134,15 +124,11 @@ impl MoveToml {
             .dependencies
             .iter()
             .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).expect(
-                    format!(
-                        "Could not find Package Name {} in PackageMap",
-                        name,
-                    )
-                    .as_str(),
-                );
+                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
+                    panic!("Could not find Package Name {} in PackageMap", name)
+                });
 
-                get_contract(&specs, dep_pack)
+                get_contract(specs, dep_pack)
             })
             .collect::<Vec<&'a Contract>>();
 
@@ -170,7 +156,7 @@ impl MoveToml {
                     })
                     .unwrap();
 
-                get_contract(&specs, dep_pack)
+                get_contract(specs, dep_pack)
             })
             .collect::<Vec<&'a Contract>>();
 
@@ -185,7 +171,7 @@ pub fn get_contract_from_rev<'a>(
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
-        .expect(format!("Could not find rev {} in version map", rev).as_str())
+        .unwrap_or_else(|| panic!("Could not find rev {} in version map", rev))
         .1
 }
 
@@ -196,7 +182,7 @@ pub fn get_version_and_contract_from_rev<'a>(
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
-        .expect(format!("Could not find rev {} in version map", rev).as_str())
+        .unwrap_or_else(|| panic!("Could not find rev {} in version map", rev))
 }
 
 pub fn get_object_id_from_rev<'a>(
@@ -233,7 +219,7 @@ pub fn get_contract<'a>(
 }
 
 pub fn get_dependencies_to_update<'a>(
-    deps: &'a Vec<&'a Contract>,
+    deps: &'a [&'a Contract],
     package_map: &'a PackageMap,
 ) -> Vec<&'a Contract> {
     let mut to_update: Vec<&'a Contract> = vec![];
@@ -251,13 +237,12 @@ pub fn get_updated_dependency<'a>(
     dep: &'a Contract,
     package_map: &'a PackageMap,
 ) -> Option<&'a Contract> {
-    let versions = package_map.0.get(&dep.package.name).expect(
-        format!(
+    let versions = package_map.0.get(&dep.package.name).unwrap_or_else(|| {
+        panic!(
             "Could not find Package Name {} in PackageMap",
             &dep.package.name
         )
-        .as_str(),
-    );
+    });
 
     let latest_version = versions
         .keys()
@@ -268,9 +253,9 @@ pub fn get_updated_dependency<'a>(
     let latest = versions.get(latest_version).unwrap();
 
     if dep.package.version == latest.package.version {
-        return None;
+        None
     } else {
-        return Some(latest);
+        Some(latest)
     }
 }
 
@@ -305,8 +290,7 @@ impl VersionVisitor {
     }
 }
 
-// TODO: Ord and PartialOrd may need specific implementation
-#[derive(Debug, Ord, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
@@ -314,8 +298,8 @@ pub struct Version {
 }
 
 impl Version {
-    pub fn from_string(string: &String) -> Result<Self, CliError> {
-        let version: Vec<&str> = string.split(".").collect();
+    pub fn from_string(string: &str) -> Result<Self, CliError> {
+        let version: Vec<&str> = string.split('.').collect();
 
         if version.len() != 3 {
             return Err(CliError::from(anyhow!(
@@ -350,7 +334,7 @@ impl<'de> Visitor<'de> for VersionVisitor {
     where
         E: de::Error,
     {
-        let version: Vec<&str> = s.split(".").collect();
+        let version: Vec<&str> = s.split('.').collect();
 
         if version.len() != 3 {
             return Err(de::Error::invalid_value(Unexpected::Str(s), &self));
@@ -381,6 +365,22 @@ impl<'de> Deserialize<'de> for Version {
         // Instantiate VersionVisitor and ask the Deserializer to drive
         // it over the input data, resulting in an instance of Version.
         deserializer.deserialize_str(VersionVisitor::new())
+    }
+}
+
+impl Ord for Version {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let major_ord = self.major.cmp(&other.major);
+        if major_ord != Ordering::Equal {
+            return major_ord;
+        }
+
+        let minor_ord = self.minor.cmp(&other.minor);
+        if minor_ord != Ordering::Equal {
+            return minor_ord;
+        }
+
+        self.patch.cmp(&other.patch)
     }
 }
 

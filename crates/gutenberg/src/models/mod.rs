@@ -4,7 +4,7 @@ use std::{
 };
 
 use serde::{
-    de::{self, Unexpected, Visitor},
+    de::{self, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
@@ -87,7 +87,7 @@ impl<'de> Visitor<'de> for AddressVisitor {
         E: de::Error,
     {
         let sanitized = Address::validate_address(s.to_string())
-            .expect(format!("Failed to parse address {}", s,).as_str());
+            .unwrap_or_else(|_| panic!("Failed to parse address {}", s));
 
         Ok(Address(sanitized))
     }

@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use console::style;
 use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::mpsc::Sender;
 use sui_sdk::wallet_context::WalletContext;
 use terminal_link::Link;
@@ -33,7 +33,7 @@ use crate::{
 
 pub async fn publish_contract(
     wallet_ctx: &WalletContext,
-    package_dir: &PathBuf,
+    package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<CollectionState, RustSdkError> {
@@ -122,9 +122,7 @@ pub async fn publish_contract(
     // Creating a channel to send message with package ID
     let (sender, receiver) = channel();
 
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     assert!(effects.status.is_ok());
 
@@ -192,17 +190,17 @@ pub async fn publish_contract(
 
 fn get_dependencies(
     build_config: &MoveBuildConfig,
-    package_path: &PathBuf,
+    package_path: &Path,
 ) -> Result<Vec<ObjectID>, RustSdkError> {
     let cur_dir = env::current_dir()
         .map_err(|_| anyhow!(r#"This error should be unreachable"#))?;
 
     let build_config = resolve_lock_file_path(
         build_config.clone(),
-        Some(package_path.clone()),
+        Some(package_path.to_path_buf()),
     )?;
 
-    env::set_current_dir(&cur_dir)
+    env::set_current_dir(cur_dir)
         .map_err(|_| anyhow!(r#"This error should be unreachable"#))?;
 
     let compiled_package = BuildConfig {
@@ -210,7 +208,7 @@ fn get_dependencies(
         run_bytecode_verifier: true,
         print_diags_to_stderr: true,
     }
-    .build(package_path.clone())?;
+    .build(package_path.to_path_buf())?;
 
     let deps = compiled_package
         .dependency_ids

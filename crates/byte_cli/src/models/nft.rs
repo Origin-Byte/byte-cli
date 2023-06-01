@@ -9,8 +9,7 @@ use gutenberg::{
     schema::SchemaBuilder,
 };
 
-const BURN_PERMISSIONS: [&'static str; 3] =
-    ["None", "Permissioned", "Permissionless"];
+const BURN_PERMISSIONS: [&str; 3] = ["None", "Permissioned", "Permissionless"];
 
 impl FromPrompt for NftData {
     fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
@@ -38,7 +37,7 @@ impl FromPrompt for NftData {
         let nft = NftData::new(
             type_name,
             Burn::from_str(BURN_PERMISSIONS[burn_permission_idx]).unwrap(),
-            dynamic.into(),
+            dynamic,
         );
 
         Ok(nft)

@@ -167,7 +167,7 @@ async fn run() -> Result<()> {
 
             let schema = deploy_contract::parse_config(file_path.as_path())?;
 
-            let mut contract_dir = project_path.clone();
+            let mut contract_dir = project_path;
             contract_dir.push("contract/");
 
             deploy_contract::generate_contract(
@@ -191,7 +191,7 @@ async fn run() -> Result<()> {
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
 
-            if skip_generation == false {
+            if !skip_generation {
                 deploy_contract::generate_contract(
                     &schema,
                     contract_dir.as_path(),
@@ -311,13 +311,11 @@ async fn run() -> Result<()> {
                 PathBuf::from(Path::new(project_dir.as_str()));
 
             build_info_path.push("contract/build/");
-            let paths = fs::read_dir(&build_info_path).unwrap();
+            let mut paths = fs::read_dir(&build_info_path).unwrap();
 
-            for path in paths {
+            if let Some(path) = paths.next() {
                 build_info_path = path?.path();
                 build_info_path.push("BuildInfo.yaml");
-
-                break;
             }
 
             let mut info = BuildInfo::read_yaml(&build_info_path)?;

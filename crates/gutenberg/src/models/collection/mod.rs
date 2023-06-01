@@ -164,7 +164,7 @@ impl CollectionData {
         // Guarantees that creator addresses are valid
         let creator_addresses = creators
             .into_iter()
-            .map(|creator| Address::new(creator))
+            .map(Address::new)
             .collect::<Result<Vec<Address>, GutenError>>()?;
 
         // Validate that creator strings are addresses

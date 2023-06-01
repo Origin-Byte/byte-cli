@@ -35,7 +35,7 @@ impl FromPrompt for Settings {
 
         let composability =
             if features.contains(&String::from("Tradeable Traits")) {
-                Some(Composability::from_prompt(&schema)?)
+                Some(Composability::from_prompt(schema)?)
             } else {
                 None
             };
@@ -82,9 +82,7 @@ impl FromPrompt for Composability {
 
         for i in 0..traits_num {
             let prompt = if i == 0 {
-                format!(
-                    "Write the name of your core trait/type (This is the trait that glue all other traits together - e.g. Avatar): "
-                )
+                String::from("Write the name of your core trait/type (This is the trait that glue all other traits together - e.g. Avatar): ")
             } else {
                 format!("Write the name of the trait/type no. {} (Please add traits in descending rendering order - e.g. Hat trait should be the Hair trait):", i + 1)
             };
@@ -143,17 +141,8 @@ impl FromPrompt for MintPolicies {
         let mint_options = map_indices(mint_options_indices, &MINTING_OPTIONS);
 
         let launchpad =
-            if mint_options.contains(&String::from("OriginByte Launchpad")) {
-                true
-            } else {
-                false
-            };
-
-        let airdrop = if mint_options.contains(&String::from("NFT Airdrop")) {
-            true
-        } else {
-            false
-        };
+            mint_options.contains(&String::from("OriginByte Launchpad"));
+        let airdrop = mint_options.contains(&String::from("NFT Airdrop"));
 
         Ok(MintPolicies::new(limit, launchpad, airdrop))
     }

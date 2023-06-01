@@ -1,16 +1,6 @@
-use anyhow::anyhow;
 use gutenberg::models::Address;
-use serde::{
-    de::{self, Unexpected, Visitor},
-    Deserialize, Deserializer,
-};
-use std::{
-    collections::{BTreeMap, HashMap},
-    fmt,
-    marker::PhantomData,
-};
-
-use crate::err::CliError;
+use serde::Deserialize;
+use std::collections::{BTreeMap, HashMap};
 
 use super::toml::{Dependency, Package, Version};
 

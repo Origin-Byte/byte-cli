@@ -108,7 +108,7 @@ impl Schema {
         let orderbook_fns = self.settings.orderbook.write_entry_fns(type_name);
 
         code.push_str(orderbook_fns.as_str());
-        code.push_str(&&self.nft.write_dynamic_fns());
+        code.push_str(&self.nft.write_dynamic_fns());
         code.push_str(&self.nft.write_burn_fns());
 
         code
