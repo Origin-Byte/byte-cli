@@ -3,7 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::models::project::Project;
+use crate::models::{
+    dependencies::PackageMap,
+    project::Project,
+    toml::{BuildInfo, MoveToml},
+};
 use crate::prelude::CliError;
 use anyhow::anyhow;
 use gutenberg::schema::{Schema, SchemaBuilder};
@@ -16,11 +20,15 @@ impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for CollectionState {}
+impl LocalRead for MoveToml {}
+impl LocalRead for PackageMap {}
+impl LocalRead for BuildInfo {}
 impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
 impl LocalWrite for CollectionState {}
 impl LocalWrite for SchemaBuilder {}
+// impl LocalWrite for MoveToml {}
 
 impl LocalRead for SchemaBuilder {
     fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
@@ -36,12 +44,32 @@ impl LocalRead for SchemaBuilder {
 
         Ok(schema)
     }
+
+    fn read_yaml(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let f = File::open(path_buf);
+
+        let schema = match f {
+            Ok(file) => match serde_yaml::from_reader(file) {
+                Ok(schema) => Ok(schema),
+                Err(err) => Err(err),
+            },
+            Err(_) => Ok(SchemaBuilder::default()),
+        }?;
+
+        Ok(schema)
+    }
 }
 
 pub trait LocalRead: DeserializeOwned {
     fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
         let file = File::open(path_buf)?;
         let obj = serde_json::from_reader(file)?;
+
+        Ok(obj)
+    }
+    fn read_yaml(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let file = File::open(path_buf)?;
+        let obj = serde_yaml::from_reader(file)?;
 
         Ok(obj)
     }

@@ -1,6 +1,12 @@
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    marker::PhantomData,
+};
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, Unexpected, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 
 use crate::err::{self, GutenError};
 
@@ -11,21 +17,17 @@ pub mod settings;
 
 // TODO: Custom deserialize that validates address
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Default,
-    PartialEq,
-    PartialOrd,
-    Eq,
-    Ord,
-    Clone,
+    Debug, Serialize, Default, PartialEq, PartialOrd, Eq, Ord, Clone, Hash,
 )]
 pub struct Address(String);
 
 impl Address {
     pub fn new(address: String) -> Result<Self, GutenError> {
         Ok(Address(Address::validate_address(address)?))
+    }
+
+    pub fn as_string(&self) -> &String {
+        &self.0
     }
 
     fn validate_address(input: String) -> Result<String, GutenError> {
@@ -58,5 +60,47 @@ impl Address {
 impl Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.0)
+    }
+}
+
+struct AddressVisitor {
+    marker: PhantomData<fn() -> Address>,
+}
+
+impl AddressVisitor {
+    fn new() -> Self {
+        AddressVisitor {
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'de> Visitor<'de> for AddressVisitor {
+    type Value = Address;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> fmt::Result {
+        write!(formatter, "The address provided is not valid.")
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let sanitized = Address::validate_address(s.to_string())
+            .expect(format!("Failed to parse address {}", s,).as_str());
+
+        Ok(Address(sanitized))
+    }
+}
+
+// This is the trait that informs Serde how to deserialize Version.
+impl<'de> Deserialize<'de> for Address {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Instantiate VersionVisitor and ask the Deserializer to drive
+        // it over the input data, resulting in an instance of Version.
+        deserializer.deserialize_str(AddressVisitor::new())
     }
 }

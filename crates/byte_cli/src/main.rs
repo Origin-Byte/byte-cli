@@ -13,7 +13,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{models::toml::MoveToml, prelude::*};
+use crate::{
+    models::{
+        dependencies::PackageMap,
+        toml::{BuildInfo, MoveToml},
+    },
+    prelude::*,
+};
 use byte_cli::consts::{BPS_100_PERCENT, CONFIG_FILENAME, PROJECT_FILENAME};
 use convert_case::{Case, Casing};
 use endpoints::*;
@@ -284,13 +290,48 @@ async fn run() -> Result<()> {
         Commands::CheckDependencies { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("contract/Move.toml");
+            let map_path = PathBuf::from(Path::new("versions/versions.json"));
 
             let toml_string: String = fs::read_to_string(file_path)?.parse()?;
 
             let move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
 
-            println!("Move TOML: {:?}", move_toml);
+            // println!("Move TOML: {:?}", move_toml);
+
+            // println!("************************************");
+
+            let package_map = PackageMap::read(&map_path)?;
+            // println!("Protocol MAP: {:?}", package_map);
+
+            println!("************************************");
+
+            let dependencies =
+                move_toml.get_dependency_ids_and_versions(&package_map);
+            println!("Dependencies: {:?}", dependencies);
+
+            println!("************************************");
+
+            // Note: This code block assumes that there is only one folder
+            // in the build folder, which is the case.
+            let mut build_info_path =
+                PathBuf::from(Path::new(project_dir.as_str()));
+
+            build_info_path.push("contract/build/");
+            let paths = fs::read_dir(&build_info_path).unwrap();
+
+            for path in paths {
+                build_info_path = path?.path();
+                build_info_path.push("BuildInfo.yaml");
+
+                break;
+            }
+
+            let mut info = BuildInfo::read_yaml(&build_info_path)?;
+
+            info.packages.filter_for_originbyte();
+            info.packages.make_name_canonical();
+            println!("Build Info: {:?}", info);
         }
     }
 

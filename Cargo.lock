@@ -1944,6 +1944,7 @@ dependencies = [
  "gutenberg",
  "hex",
  "mime_guess",
+ "move-package",
  "pretty_assertions",
  "rust-sdk",
  "serde 1.0.163",

@@ -7,12 +7,12 @@ use crate::{
 };
 
 pub mod collection;
+pub mod dependencies;
 pub mod nft;
 pub mod project;
 pub mod royalties;
 pub mod settings;
 pub mod toml;
-pub mod version;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
