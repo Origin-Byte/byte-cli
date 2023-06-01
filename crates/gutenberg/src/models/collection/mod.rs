@@ -4,27 +4,29 @@
 //! by the caller.
 pub mod tags;
 
+use serde::{Deserialize, Serialize};
+
+use crate::{contract::modules::DisplayInfoMod, err::GutenError};
+
 use self::tags::Tags;
 use super::Address;
-use crate::{contract::modules::DisplayInfoMod, err::GutenError};
-use serde::{Deserialize, Serialize};
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    name: String,
+    pub name: String,
     /// The description of the collection
-    description: Option<String>,
+    pub description: Option<String>,
     /// The symbol/ticker of the collection
-    symbol: Option<String>,
+    pub symbol: Option<String>,
     /// The URL of the collection website
-    url: Option<String>,
+    pub url: Option<String>,
     #[serde(default)]
     /// The addresses of creators
-    creators: Vec<Address>,
-    tags: Option<Tags>,
+    pub creators: Vec<Address>,
+    pub tags: Option<Tags>,
 }
 
 impl CollectionData {

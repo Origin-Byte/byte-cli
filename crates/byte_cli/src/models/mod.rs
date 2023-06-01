@@ -8,9 +8,9 @@ use crate::{
 
 pub mod collection;
 pub mod nft;
+pub mod project;
 pub mod royalties;
 pub mod settings;
-pub mod sui_output;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {

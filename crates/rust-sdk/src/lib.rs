@@ -1,3 +1,4 @@
+pub mod coin;
 pub mod collection_state;
 pub mod consts;
 pub mod err;

@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Result};
 use byte_cli::consts::{
-    ORIGINMATE_PACKAGE_COMMIT, PROTOCOL_PACKAGE_COMMIT, SUI_PACKAGE_COMMIT,
+    ORIGINMATE_PACKAGE_COMMIT_TEST, PROTOCOL_PACKAGE_COMMIT_TEST,
+    SUI_PACKAGE_COMMIT_TEST,
 };
 use console::style;
 use gutenberg::{package, Schema};
+use rust_sdk::coin;
 use serde::Serialize;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -22,6 +24,19 @@ Call `byte_cli init-collection-config` to initialize the configuration file."#,
 
     serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
 Call `byte_cli init-collection-config to initialize the configuration file again."#, config_file.display()))
+}
+
+pub fn parse_state(config_file: &Path) -> Result<CollectionState> {
+    let file = File::open(config_file).map_err(|err| {
+        anyhow!(
+            r#"Could not find state file "{}": {err}
+Call `byte_cli init-collection-config` to initialize the configuration file."#,
+            config_file.display()
+        )
+    })?;
+
+    serde_json::from_reader::<File, CollectionState>(file)
+        .map_err(|err| anyhow!(r#"ERR TODO: {err}."#))
 }
 
 pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
@@ -57,24 +72,42 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
                 "Sui".to_string(),
                 package::Dependency::new(
                     "https://github.com/MystenLabs/sui.git".to_string(),
-                    SUI_PACKAGE_COMMIT.to_string(),
+                    SUI_PACKAGE_COMMIT_TEST.to_string(),
                 )
-                .subdir("crates/sui-framework".to_string()),
+                .subdir(
+                    "crates/sui-framework/packages/sui-framework".to_string(),
+                ),
             ),
             (
                 "Originmate".to_string(),
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/originmate.git".to_string(),
-                    ORIGINMATE_PACKAGE_COMMIT.to_string(),
+                    ORIGINMATE_PACKAGE_COMMIT_TEST.to_string(),
                 ),
             ),
             (
                 "NftProtocol".to_string(),
                 package::Dependency::new(
                     "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    PROTOCOL_PACKAGE_COMMIT.to_string(),
+                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
                 )
                 .subdir("contracts/nft_protocol".to_string()),
+            ),
+            (
+                "Launchpad".to_string(),
+                package::Dependency::new(
+                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
+                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
+                )
+                .subdir("contracts/launchpad".to_string()),
+            ),
+            (
+                "LiquidityLayerV1".to_string(),
+                package::Dependency::new(
+                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
+                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
+                )
+                .subdir("contracts/liquidity_layer_v1".to_string()),
             ),
         ]),
         addresses: package::Addresses::new([(
@@ -121,8 +154,18 @@ pub async fn publish_contract(
     gas_budget: usize,
     contract_dir: &PathBuf,
 ) -> Result<CollectionState> {
-    let collection_state =
-        publish::publish_contract(contract_dir, gas_budget as u64).await?;
+    let wallet_ctx = rust_sdk::utils::get_context().await?;
+
+    let gas_coin =
+        rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
+
+    let collection_state = publish::publish_contract(
+        &wallet_ctx,
+        contract_dir,
+        gas_coin,
+        gas_budget as u64,
+    )
+    .await?;
 
     Ok(collection_state)
 }

@@ -21,6 +21,11 @@ pub enum ObjectType {
     Collection(ObjectID),
     MintCap(ObjectID),
     Warehouse(ObjectID),
+    BpsRoyaltyStrategy(ObjectID),
+    PolicyCap(ObjectID),
+    Policy(ObjectID),
+    TransferPolicy(ObjectID),
+    TransferPolicyCap(ObjectID),
 }
 
 impl CollectionState {

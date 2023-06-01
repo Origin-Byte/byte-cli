@@ -3,124 +3,66 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::models::project::Project;
 use crate::prelude::CliError;
 use anyhow::anyhow;
 use gutenberg::schema::{Schema, SchemaBuilder};
 
 use rust_sdk::collection_state::CollectionState;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use uploader::writer::Storage;
 
-pub fn try_read_schema(path_buf: &PathBuf) -> Result<SchemaBuilder, CliError> {
-    let f = File::open(path_buf);
+impl LocalRead for Schema {}
+impl LocalRead for Project {}
+impl LocalRead for Storage {}
+impl LocalRead for CollectionState {}
+impl LocalWrite for Schema {}
+impl LocalWrite for Project {}
+impl LocalWrite for Storage {}
+impl LocalWrite for CollectionState {}
+impl LocalWrite for SchemaBuilder {}
 
-    let schema = match f {
-        Ok(file) => match serde_json::from_reader(file) {
-            Ok(schema) => Ok(schema),
-            Err(err) => Err(err),
-        },
-        Err(_) => Ok(SchemaBuilder::default()),
-    }?;
+impl LocalRead for SchemaBuilder {
+    fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let f = File::open(path_buf);
 
-    Ok(schema)
+        let schema = match f {
+            Ok(file) => match serde_json::from_reader(file) {
+                Ok(schema) => Ok(schema),
+                Err(err) => Err(err),
+            },
+            Err(_) => Ok(SchemaBuilder::default()),
+        }?;
+
+        Ok(schema)
+    }
 }
 
-pub fn write_schema(
-    schema: &SchemaBuilder,
-    output_file: &Path,
-) -> Result<(), anyhow::Error> {
-    let file = File::create(output_file).map_err(|err| {
-        anyhow!(
-            r#"Could not create configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })?;
+pub trait LocalRead: DeserializeOwned {
+    fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let file = File::open(path_buf)?;
+        let obj = serde_json::from_reader(file)?;
 
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
-    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
-    schema.serialize(ser).map_err(|err| {
-        anyhow!(
-            r#"Could not write configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })
+        Ok(obj)
+    }
 }
 
-pub fn write_schema_(
-    schema: &Schema,
-    output_file: &Path,
-) -> Result<(), anyhow::Error> {
-    let file = File::create(output_file).map_err(|err| {
-        anyhow!(
-            r#"Could not create configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })?;
+pub trait LocalWrite: Serialize {
+    fn write(&self, output_file: &Path) -> Result<(), anyhow::Error> {
+        let file = File::create(output_file).map_err(|err| {
+            anyhow!(
+                r#"Could not create file "{}": {err}"#,
+                output_file.display()
+            )
+        })?;
 
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
-    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
-    schema.serialize(ser).map_err(|err| {
-        anyhow!(
-            r#"Could not write configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })
-}
-
-pub fn read_uploader(path_buf: &PathBuf) -> Result<Storage, CliError> {
-    let file = File::open(path_buf)?;
-    let uploader = serde_json::from_reader(file)?;
-
-    Ok(uploader)
-}
-
-pub fn write_uploader(
-    uploader: &Storage,
-    output_file: &Path,
-) -> Result<(), anyhow::Error> {
-    let file = File::create(output_file).map_err(|err| {
-        anyhow!(
-            r#"Could not create configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })?;
-
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
-    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
-    uploader.serialize(ser).map_err(|err| {
-        anyhow!(
-            r#"Could not write configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })
-}
-
-// TODO: Reconfigure
-pub fn write_collection_state(
-    state: &CollectionState,
-    output_file: &Path,
-) -> Result<(), anyhow::Error> {
-    let file = File::create(output_file).map_err(|err| {
-        anyhow!(
-            r#"Could not create collection state file "{}": {err}"#,
-            output_file.display()
-        )
-    })?;
-
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
-    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
-    state.serialize(ser).map_err(|err| {
-        anyhow!(
-            r#"Could not write configuration file "{}": {err}"#,
-            output_file.display()
-        )
-    })
-}
-
-pub fn get_path_buf(path: &str) -> PathBuf {
-    let mut path_buf = PathBuf::from(path);
-    path_buf.push("config");
-    path_buf.set_extension("json");
-
-    path_buf
+        let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
+        let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
+        self.serialize(ser).map_err(|err| {
+            anyhow!(
+                r#"Could not write file "{}": {err}"#,
+                output_file.display()
+            )
+        })
+    }
 }

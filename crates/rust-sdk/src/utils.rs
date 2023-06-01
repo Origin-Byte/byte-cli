@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Result};
 use sui_config::{sui_config_dir, SUI_CLIENT_CONFIG};
+use sui_json_rpc_types::Coin;
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
 use sui_sdk::{SuiClient, SuiClientBuilder};
-use sui_types::base_types::SuiAddress;
+use sui_types::base_types::{ObjectRef, SuiAddress};
 
 use crate::err::RustSdkError;
 
@@ -19,7 +20,8 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
 pub async fn get_client() -> Result<SuiClient, RustSdkError> {
     let client_builder = SuiClientBuilder::default();
     let client = client_builder
-        .build("https://fullnode.devnet.sui.io:443")
+        // TODO: Should be according to active env
+        .build("https://fullnode.testnet.sui.io:443")
         .await?;
 
     Ok(client)
@@ -41,6 +43,10 @@ pub fn get_active_address(keystore: &Keystore) -> Result<SuiAddress> {
     keystore.addresses().last().cloned().ok_or_else(|| {
         anyhow!("Could not retrieve active address from keystore")
     })
+}
+
+pub fn get_coin_ref(coin: &Coin) -> ObjectRef {
+    (coin.coin_object_id, coin.version, coin.digest)
 }
 
 pub struct MoveType {
