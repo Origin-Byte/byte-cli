@@ -1945,6 +1945,7 @@ dependencies = [
  "hex",
  "mime_guess",
  "move-package",
+ "package-manager",
  "pretty_assertions",
  "rust-sdk",
  "serde 1.0.163",
@@ -7434,6 +7435,18 @@ dependencies = [
  "elliptic-curve 0.13.4",
  "primeorder",
  "sha2 0.10.6",
+]
+
+[[package]]
+name = "package-manager"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "convert_case 0.6.0",
+ "gutenberg",
+ "serde 1.0.163",
+ "serde_json",
+ "serde_yaml 0.9.21",
 ]
 
 [[package]]

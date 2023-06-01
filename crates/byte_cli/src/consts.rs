@@ -55,18 +55,3 @@ pub const ORIGINMATE_PACKAGE_COMMIT_TEST: &str =
     "41d552066f55fb22609af24674ee06db842b8c52";
 pub const PROTOCOL_PACKAGE_COMMIT_TEST: &str =
     "b3c85b735f047a17298d2640357bc75a67538890";
-
-pub const OB_PACKAGES: [&str; 12] = [
-    "Pseudorandom",
-    "Utils",
-    "Critbit",
-    "Permissions",
-    "Request",
-    "Kiosk",
-    "Allowlist",
-    "Authlist",
-    "Launchpad",
-    "LiquidityLayerV1",
-    "LiquidityLayer",
-    "NftProtocol",
-];

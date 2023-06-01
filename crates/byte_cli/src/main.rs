@@ -13,13 +13,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    models::{
-        dependencies::PackageMap,
-        toml::{BuildInfo, MoveToml},
-    },
-    prelude::*,
-};
+use crate::prelude::*;
 use byte_cli::consts::{BPS_100_PERCENT, CONFIG_FILENAME, PROJECT_FILENAME};
 use convert_case::{Case, Casing};
 use endpoints::*;
@@ -43,6 +37,11 @@ use gutenberg::{
 };
 use io::{LocalRead, LocalWrite};
 use models::project::Project;
+use package_manager::{
+    info::BuildInfo,
+    move_lib::PackageMap,
+    toml::{self as move_toml, MoveToml},
+};
 use rust_sdk::coin;
 use uploader::writer::Storage;
 
@@ -332,7 +331,7 @@ async fn run() -> Result<()> {
 
             println!("************************************");
 
-            let to_update = models::toml::get_dependencies_to_update(
+            let to_update = move_toml::get_dependencies_to_update(
                 &dependencies,
                 &package_map,
             );

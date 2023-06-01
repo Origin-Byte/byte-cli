@@ -3,15 +3,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::models::{
-    dependencies::PackageMap,
-    project::Project,
-    toml::{BuildInfo, MoveToml},
-};
+use crate::models::project::Project;
 use crate::prelude::CliError;
 use anyhow::anyhow;
 use gutenberg::schema::{Schema, SchemaBuilder};
 
+use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
 use rust_sdk::collection_state::CollectionState;
 use serde::{de::DeserializeOwned, Serialize};
 use uploader::writer::Storage;
