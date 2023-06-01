@@ -44,7 +44,6 @@ use gutenberg::{
 use io::{LocalRead, LocalWrite};
 use models::project::Project;
 use rust_sdk::coin;
-use toml::value::Table;
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -306,12 +305,6 @@ async fn run() -> Result<()> {
 
             println!("************************************");
 
-            let dependencies =
-                move_toml.get_dependency_ids_and_versions(&package_map);
-            println!("Dependencies: {:?}", dependencies);
-
-            println!("************************************");
-
             // Note: This code block assumes that there is only one folder
             // in the build folder, which is the case.
             let mut build_info_path =
@@ -332,6 +325,21 @@ async fn run() -> Result<()> {
             info.packages.filter_for_originbyte();
             info.packages.make_name_canonical();
             println!("Build Info: {:?}", info);
+
+            println!("************************************");
+
+            let dependencies =
+                move_toml.get_contracts_with_fall_back(&package_map, &info);
+            println!("Dependencies: {:?}", dependencies);
+
+            println!("************************************");
+
+            let to_update = models::toml::get_dependencies_to_update(
+                &dependencies,
+                &package_map,
+            );
+
+            println!("To UPDATE: {:?}", to_update);
         }
     }
 

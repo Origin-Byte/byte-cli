@@ -17,19 +17,6 @@ use super::toml::{Dependency, Package, Version};
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageMap(pub BTreeMap<String, BTreeMap<Version, Contract>>);
-// pub nft_protocol: BTreeMap<Version, Contract>,
-// pub liquidity_layer_v1: BTreeMap<Version, Contract>,
-// pub launchpad: BTreeMap<Version, Contract>,
-// pub liquidity_layer: BTreeMap<Version, Contract>,
-// pub originmate: BTreeMap<Version, Contract>,
-// pub authlist: BTreeMap<Version, Contract>,
-// pub allowlist: BTreeMap<Version, Contract>,
-// pub kiosk: BTreeMap<Version, Contract>,
-// pub request: BTreeMap<Version, Contract>,
-// pub permissions: BTreeMap<Version, Contract>,
-// pub critbit: BTreeMap<Version, Contract>,
-// pub utils: BTreeMap<Version, Contract>,
-// pub pseudorandom: BTreeMap<Version, Contract>,
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

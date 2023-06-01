@@ -6,6 +6,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 use std::{
+    cmp::Ordering,
     collections::{BTreeMap, HashMap},
     ffi::OsStr,
     fmt,
@@ -15,7 +16,7 @@ use std::{
 
 use crate::{cli::Cli, consts::OB_PACKAGES, err::CliError, io::LocalWrite};
 
-use super::dependencies::{Contract, PackageMap};
+use super::dependencies::{Contract, ContractRef, PackageMap};
 
 #[derive(Deserialize, Debug)]
 pub struct BuildInfo {
@@ -31,6 +32,7 @@ pub struct CompiledPackageInfo {
 }
 
 impl CompiledPackageInfo {
+    // Ideally this function should run at deserialization time
     pub fn filter_for_originbyte(&mut self) {
         self.ob_packages.retain(|name, _| {
             // Removes `ob_` prefix from the package names
@@ -40,6 +42,8 @@ impl CompiledPackageInfo {
             OB_PACKAGES.contains(&name.as_str())
         })
     }
+
+    // Ideally this function should run at deserialization time
     pub fn make_name_canonical(&mut self) {
         let canonical = self
             .ob_packages
@@ -68,7 +72,7 @@ pub struct Package {
     pub published_at: Option<Address>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Dependency {
     pub git: String,
     pub subdir: Option<String>,
@@ -99,10 +103,10 @@ impl MoveToml {
         dep_ids
     }
 
-    pub fn get_dependency_ids_and_versions<'a>(
+    pub fn get_contract_refs<'a>(
         &'a self,
         package_map: &'a PackageMap,
-    ) -> Vec<(&'a Address, Version)> {
+    ) -> Vec<ContractRef> {
         let dep_ids = self
             .dependencies
             .iter()
@@ -115,9 +119,60 @@ impl MoveToml {
                     .as_str(),
                 );
 
-                get_object_id_and_version_from_rev(dep_pack, &specs.rev)
+                get_contract_ref(&specs, dep_pack)
             })
-            .collect::<Vec<(&'a Address, Version)>>();
+            .collect::<Vec<ContractRef>>();
+
+        dep_ids
+    }
+
+    pub fn get_contracts<'a>(
+        &'a self,
+        package_map: &'a PackageMap,
+    ) -> Vec<&'a Contract> {
+        let dep_ids = self
+            .dependencies
+            .iter()
+            .map(|(name, specs)| {
+                let dep_pack = package_map.0.get(name).expect(
+                    format!(
+                        "Could not find Package Name {} in PackageMap",
+                        name,
+                    )
+                    .as_str(),
+                );
+
+                get_contract(&specs, dep_pack)
+            })
+            .collect::<Vec<&'a Contract>>();
+
+        dep_ids
+    }
+
+    pub fn get_contracts_with_fall_back<'a>(
+        &'a self,
+        package_map: &'a PackageMap,
+        fall_back: &'a BuildInfo,
+    ) -> Vec<&'a Contract> {
+        let dep_ids = self
+            .dependencies
+            .iter()
+            .map(|(name, specs)| {
+                let dep_pack = package_map
+                    .0
+                    .get(name)
+                    .ok_or_else(|| {
+                        fall_back
+                            .packages
+                            .ob_packages
+                            .get(name)
+                            .expect("Could not find package ID")
+                    })
+                    .unwrap();
+
+                get_contract(&specs, dep_pack)
+            })
+            .collect::<Vec<&'a Contract>>();
 
         dep_ids
     }
@@ -154,13 +209,69 @@ pub fn get_object_id_from_rev<'a>(
     &contract.contract_ref.object_id
 }
 
-pub fn get_object_id_and_version_from_rev<'a>(
-    versions: &'a BTreeMap<Version, Contract>,
-    rev: &'a String,
-) -> (&'a Address, Version) {
-    let (version, contract) = get_version_and_contract_from_rev(versions, rev);
+pub fn get_contract_ref(
+    dependency: &Dependency,
+    versions: &BTreeMap<Version, Contract>,
+) -> ContractRef {
+    let (_, contract) =
+        get_version_and_contract_from_rev(versions, &dependency.rev);
 
-    (&contract.contract_ref.object_id, *version)
+    ContractRef {
+        path: dependency.clone(),
+        object_id: contract.contract_ref.object_id.clone(),
+    }
+}
+
+pub fn get_contract<'a>(
+    dependency: &'a Dependency,
+    versions: &'a BTreeMap<Version, Contract>,
+) -> &'a Contract {
+    let (_, contract) =
+        get_version_and_contract_from_rev(versions, &dependency.rev);
+
+    contract
+}
+
+pub fn get_dependencies_to_update<'a>(
+    deps: &'a Vec<&'a Contract>,
+    package_map: &'a PackageMap,
+) -> Vec<&'a Contract> {
+    let mut to_update: Vec<&'a Contract> = vec![];
+
+    deps.iter().for_each(|contract| {
+        if let Some(update) = get_updated_dependency(contract, package_map) {
+            to_update.push(update);
+        }
+    });
+
+    to_update
+}
+
+pub fn get_updated_dependency<'a>(
+    dep: &'a Contract,
+    package_map: &'a PackageMap,
+) -> Option<&'a Contract> {
+    let versions = package_map.0.get(&dep.package.name).expect(
+        format!(
+            "Could not find Package Name {} in PackageMap",
+            &dep.package.name
+        )
+        .as_str(),
+    );
+
+    let latest_version = versions
+        .keys()
+        .max()
+        // This error should not occur
+        .expect("Failed while retrieving latest version");
+
+    let latest = versions.get(latest_version).unwrap();
+
+    if dep.package.version == latest.package.version {
+        return None;
+    } else {
+        return Some(latest);
+    }
 }
 
 pub fn get_version_from_object_id(
@@ -195,7 +306,7 @@ impl VersionVisitor {
 }
 
 // TODO: Ord and PartialOrd may need specific implementation
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Ord, Eq, PartialEq, Clone, Copy)]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
@@ -270,5 +381,52 @@ impl<'de> Deserialize<'de> for Version {
         // Instantiate VersionVisitor and ask the Deserializer to drive
         // it over the input data, resulting in an instance of Version.
         deserializer.deserialize_str(VersionVisitor::new())
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let major_ord = self.major.partial_cmp(&other.major);
+        if major_ord.unwrap() != Ordering::Equal {
+            return major_ord;
+        }
+
+        let minor_ord = self.minor.partial_cmp(&other.minor);
+        if minor_ord.unwrap() != Ordering::Equal {
+            return minor_ord;
+        }
+
+        self.patch.partial_cmp(&other.patch)
+    }
+}
+
+#[cfg(test)]
+mod test_version {
+    use super::*;
+    use anyhow::Result;
+
+    #[test]
+    fn test_order() -> Result<()> {
+        let version_a = Version::from_string(&String::from("1.0.1"))?;
+        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        assert!(version_a > version_b);
+
+        let version_a = Version::from_string(&String::from("1.1.0"))?;
+        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        assert!(version_a > version_b);
+
+        let version_a = Version::from_string(&String::from("1.0.0"))?;
+        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        assert!(version_a == version_b);
+
+        let version_a = Version::from_string(&String::from("2.0.0"))?;
+        let version_b = Version::from_string(&String::from("1.5.0"))?;
+        assert!(version_a > version_b);
+
+        let version_a = Version::from_string(&String::from("0.0.30"))?;
+        let version_b = Version::from_string(&String::from("0.5.0"))?;
+        assert!(version_a < version_b);
+
+        Ok(())
     }
 }
