@@ -89,6 +89,9 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         let (withdraw_policy, withdraw_policy_cap) =
             ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+        ob_request::request::enforce_rule_no_state<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>, Witness>(
+            &mut withdraw_policy, &withdraw_policy_cap,
+        );
 
         // Protected orderbook such that trading is not initially possible
         let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<AurahmaPreReveal, sui::sui::SUI>(
@@ -326,6 +329,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
+        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {});
         ob_request::withdraw_request::confirm(withdraw_request, policy);
 
         burn_own_nft(collection, nft);
