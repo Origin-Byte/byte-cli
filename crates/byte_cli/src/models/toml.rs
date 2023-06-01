@@ -107,7 +107,6 @@ impl MoveToml {
             .dependencies
             .iter()
             .map(|(name, specs)| {
-                println!("Crackers! Depend");
                 let dep_pack = package_map.0.get(name).expect(
                     format!(
                         "Could not find Package Name {} in PackageMap",
