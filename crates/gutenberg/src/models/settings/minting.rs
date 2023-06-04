@@ -161,7 +161,12 @@ impl MintPolicies {
             false,
             Some(type_name.to_string()),
             || {
-                let collection_increment_str = collection_data.supply().write_move_increment();
+                let supply = collection_data.supply();
+                let requires_collection = supply.requires_collection();
+
+                let collection_increment_str = requires_collection
+                    .then(|| supply.write_move_increment())
+                    .unwrap_or_default();
 
                 format!(
                     "
