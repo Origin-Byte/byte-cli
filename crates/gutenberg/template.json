@@ -18,6 +18,12 @@
         "creators": [
             "0x0b86be5d779fac217b41d484b8040ad5145dc9ba0cba099d083c6cbda50d983e"
         ],
+        // Supply of collection. Contract may enforce NFT supply on the collection level, however it may also only track the supply.
+        // Required.
+        // Possible values: `["untracked", "tracked", { "enforced": 600 }]`
+        "supply": {
+            "enforced": 600
+        },
         // Tags for the NFTs. Custom tags are supported as well
         "tags": [
             "Art",
@@ -109,7 +115,7 @@
         // The type of orderbook to use. "Protected" means enable_orderbook and disable_orderbook functions will be generated.
         // "Unprotected" generates the orderbook on publishing
         // Required
-        // Possible values: [none, unprotected, protected]
+        // Possible values: `["none", "unprotected", "protected"]`
         "orderbook": "protected"
     }
 }
