@@ -62,6 +62,14 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             nft_protocol::symbol::new(std::string::utf8(b"PRAMA")),
         );
 
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::supply::new(
+                delegated_witness, 600, false,
+            )
+        );
+
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
         sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
@@ -121,6 +129,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         warehouse: &mut ob_launchpad::warehouse::Warehouse<AurahmaPreReveal>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -131,6 +140,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -144,6 +154,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -154,6 +165,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -167,6 +179,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -177,6 +190,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -192,8 +206,11 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         ctx: &mut sui::tx_context::TxContext,
     ): AurahmaPreReveal {
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {});
+
         let nft = AurahmaPreReveal {
             id: sui::object::new(ctx),
             name,
@@ -201,12 +218,21 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             url: sui::url::new_unsafe_from_bytes(url),
             attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
         };
+
         nft_protocol::mint_event::emit_mint(
-            ob_permissions::witness::from_witness(Witness {}),
+            delegated_witness,
             nft_protocol::mint_cap::collection_id(mint_cap),
             &nft,
         );
+
+        let supply = nft_protocol::supply::borrow_domain_mut(
+            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
+        );
+
+        nft_protocol::supply::increment(delegated_witness, supply, 1);
+
         nft_protocol::mint_cap::increment_supply(mint_cap, 1);
+
         nft
     }
 
@@ -276,19 +302,24 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
     public fun burn_nft(
         delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
-        collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         nft: AurahmaPreReveal,
     ) {
+        let supply = nft_protocol::supply::borrow_domain_mut(
+            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
+        );
+
+        nft_protocol::supply::decrement(delegated_witness, supply, 1);
+        nft_protocol::supply::decrease_supply_ceil(delegated_witness, supply, 1);
+
         let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-
         let AurahmaPreReveal { id, name: _, description: _, url: _, attributes: _ } = nft;
-
         nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
     }
 
     public entry fun burn_nft_in_listing(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
@@ -301,7 +332,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
     public entry fun burn_nft_in_listing_with_id(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         nft_id: sui::object::ID,
@@ -314,7 +345,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
     }
 
     public entry fun burn_own_nft(
-        collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         nft: AurahmaPreReveal,
     ) {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
@@ -322,7 +353,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
     }
 
     public entry fun burn_own_nft_in_kiosk(
-        collection: &nft_protocol::collection::Collection<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
         kiosk: &mut sui::kiosk::Kiosk,
         nft_id: sui::object::ID,
         policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>>,
@@ -364,9 +395,12 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<AurahmaPreReveal>>(
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<AurahmaPreReveal>>(
             &scenario,
-            CREATOR,
+        );
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<AurahmaPreReveal>>(
+            &scenario, CREATOR,
         );
 
         let warehouse = ob_launchpad::warehouse::new<AurahmaPreReveal>(sui::test_scenario::ctx(&mut scenario));
@@ -378,12 +412,14 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
+            &mut collection,
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_shared(collection);
         sui::test_scenario::end(scenario);
     }
 
@@ -393,6 +429,10 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         init(PROJECT_ELUUNE_AURAHMA_PRE_REVEAL {}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<AurahmaPreReveal>>(
+            &scenario,
+        );
 
         let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<AurahmaPreReveal>>(
             &scenario,
@@ -414,6 +454,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
+            &mut collection,
             sui::test_scenario::ctx(&mut scenario)
         );
         let nft_id = sui::object::id(&nft);
@@ -434,6 +475,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::return_to_address(CREATOR, publisher);
+        sui::test_scenario::return_shared(collection);
         sui::test_scenario::return_shared(borrow_policy);
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
@@ -446,6 +488,10 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<AurahmaPreReveal>>(
+            &scenario,
+        );
+
         let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<AurahmaPreReveal>>(
             &scenario,
             CREATOR,
@@ -455,10 +501,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             &scenario,
             CREATOR,
         );
-
-        let collection = sui::test_scenario::take_shared<
-            nft_protocol::collection::Collection<AurahmaPreReveal>
-        >(&scenario);
 
         let withdraw_policy = sui::test_scenario::take_shared<
             ob_request::request::Policy<
@@ -473,6 +515,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
+            &mut collection,
             sui::test_scenario::ctx(&mut scenario)
         );
         let nft_id = sui::object::id(&nft);
@@ -481,7 +524,7 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
 
         burn_own_nft_in_kiosk(
-            &collection,
+            &mut collection,
             &mut kiosk,
             nft_id,
             &withdraw_policy,
