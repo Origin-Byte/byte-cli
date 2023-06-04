@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::models::nft::NftData;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
@@ -31,7 +33,9 @@ impl Orderbook {
         }
     }
 
-    pub fn write_entry_fns(&self, type_name: &String) -> String {
+    pub fn write_entry_fns(&self, nft_data: &NftData) -> String {
+        let type_name = nft_data.type_name();
+
         match self {
             Orderbook::Unprotected => String::new(), // do nothing
             Orderbook::Protected => format!(

@@ -56,12 +56,12 @@ impl Schema {
     }
 
     pub fn write_init_fn(&self) -> String {
-        let domains = self.collection.write_domains();
+        let domains = self.collection.write_move_domains();
 
         let feature_domains =
             self.settings.write_feature_domains(&self.collection);
 
-        let tags = self.collection.write_tags();
+        let tags = self.collection.write_move_tags();
 
         let type_name = self.nft.type_name();
         let display = Display::write_display(type_name);
@@ -84,44 +84,65 @@ impl Schema {
     fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
         {create_collection}
 
-        // Init Publisher
         let publisher = sui::package::claim(witness, ctx);
-{tags}
-
-        // Init Display
-        {display}
-
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}
+{tags}{display}{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}
     }}"
         )
     }
 
     pub fn write_entry_fns(&self) -> String {
-        let type_name = self.nft.type_name();
         let mut code = String::new();
 
+        let nft_data = &self.nft;
+        let collection_data = &self.collection;
+
         code.push_str(
-            self.settings
+            &self
+                .settings
                 .mint_policies
-                .write_mint_fns(type_name)
-                .as_str(),
+                .write_move_mint_fns(nft_data, collection_data),
         );
 
         // TODO: Conditional on importing LiquidityLayer V1
         code.push_str(
-            self.settings.orderbook.write_entry_fns(type_name).as_str(),
+            self.settings.orderbook.write_entry_fns(nft_data).as_str(),
         );
 
         code.push_str(&self.nft.write_dynamic_fns());
-        code.push_str(&self.nft.write_burn_fns());
+        code.push_str(&self.nft.write_burn_fns(collection_data));
 
         code
     }
 
     pub fn write_tests(&self) -> String {
         let type_name = self.nft.type_name();
-        let witness = self.collection().witness_name();
+        let collection = self.collection();
+
+        let witness = collection.witness_name();
+        let supply = collection.supply();
+
+        let requires_collection = supply.requires_collection();
+        let collection_take_str = requires_collection.then(|| format!("
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
+            &scenario,
+        );")).unwrap_or_default();
+
+        let collection_param_str = requires_collection
+            .then_some(
+                "
+            &mut collection,",
+            )
+            .unwrap_or_default();
+
+        let collection_return_str = requires_collection
+            .then_some(
+                "
+        sui::test_scenario::return_shared(collection);",
+            )
+            .unwrap_or_default();
+
         let mut tests = format!(
             "
 
@@ -157,28 +178,28 @@ impl Schema {
         let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
             &scenario,
             CREATOR,
-        );
+        );{collection_take_str}
 
         let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
 
-        mint_nft(
+        mint_nft_to_warehouse(
             std::string::utf8(b\"TEST NAME\"),
             std::string::utf8(b\"TEST DESCRIPTION\"),
             b\"https://originbyte.io/\",
             vector[std::ascii::string(b\"avg_return\")],
             vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,
+            &mut mint_cap,{collection_param_str}
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::transfer::public_transfer(warehouse, CREATOR);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
         sui::test_scenario::end(scenario);
     }}");
 
-        tests.push_str(&self.nft.write_dynamic_tests(&witness));
-        tests.push_str(&self.nft.write_burn_tests(&witness));
+        tests.push_str(&self.nft.write_dynamic_tests(collection));
+        tests.push_str(&self.nft.write_burn_tests(collection));
 
         tests
     }

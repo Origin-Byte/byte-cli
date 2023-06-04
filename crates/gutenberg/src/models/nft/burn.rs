@@ -1,11 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     str::FromStr,
 };
 
-use serde::{Deserialize, Serialize};
-
-use crate::err::GutenError;
+use crate::{err::GutenError, models::collection::CollectionData};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -55,26 +54,37 @@ impl Burn {
         matches!(self, Burn::Permissionless)
     }
 
-    pub fn write_burn_fns(&self, nft_type_name: &String) -> String {
+    pub fn write_burn_fns(
+        &self,
+        nft_type_name: &str,
+        collection_data: &CollectionData,
+    ) -> String {
         let mut code = String::new();
 
         if let Burn::None = self {
             return code;
         }
 
+        let supply = collection_data.supply();
+        let decrements = supply.requires_collection();
+
+        let mut_str = decrements.then_some("mut ").unwrap_or_default();
+
+        let collection_decrement_str = decrements
+            .then(|| supply.write_move_decrement())
+            .unwrap_or_default();
+
         code.push_str(&format!(
             "
 
     public fun burn_nft(
         delegated_witness: ob_permissions::witness::Witness<{nft_type_name}>,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
         nft: {nft_type_name},
     ) {{
         let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-
         let {nft_type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
-
-        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
+        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);{collection_decrement_str}
     }}"
         ));
 
@@ -83,7 +93,7 @@ impl Burn {
 
     public entry fun burn_nft_in_listing(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
         listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         ctx: &mut sui::tx_context::TxContext,
@@ -100,7 +110,7 @@ impl Burn {
 
     public entry fun burn_nft_in_listing_with_id(
         publisher: &sui::package::Publisher,
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
         listing: &mut ob_launchpad::listing::Listing,
         inventory_id: sui::object::ID,
         nft_id: sui::object::ID,
@@ -118,7 +128,7 @@ impl Burn {
             "
 
     public entry fun burn_own_nft(
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
         nft: {nft_type_name},
     ) {{
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
@@ -126,7 +136,7 @@ impl Burn {
     }}
 
     public entry fun burn_own_nft_in_kiosk(
-        collection: &nft_protocol::collection::Collection<{nft_type_name}>,
+        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
         kiosk: &mut sui::kiosk::Kiosk,
         nft_id: sui::object::ID,
         policy: &ob_request::request::Policy<ob_request::request::WithNft<{nft_type_name}, ob_request::withdraw_request::WITHDRAW_REQ>>,
@@ -147,12 +157,27 @@ impl Burn {
     pub fn write_burn_tests(
         &self,
         nft_type_name: &String,
-        witness_type: &String,
+        collection_data: &CollectionData,
     ) -> String {
         match self {
             Burn::None => String::new(),
             Burn::Permissioned => String::new(),
             Burn::Permissionless => {
+                let witness_type = collection_data.witness_name();
+                let supply = collection_data.supply();
+
+                let requires_collection = supply.requires_collection();
+
+                let collection_param_str = requires_collection
+                    .then_some(
+                        "
+            &mut collection,",
+                    )
+                    .unwrap_or_default();
+
+                let collection_mut_str =
+                    requires_collection.then_some("mut ").unwrap_or_default();
+
                 format!(
                 "
 
@@ -173,9 +198,9 @@ impl Burn {
             CREATOR,
         );
 
-        let collection = sui::test_scenario::take_shared<
-            nft_protocol::collection::Collection<{nft_type_name}>
-        >(&scenario);
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{nft_type_name}>>(
+            &scenario
+        );
 
         let withdraw_policy = sui::test_scenario::take_shared<
             ob_request::request::Policy<
@@ -189,7 +214,7 @@ impl Burn {
             b\"https://originbyte.io/\",
             vector[std::ascii::string(b\"avg_return\")],
             vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,
+            &mut mint_cap,{collection_param_str}
             sui::test_scenario::ctx(&mut scenario)
         );
         let nft_id = sui::object::id(&nft);
@@ -198,7 +223,7 @@ impl Burn {
         ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
 
         burn_own_nft_in_kiosk(
-            &collection,
+            &{collection_mut_str}collection,
             &mut kiosk,
             nft_id,
             &withdraw_policy,
