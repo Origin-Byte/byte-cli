@@ -78,6 +78,7 @@ impl DisplayInfoMod {
         collection.description().as_ref().map(|description| {
             format!(
                 "
+
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
@@ -85,7 +86,7 @@ impl DisplayInfoMod {
                 std::string::utf8(b\"{name}\"),
                 std::string::utf8(b\"{description}\"),
             ),
-        );\n"
+        );"
             )
         })
     }
@@ -94,11 +95,12 @@ impl DisplayInfoMod {
         collection.url().as_ref().map(|url| {
             format!(
                 "
+
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             sui::url::new_unsafe_from_bytes(b\"{url}\"),
-        );\n"
+        );"
             )
         })
     }
@@ -109,70 +111,57 @@ impl DisplayInfoMod {
         collection.symbol().as_ref().map(|symbol| {
             format!(
                 "
+
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             nft_protocol::symbol::new(std::string::utf8(b\"{symbol}\")),
-        );\n",
+        );",
             )
         })
     }
 
     pub fn add_nft_display() -> &'static str {
         "
+
         nft_protocol::display::add_display_domain(
             delegated_witness, &mut nft, name, description,
-        );\n"
+        );"
     }
 
     pub fn add_nft_url() -> &'static str {
         "
+
         nft_protocol::display::add_url_domain(
             delegated_witness, &mut nft, sui::url::new_unsafe_from_bytes(url),
-        );\n"
+        );"
     }
 
     pub fn add_nft_attributes() -> &'static str {
         "
+
         nft_protocol::display::add_attributes_domain_from_vec(
             delegated_witness, &mut nft, attribute_keys, attribute_values,
-        );\n"
+        );"
     }
 
-    pub fn add_display_args() -> &'static str {
-        "        description: std::string::String,\n"
+    pub fn params() -> Vec<String> {
+        vec!["description", "url", "attribute_keys", "attribute_values"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
     }
 
-    pub fn add_url_args() -> &'static str {
-        "        url: vector<u8>,\n"
-    }
-
-    pub fn add_attributes_args() -> &'static str {
-        "        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,\n"
-    }
-
-    pub fn add_display_params() -> &'static str {
-        "            description,\n"
-    }
-
-    pub fn add_url_params() -> &'static str {
-        "            url,\n"
-    }
-
-    pub fn add_attributes_params() -> &'static str {
-        "            attribute_keys,
-            attribute_values,\n"
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct WitnessMod();
-
-impl WitnessMod {
-    pub fn get_delegated_witness() -> String {
-        "witness::from_witness(&Witness {});\n".to_string()
+    pub fn param_types() -> Vec<String> {
+        vec![
+            "std::string::String",
+            "vector<u8>",
+            "vector<std::ascii::String>",
+            "vector<std::ascii::String>",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
     }
 }
 

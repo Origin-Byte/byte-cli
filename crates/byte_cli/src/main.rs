@@ -21,7 +21,7 @@ use console::style;
 
 use gutenberg::{
     models::{
-        collection::CollectionData,
+        collection::{CollectionData, Supply},
         nft::{burn::Burn, NftData},
         settings::{
             royalties::Share, MintPolicies, Orderbook, RequestPolicies,
@@ -85,7 +85,15 @@ async fn run() -> Result<()> {
             ));
 
             let schema = Schema::new(
-                CollectionData::new(name, None, None, None, vec![], None),
+                CollectionData::new(
+                    name,
+                    None,
+                    None,
+                    None,
+                    vec![],
+                    Supply::Untracked,
+                    None,
+                ),
                 NftData::new(nft_type, Burn::Permissionless, false),
                 Settings::new(
                     royalties,

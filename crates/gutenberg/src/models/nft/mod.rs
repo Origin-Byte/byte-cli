@@ -5,6 +5,8 @@ use burn::Burn;
 use dynamic::Dynamic;
 use serde::{Deserialize, Serialize};
 
+use super::collection::CollectionData;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
@@ -54,16 +56,20 @@ impl NftData {
         self.dynamic.write_dynamic_fns(self.type_name())
     }
 
-    pub fn write_dynamic_tests(&self, witness_type: &String) -> String {
+    pub fn write_dynamic_tests(
+        &self,
+        collection_data: &CollectionData,
+    ) -> String {
         self.dynamic
-            .write_dynamic_tests(self.type_name(), witness_type)
+            .write_dynamic_tests(self.type_name(), collection_data)
     }
 
-    pub fn write_burn_fns(&self) -> String {
-        self.burn.write_burn_fns(self.type_name())
+    pub fn write_burn_fns(&self, collection_data: &CollectionData) -> String {
+        self.burn.write_burn_fns(&self.type_name(), collection_data)
     }
 
-    pub fn write_burn_tests(&self, witness_type: &String) -> String {
-        self.burn.write_burn_tests(self.type_name(), witness_type)
+    pub fn write_burn_tests(&self, collection_data: &CollectionData) -> String {
+        self.burn
+            .write_burn_tests(self.type_name(), collection_data)
     }
 }

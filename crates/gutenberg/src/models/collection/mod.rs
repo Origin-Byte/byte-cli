@@ -2,31 +2,54 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-pub mod tags;
+mod supply;
+mod tags;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{contract::modules::DisplayInfoMod, err::GutenError};
 
-use self::tags::Tags;
+pub use supply::Supply;
+pub use tags::Tags;
+
 use super::Address;
 
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    pub name: String,
+    name: String,
     /// The description of the collection
-    pub description: Option<String>,
+    description: Option<String>,
     /// The symbol/ticker of the collection
-    pub symbol: Option<String>,
+    symbol: Option<String>,
     /// The URL of the collection website
-    pub url: Option<String>,
+    url: Option<String>,
     #[serde(default)]
     /// The addresses of creators
-    pub creators: Vec<Address>,
-    pub tags: Option<Tags>,
+    creators: Vec<Address>,
+    supply: Supply,
+    tags: Option<Tags>,
+}
+
+// TODO: `CollectionData` should not implement `Default` as there isn't a notion
+// of a default collection.
+//
+// This implementation provides a reasonable default that shouldn't break
+// anything.
+impl Default for CollectionData {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            description: None,
+            symbol: None,
+            url: Some("https://originbyte.io".to_string()),
+            supply: Supply::Untracked,
+            creators: Vec::new(),
+            tags: None,
+        }
+    }
 }
 
 impl CollectionData {
@@ -36,6 +59,7 @@ impl CollectionData {
         symbol: Option<String>,
         url: Option<String>,
         creators: Vec<Address>,
+        supply: Supply,
         tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
@@ -44,6 +68,7 @@ impl CollectionData {
             symbol,
             url,
             creators,
+            supply,
             tags,
         }
     }
@@ -100,6 +125,10 @@ impl CollectionData {
 
     pub fn creators(&self) -> &Vec<Address> {
         &self.creators
+    }
+
+    pub fn supply(&self) -> &Supply {
+        &self.supply
     }
 
     pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
@@ -173,10 +202,10 @@ impl CollectionData {
         Ok(())
     }
 
-    pub fn write_domains(&self) -> String {
+    pub fn write_move_domains(&self) -> String {
         let mut code = String::new();
 
-        code.push_str(self.write_creators().as_str());
+        code.push_str(self.write_move_creators().as_str());
 
         if let Some(display) = DisplayInfoMod::add_collection_display_info(self)
         {
@@ -191,10 +220,13 @@ impl CollectionData {
             code.push_str(&url);
         }
 
+        code.push_str(&self.supply().write_move_domain());
+
         code
     }
 
-    pub fn write_creators(&self) -> String {
+    // TODO: Separate out into `creators` module
+    fn write_move_creators(&self) -> String {
         let mut code = String::new();
 
         let creators_domain = if self.creators.is_empty() {
@@ -207,11 +239,13 @@ impl CollectionData {
         } else {
             code.push_str(
                 "
-        let creators = sui::vec_set::empty();\n",
+
+        let creators = sui::vec_set::empty();",
             );
             for address in self.creators.iter() {
                 code.push_str(&format!(
-                    "        sui::vec_set::insert(&mut creators, @{address});\n"
+                    "
+        sui::vec_set::insert(&mut creators, @{address});"
                 ));
             }
 
@@ -220,18 +254,19 @@ impl CollectionData {
 
         code.push_str(&format!(
             "
+
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             {},
-        );\n",
+        );",
             creators_domain
         ));
 
         code
     }
 
-    pub fn write_tags(&self) -> String {
+    pub fn write_move_tags(&self) -> String {
         self.tags
             .as_ref()
             .map(|tags| tags.write_move())

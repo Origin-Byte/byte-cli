@@ -8,7 +8,10 @@
     ],
     "tags": [
       "Gaming"
-    ]
+    ],
+    "supply": {
+      "enforced": 600
+    }
   },
   "nft": {
     "typeName": "AurahmaPreReveal",
