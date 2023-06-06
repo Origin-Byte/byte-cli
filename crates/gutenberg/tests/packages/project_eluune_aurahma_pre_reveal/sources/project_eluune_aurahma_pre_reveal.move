@@ -16,25 +16,10 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
     }
 
     fun init(witness: PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, ctx: &mut sui::tx_context::TxContext) {
-        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
-            &witness, std::option::some(600), ctx
-        );
-
-        let publisher = sui::package::claim(witness, ctx);
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
-        let tags: vector<std::string::String> = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
-        let display = sui::display::new<AurahmaPreReveal>(&publisher, ctx);
-        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
-        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
-        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
-        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
-        sui::display::update_version(&mut display);
-
-        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
+        let collection = nft_protocol::collection::create<AurahmaPreReveal>(delegated_witness, ctx);
+        let collection_id = sui::object::id(&collection);
 
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
@@ -67,6 +52,16 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
                 delegated_witness, 600, false,
             )
         );
+
+        let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
+            &witness, collection_id, 600, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+
+        let publisher = sui::package::claim(witness, ctx);
 
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
@@ -105,9 +100,17 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         );
         liquidity_layer_v1::orderbook::share(orderbook);
 
-        // Setup Transfers
+        let display = sui::display::new<AurahmaPreReveal>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
+        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
+        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
+        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
+        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);
+
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
+
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(collection);
 
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
@@ -118,6 +121,113 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(borrow_policy);
+    }
+
+    public fun set_metadata(
+        _delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
+        nft: &mut AurahmaPreReveal,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+    ) {
+        nft.url = sui::url::new_unsafe_from_bytes(url);
+        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
+    }
+
+    public entry fun set_metadata_as_publisher(
+        publisher: &sui::package::Publisher,
+        nft: &mut AurahmaPreReveal,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
+    }
+
+    public entry fun set_metadata_in_kiosk(
+        publisher: &sui::package::Publisher,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        url: vector<u8>,
+        attribute_keys: vector<std::ascii::String>,
+        attribute_values: vector<std::ascii::String>,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::borrow_request::BORROW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<AurahmaPreReveal>(kiosk, nft_id, std::option::none(), ctx);
+
+        let nft: &mut AurahmaPreReveal = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
+        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
+
+        ob_kiosk::ob_kiosk::return_nft<Witness, AurahmaPreReveal>(kiosk, borrow, policy);
+    }
+
+    public fun burn_nft(
+        delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
+        nft: AurahmaPreReveal,
+    ) {
+        let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
+        let AurahmaPreReveal { id, name: _, description: _, url: _, attributes: _ } = nft;
+        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
+
+        let supply = nft_protocol::supply::borrow_domain_mut(
+            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
+        );
+
+        nft_protocol::supply::decrement(delegated_witness, supply, 1);
+        nft_protocol::supply::decrease_supply_ceil(delegated_witness, supply, 1);
+    }
+
+    public entry fun burn_nft_in_listing(
+        publisher: &sui::package::Publisher,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
+        listing: &mut ob_launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
+        let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
+        burn_nft(delegated_witness, collection, nft);
+    }
+
+    public entry fun burn_nft_in_listing_with_id(
+        publisher: &sui::package::Publisher,
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
+        listing: &mut ob_launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        nft_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
+        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
+        burn_nft(delegated_witness, collection, nft);
+    }
+
+    public entry fun burn_own_nft(
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
+        nft: AurahmaPreReveal,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {});
+        burn_nft(delegated_witness, collection, nft);
+    }
+
+    public entry fun burn_own_nft_in_kiosk(
+        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
+        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {});
+        ob_request::withdraw_request::confirm(withdraw_request, policy);
+
+        burn_own_nft(collection, nft);
     }
 
     public entry fun mint_nft_to_warehouse(
@@ -255,113 +365,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         liquidity_layer_v1::orderbook::set_protection(
             delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
         );
-    }
-
-    public fun set_metadata(
-        _delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
-        nft: &mut AurahmaPreReveal,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {
-        nft.url = sui::url::new_unsafe_from_bytes(url);
-        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
-    }
-
-    public entry fun set_metadata_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut AurahmaPreReveal,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
-    }
-
-    public entry fun set_metadata_in_kiosk(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<AurahmaPreReveal>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut AurahmaPreReveal = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, AurahmaPreReveal>(kiosk, borrow, policy);
-    }
-
-    public fun burn_nft(
-        delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
-        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
-        nft: AurahmaPreReveal,
-    ) {
-        let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-        let AurahmaPreReveal { id, name: _, description: _, url: _, attributes: _ } = nft;
-        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
-
-        let supply = nft_protocol::supply::borrow_domain_mut(
-            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
-        );
-
-        nft_protocol::supply::decrement(delegated_witness, supply, 1);
-        nft_protocol::supply::decrease_supply_ceil(delegated_witness, supply, 1);
-    }
-
-    public entry fun burn_nft_in_listing(
-        publisher: &sui::package::Publisher,
-        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
-        burn_nft(delegated_witness, collection, nft);
-    }
-
-    public entry fun burn_nft_in_listing_with_id(
-        publisher: &sui::package::Publisher,
-        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        nft_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
-        burn_nft(delegated_witness, collection, nft);
-    }
-
-    public entry fun burn_own_nft(
-        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
-        nft: AurahmaPreReveal,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {});
-        burn_nft(delegated_witness, collection, nft);
-    }
-
-    public entry fun burn_own_nft_in_kiosk(
-        collection: &mut nft_protocol::collection::Collection<AurahmaPreReveal>,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
-        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {});
-        ob_request::withdraw_request::confirm(withdraw_request, policy);
-
-        burn_own_nft(collection, nft);
     }
 
     #[test_only]

@@ -102,7 +102,7 @@ impl RoyaltyPolicy {
         push_beneficiary(beneficiaries_vec, shares);
     }
 
-    pub fn write_strategy(&self) -> String {
+    pub fn write_move_init(&self) -> String {
         let (royalty_shares, royalty_strategy) = match self {
             RoyaltyPolicy::Proportional {
                 shares,

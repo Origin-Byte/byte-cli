@@ -1,70 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::models::collection::CollectionData;
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct NftMod();
-
-impl NftMod {
-    pub fn new_to_sender() -> String {
-        "let nft = nft_protocol::nft::from_mint_cap(mint_cap, name, sui::url::new_unsafe_from_bytes(url), ctx);".to_string()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct RoyaltyMod();
-
-impl RoyaltyMod {
-    pub fn from_sender_address() -> String {
-        "royalty::from_address(tx_context::sender(ctx), ctx);\n".to_string()
-    }
-
-    pub fn add_proportional(bps: u64) -> String {
-        format!(
-            "royalty::add_proportional_royalty(&mut royalty, {});\n",
-            bps
-        )
-    }
-
-    pub fn add_constant(fee: u64) -> String {
-        format!("royalty::add_constant_royalty(&mut royalty, {});\n", fee)
-    }
-
-    pub fn add_collection_domain() -> String {
-        "royalty::add_royalty_domain(
-            delegated_witness,
-            &mut collection,
-            royalty,
-        );\n"
-            .to_string()
-    }
-
-    pub fn get_domain() -> String {
-        "royalty::royalty_domain(collection);\n".to_string()
-    }
-
-    pub fn calculate_proportional_royalty(
-        domain: &str,
-        balance: &str,
-    ) -> String {
-        format!(
-            "royalty::calculate_proportional_royalty({}, balance::value({}));\n",
-            domain, balance,
-        )
-    }
-
-    pub fn calculate_constant_royalty(domain: &str) -> String {
-        format!("royalty::calculate_constant_royalty({})\n;", domain)
-    }
-
-    pub fn collect_royalty(balance: &str, royalty_owed: &str) -> String {
-        format!(
-            "royalty::collect_royalty(collection, {}, {});\n",
-            balance, royalty_owed,
-        )
-    }
-}
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -162,65 +98,6 @@ impl DisplayInfoMod {
         .into_iter()
         .map(str::to_string)
         .collect()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct CreatorsMod();
-
-impl CreatorsMod {
-    pub fn from_sender_address(otw: &str) -> String {
-        format!(
-            "creators::from_address<{otw}, Witness>(
-            &Witness {{}}, tx_context::sender(ctx), ctx,
-        ),",
-            otw = otw
-        )
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct WarehouseMod();
-
-impl WarehouseMod {
-    pub fn deposit_nft() -> String {
-        "warehouse::deposit_nft(warehouse, nft);\n".to_string()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct RoyaltiesMod();
-
-impl RoyaltiesMod {
-    pub fn balance_mut() -> String {
-        "royalties::balance_mut(Witness {}, payment);\n".to_string()
-    }
-
-    pub fn transfer_remaining_to_beneficiary() -> String {
-        "royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);\n".to_string()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionMod();
-
-impl CollectionMod {
-    pub fn create() -> String {
-        "nft_protocol::collection::create(&witness, ctx);\n".to_string()
-    }
-
-    pub fn add_domain(domain: &str) -> String {
-        format!(
-            "nft_protocol::collection::add_domain(
-                delegated_witness,
-                &mut collection,
-                {domain},
-            );\n"
-        )
     }
 }
 

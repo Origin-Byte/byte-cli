@@ -21,7 +21,33 @@ impl MintPolicies {
         }
     }
 
-    pub fn write_move_mint_fns(
+    pub fn write_move_init(&self, witness: &str, type_name: &str) -> String {
+        let mut init_str = String::new();
+
+        let mint_cap_str = match self.supply {
+            Some(supply) => format!("
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
+            &witness, collection_id, {supply}, ctx
+        );"),
+            None =>
+            format!("
+
+        let mint_cap = nft_protocol::mint_cap::new_unlimited<{witness}, {type_name}>(
+            witness, collection_id, ctx
+        );")
+        };
+
+        init_str.push_str(&mint_cap_str);
+        init_str.push_str(
+            "
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));",
+        );
+
+        init_str
+    }
+
+    pub fn write_move_defs(
         &self,
         nft_data: &NftData,
         collection_data: &CollectionData,
@@ -98,7 +124,7 @@ impl MintPolicies {
             params.push("ctx".to_string());
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!("&mut sui::kiosk::Kiosk"));
+            param_types.push("&mut sui::kiosk::Kiosk".to_string());
             param_types.push("&mut sui::tx_context::TxContext".to_string());
 
             mint_fns.push_str(&write_move_fn(
@@ -127,7 +153,7 @@ impl MintPolicies {
             params.push("ctx".to_string());
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!("address"));
+            param_types.push("address".to_string());
             param_types.push("&mut sui::tx_context::TxContext".to_string());
 
             mint_fns.push_str(&write_move_fn(
@@ -194,24 +220,6 @@ impl MintPolicies {
         ));
 
         mint_fns
-    }
-
-    pub fn write_collection_create_with_mint_cap(
-        &self,
-        witness: &str,
-        nft_type_name: &str,
-    ) -> String {
-        match self.supply {
-            Some(supply) => format!(
-"let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
-            &witness, std::option::some({supply}), ctx
-        );"),
-            None =>
-            format!(
-"let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
-            &witness, std::option::none(), ctx
-        );")
-        }
     }
 }
 

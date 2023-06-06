@@ -33,12 +33,12 @@ pub struct CollectionData {
     tags: Option<Tags>,
 }
 
-// TODO: `CollectionData` should not implement `Default` as there isn't a notion
-// of a default collection.
-//
-// This implementation provides a reasonable default that shouldn't break
-// anything.
 impl Default for CollectionData {
+    /// TODO: `CollectionData` should not implement `Default` as there isn't a notion
+    /// of a default collection.
+    ///
+    /// This implementation provides a reasonable default that shouldn't break
+    /// anything.
     fn default() -> Self {
         Self {
             name: String::new(),
@@ -202,7 +202,7 @@ impl CollectionData {
         Ok(())
     }
 
-    pub fn write_move_domains(&self) -> String {
+    pub fn write_move_init(&self) -> String {
         let mut code = String::new();
 
         code.push_str(self.write_move_creators().as_str());
@@ -221,6 +221,14 @@ impl CollectionData {
         }
 
         code.push_str(&self.supply().write_move_domain());
+
+        code.push_str(
+            self.tags
+                .as_ref()
+                .map(|tags| tags.write_move_init())
+                .unwrap_or_default()
+                .as_str(),
+        );
 
         code
     }
@@ -264,13 +272,6 @@ impl CollectionData {
         ));
 
         code
-    }
-
-    pub fn write_move_tags(&self) -> String {
-        self.tags
-            .as_ref()
-            .map(|tags| tags.write_move())
-            .unwrap_or_default()
     }
 }
 

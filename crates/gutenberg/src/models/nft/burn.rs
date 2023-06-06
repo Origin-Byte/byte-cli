@@ -14,15 +14,24 @@ pub enum Burn {
     Permissionless,
 }
 
+impl Default for Burn {
+    /// Not being able to burn NFTs is a sensible default as it does not introduce
+    /// any potential attack vectors against a creator's collection and burn
+    /// funcitons can be introduced via a contract upgrade.
+    fn default() -> Self {
+        Burn::None
+    }
+}
+
 impl Display for Burn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let level = match self {
+        let string = match self {
             Burn::None => "None",
             Burn::Permissioned => "Permissioned",
             Burn::Permissionless => "Permissionless",
         };
 
-        f.write_str(level)
+        f.write_str(string)
     }
 }
 
@@ -54,7 +63,7 @@ impl Burn {
         matches!(self, Burn::Permissionless)
     }
 
-    pub fn write_burn_fns(
+    pub fn write_move_defs(
         &self,
         nft_type_name: &str,
         collection_data: &CollectionData,
@@ -154,9 +163,9 @@ impl Burn {
         code
     }
 
-    pub fn write_burn_tests(
+    pub fn write_move_tests(
         &self,
-        nft_type_name: &String,
+        nft_type_name: &str,
         collection_data: &CollectionData,
     ) -> String {
         match self {

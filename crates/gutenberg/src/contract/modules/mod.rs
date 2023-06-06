@@ -1,8 +1,5 @@
 pub mod protocol;
-pub use protocol::{
-    CollectionMod, ComposableNftMod, CreatorsMod, DisplayInfoMod, NftMod,
-    RoyaltiesMod, RoyaltyMod, WarehouseMod,
-};
+pub use protocol::{ComposableNftMod, DisplayInfoMod};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Display();
 
 impl Display {
-    pub fn write_display(type_name: &String) -> String {
+    pub fn write_display(type_name: &str) -> String {
         format!("
 
         let display = sui::display::new<{type_name}>(&publisher, ctx);

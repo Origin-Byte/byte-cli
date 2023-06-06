@@ -17,118 +17,92 @@ use super::{collection::CollectionData, nft::NftData};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    pub royalties: Option<RoyaltyPolicy>,
-    pub mint_policies: MintPolicies,
-    pub request_policies: RequestPolicies,
-    pub composability: Option<Composability>,
-    pub orderbook: Orderbook,
+    mint_policies: MintPolicies,
+    request_policies: RequestPolicies,
+    royalties: Option<RoyaltyPolicy>,
+    composability: Option<Composability>,
+    orderbook: Orderbook,
 }
 
 impl Settings {
     pub fn new(
-        royalties: Option<RoyaltyPolicy>,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
+        royalties: Option<RoyaltyPolicy>,
         composability: Option<Composability>,
         orderbook: Orderbook,
     ) -> Settings {
         Settings {
-            royalties,
             mint_policies,
             request_policies,
+            royalties,
             composability,
             orderbook,
         }
     }
 
-    pub fn write_feature_domains(
+    pub fn mint_policies(&self) -> &MintPolicies {
+        &self.mint_policies
+    }
+
+    pub fn request_policies(&self) -> &RequestPolicies {
+        &self.request_policies
+    }
+
+    pub fn royalties(&self) -> &Option<RoyaltyPolicy> {
+        &self.royalties
+    }
+
+    pub fn composability(&self) -> &Option<Composability> {
+        &self.composability
+    }
+
+    pub fn orderbook(&self) -> &Orderbook {
+        &self.orderbook
+    }
+
+    pub fn write_move_init(
         &self,
-        _collection: &CollectionData,
+        nft_data: &NftData,
+        collection_data: &CollectionData,
     ) -> String {
-        let mut code = String::new();
+        let type_name = nft_data.type_name();
+        let witness = collection_data.witness_name();
 
-        if let Some(_royalties) = &self.royalties {
-            code.push_str(self.write_royalties().as_str());
-        }
-
-        code
-    }
-
-    pub fn write_request_policies(&self, nft_data: &NftData) -> String {
-        self.request_policies.write_policies(nft_data)
-    }
-
-    pub fn write_transfer_fns(&self, nft_data: &NftData) -> String {
-        let mut code = String::new();
-
-        code.push_str(
+        let mut init_str = String::new();
+        init_str
+            .push_str(&self.mint_policies.write_move_init(&witness, type_name));
+        init_str.push_str(
             "
 
-        // Setup Transfers
-        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(collection);",
+        let publisher = sui::package::claim(witness, ctx);",
         );
-
-        if self.request_policies.transfer {
-            code.push_str(
-                "
-
-        sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(transfer_policy);"
-            );
-        }
-
-        if self.request_policies.withdraw || nft_data.requires_withdraw() {
-            code.push_str(
-                "
-
-        sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(withdraw_policy);"
-            );
-        }
-
-        if self.request_policies.borrow || nft_data.requires_borrow() {
-            code.push_str(
-                "
-
-        sui::transfer::public_transfer(borrow_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(borrow_policy);"
-            );
-        }
-
-        code
+        init_str.push_str(
+            self.royalties
+                .as_ref()
+                .map(|royalties| royalties.write_move_init())
+                .unwrap_or_default()
+                .as_str(),
+        );
+        init_str.push_str(&self.request_policies.write_policies(nft_data));
+        init_str.push_str(&self.orderbook.write_move_init(type_name));
+        init_str
     }
 
-    pub fn write_royalties(&self) -> String {
-        self.royalties
-            .as_ref()
-            .expect("No collection royalties setup found")
-            .write_strategy()
-    }
+    pub fn write_move_defs(
+        &self,
+        nft_data: &NftData,
+        collection_data: &CollectionData,
+    ) -> String {
+        let type_name = nft_data.type_name();
 
-    pub fn write_composability(&self) -> String {
-        self.composability
-            .as_ref()
-            .expect("No collection composability setup found")
-            .write_domain()
-    }
-
-    pub fn write_loose(&self, collection: &CollectionData) -> String {
-        format!(
-            "
-
-        let templates = templates::new_templates<{witness}>(
-                ctx,
-            );",
-            witness = collection.witness_name(),
-        )
-    }
-
-    pub fn write_type_declarations(&self) -> String {
-        match &self.composability {
-            Some(composability) => composability.write_types(),
-            None => "".to_string(),
-        }
+        let mut defs_str: String = String::new();
+        defs_str.push_str(
+            &self
+                .mint_policies
+                .write_move_defs(nft_data, collection_data),
+        );
+        defs_str.push_str(&self.orderbook.write_move_defs(type_name));
+        defs_str
     }
 }
