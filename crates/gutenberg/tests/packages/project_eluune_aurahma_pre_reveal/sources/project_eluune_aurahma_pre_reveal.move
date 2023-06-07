@@ -45,6 +45,14 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             nft_protocol::symbol::new(std::string::utf8(b"PRAMA")),
         );
 
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::supply::new(
+                delegated_witness, 600, false,
+            )
+        );
+
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
         sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
@@ -55,14 +63,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             nft_protocol::royalty::from_shares(royalty_map, ctx),
             700,
             ctx,
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::supply::new(
-                delegated_witness, 600, false,
-            )
         );
 
         let tags: vector<std::string::String> = std::vector::empty();

@@ -227,6 +227,7 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
+        domains_str.push_str(&self.supply().write_move_domain());
         domains_str.push_str(
             self.royalties
                 .as_ref()
@@ -234,7 +235,6 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        domains_str.push_str(&self.supply().write_move_domain());
         domains_str.push_str(
             self.tags
                 .as_ref()
