@@ -4,9 +4,28 @@ use crate::models::nft::NftData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RequestPolicies {
-    pub transfer: bool,
-    pub withdraw: bool,
-    pub borrow: bool,
+    #[serde(default)]
+    transfer: bool,
+    #[serde(default)]
+    withdraw: bool,
+    #[serde(default)]
+    borrow: bool,
+}
+
+impl Default for RequestPolicies {
+    /// Not providing any request policies by default is reasonable as it does
+    /// not have any implications that the creator might be forced to consider
+    /// with regards to creating safe policies.
+    ///
+    /// Should other features require policies, they will be implemented in a
+    /// safe way.
+    fn default() -> Self {
+        Self {
+            transfer: false,
+            withdraw: false,
+            borrow: false,
+        }
+    }
 }
 
 impl RequestPolicies {
@@ -22,7 +41,19 @@ impl RequestPolicies {
         }
     }
 
-    pub fn write_policies(&self, nft_data: &NftData) -> String {
+    pub fn has_transfer(&self) -> bool {
+        self.transfer
+    }
+
+    pub fn has_withdraw(&self) -> bool {
+        self.withdraw
+    }
+
+    pub fn has_borrow(&self) -> bool {
+        self.borrow
+    }
+
+    pub fn write_move_init(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
 
         let mut request_policies = String::new();

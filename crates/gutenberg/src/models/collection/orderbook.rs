@@ -8,6 +8,13 @@ pub enum Orderbook {
     Protected,
 }
 
+impl Default for Orderbook {
+    /// No orderbook by default is a safe choice
+    fn default() -> Self {
+        Orderbook::None
+    }
+}
+
 impl Orderbook {
     pub fn write_move_init(&self, type_name: &str) -> String {
         match self {

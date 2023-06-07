@@ -26,24 +26,22 @@
         ],
         "collectionRoyaltyBps": 700
       }
-    }
+    },
+    "mintCap": {
+      "supply": 600
+    },
+    "requestPolicies": {
+      "transfer": true
+    },
+    "orderbook": "protected"
   },
   "nft": {
     "typeName": "AurahmaPreReveal",
     "burn": "permissionless",
     "dynamic": true,
     "mintPolicies": {
-      "supply": 600,
       "launchpad": true,
       "airdrop": true
     }
-  },
-  "settings": {
-    "requestPolicies": {
-      "transfer": true,
-      "withdraw": false,
-      "borrow": false
-    },
-    "orderbook": "protected"
   }
 }

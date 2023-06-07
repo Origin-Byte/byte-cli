@@ -3,7 +3,6 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 
 use serde::{Deserialize, Serialize};
@@ -21,21 +20,14 @@ pub struct Schema {
     collection: CollectionData,
     #[builder(field(public))]
     nft: NftData,
-    #[builder(field(public))]
-    pub settings: Settings,
 }
 
 impl Schema {
-    pub fn new(
-        collection: CollectionData,
-        nft: NftData,
-        settings: Settings,
-    ) -> Schema {
+    pub fn new(collection: CollectionData, nft: NftData) -> Schema {
         Schema {
             package_name: None,
             collection,
             nft,
-            settings,
         }
     }
 
@@ -59,10 +51,9 @@ impl Schema {
         let collection_data = &self.collection;
 
         let mut defs_str = String::new();
-        defs_str.push_str(
-            &self.nft.write_move_defs(collection_data, &self.settings),
-        );
-        defs_str.push_str(&self.settings.write_move_defs(nft_data));
+        defs_str.push_str(&self.nft.write_move_defs(collection_data));
+        defs_str
+            .push_str(&self.collection.write_move_defs(nft_data.type_name()));
         defs_str
     }
 

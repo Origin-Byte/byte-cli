@@ -7,7 +7,7 @@ use dynamic::Dynamic;
 use minting::MintPolicies;
 use serde::{Deserialize, Serialize};
 
-use super::{collection::CollectionData, settings::Settings};
+use super::collection::CollectionData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -63,18 +63,11 @@ impl NftData {
         )
     }
 
-    pub fn write_init_fn(
-        &self,
-        collection_data: &CollectionData,
-        settings: &Settings,
-    ) -> String {
-        let type_name = self.type_name();
+    pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
         let witness = collection_data.witness_name();
 
-        let transfer_fns = self.write_transfer_fns(settings);
-        let nft_init = self.write_move_init(collection_data);
-        let collection_init = collection_data.write_move_init(type_name);
-        let settings_init = settings.write_move_init(self);
+        let transfer_fns = self.write_transfer_fns(collection_data);
+        let collection_init = collection_data.write_move_init(self);
         let display_init = self.write_move_display();
 
         // Opt for `collection::create` over `collection::create_from_otw` in
@@ -84,33 +77,19 @@ impl NftData {
             "
 
     fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{nft_init}{settings_init}{display_init}
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{display_init}
 
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));{transfer_fns}
     }}"
         )
     }
 
-    pub fn write_move_init(&self, collection_data: &CollectionData) -> String {
-        let type_name = self.type_name();
-        let witness = collection_data.witness_name();
-
-        let mut init_str = String::new();
-        init_str
-            .push_str(&self.mint_policies.write_move_init(&witness, type_name));
-        init_str
-    }
-
-    pub fn write_move_defs(
-        &self,
-        collection_data: &CollectionData,
-        settings: &Settings,
-    ) -> String {
+    pub fn write_move_defs(&self, collection_data: &CollectionData) -> String {
         let type_name = self.type_name();
 
         let mut defs_str = String::new();
         defs_str.push_str(&self.write_move_struct());
-        defs_str.push_str(&self.write_init_fn(collection_data, settings));
+        defs_str.push_str(&self.write_init_fn(collection_data));
         defs_str.push_str(
             &self
                 .mint_policies
@@ -134,10 +113,10 @@ impl NftData {
         defs_str
     }
 
-    fn write_transfer_fns(&self, settings: &Settings) -> String {
+    fn write_transfer_fns(&self, collection_data: &CollectionData) -> String {
         let mut code = String::new();
 
-        if settings.request_policies().transfer {
+        if collection_data.request_policies().has_transfer() {
             code.push_str(
                 "
 
@@ -146,7 +125,9 @@ impl NftData {
             );
         }
 
-        if settings.request_policies().withdraw || self.requires_withdraw() {
+        if collection_data.request_policies().has_withdraw()
+            || self.requires_withdraw()
+        {
             code.push_str(
                 "
 
@@ -155,7 +136,9 @@ impl NftData {
             );
         }
 
-        if settings.request_policies().borrow || self.requires_borrow() {
+        if collection_data.request_policies().has_borrow()
+            || self.requires_borrow()
+        {
             code.push_str(
                 "
 

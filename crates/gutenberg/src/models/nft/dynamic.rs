@@ -9,9 +9,9 @@ use crate::models::collection::CollectionData;
 pub struct Dynamic(bool);
 
 impl Default for Dynamic {
-    /// Not being able to burn NFTs is a sensible default as it does not introduce
-    /// any potential attack vectors against a creator's collection and burn
-    /// funcitons can be introduced via a contract upgrade.
+    /// Static NFT by default is a reasonable default as it does not introduce
+    /// any extra attack vectors that the creator might be forced to consider
+    /// and dynamic features can always be added at a later date.
     fn default() -> Self {
         Self(false)
     }

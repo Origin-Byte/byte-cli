@@ -21,6 +21,11 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         let collection = nft_protocol::collection::create<AurahmaPreReveal>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
+        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
+            &witness, collection_id, 600, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
 
@@ -68,13 +73,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         let tags: vector<std::string::String> = std::vector::empty();
         std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
 
-        sui::transfer::public_share_object(collection);
-
-        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
-            &witness, collection_id, 600, ctx
-        );
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-
         let publisher = sui::package::claim(witness, ctx);
 
         let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<AurahmaPreReveal>(
@@ -99,6 +97,8 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);
+
+        sui::transfer::public_share_object(collection);
 
         let display = sui::display::new<AurahmaPreReveal>(&publisher, ctx);
         sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));

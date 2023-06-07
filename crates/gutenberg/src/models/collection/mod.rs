@@ -2,20 +2,20 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+mod mint_cap;
+mod orderbook;
+mod request;
 mod royalties;
 mod supply;
 mod tags;
 
-use serde::{Deserialize, Serialize};
-
-pub use supply::Supply;
-pub use tags::Tags;
-
+use self::{
+    mint_cap::MintCap, orderbook::Orderbook, request::RequestPolicies,
+    royalties::RoyaltyPolicy, supply::Supply, tags::Tags,
+};
+use super::{nft::NftData, Address};
 use crate::err::GutenError;
-
-use self::royalties::RoyaltyPolicy;
-
-use super::Address;
+use serde::{Deserialize, Serialize};
 
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -33,8 +33,13 @@ pub struct CollectionData {
     /// The addresses of creators
     creators: Vec<Address>,
     supply: Supply,
+    mint_cap: MintCap,
     royalties: Option<RoyaltyPolicy>,
     tags: Option<Tags>,
+    #[serde(default)]
+    request_policies: RequestPolicies,
+    #[serde(default)]
+    orderbook: Orderbook,
 }
 
 impl Default for CollectionData {
@@ -50,9 +55,12 @@ impl Default for CollectionData {
             symbol: None,
             url: Some("https://originbyte.io".to_string()),
             supply: Supply::Untracked,
+            mint_cap: MintCap::new(None),
             creators: Vec::new(),
             royalties: None,
             tags: None,
+            request_policies: RequestPolicies::default(),
+            orderbook: Orderbook::default(),
         }
     }
 }
@@ -65,8 +73,11 @@ impl CollectionData {
         url: Option<String>,
         creators: Vec<Address>,
         supply: Supply,
+        mint_cap: MintCap,
         royalties: Option<RoyaltyPolicy>,
         tags: Option<Tags>,
+        request_policies: RequestPolicies,
+        orderbook: Orderbook,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -75,8 +86,11 @@ impl CollectionData {
             url,
             creators,
             supply,
+            mint_cap,
             royalties,
             tags,
+            request_policies,
+            orderbook,
         }
     }
 
@@ -136,6 +150,10 @@ impl CollectionData {
 
     pub fn supply(&self) -> &Supply {
         &self.supply
+    }
+
+    pub fn request_policies(&self) -> &RequestPolicies {
+        &self.request_policies
     }
 
     pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
@@ -209,8 +227,15 @@ impl CollectionData {
         Ok(())
     }
 
-    pub fn write_move_init(&self, type_name: &str) -> String {
+    pub fn write_move_init(&self, nft_data: &NftData) -> String {
+        let type_name = nft_data.type_name();
+
         let mut domains_str = String::new();
+        domains_str.push_str(
+            &self
+                .mint_cap
+                .write_move_init(&self.witness_name(), type_name),
+        );
         domains_str.push_str(&self.write_move_creators());
         domains_str.push_str(
             self.write_move_collection_display_info()
@@ -242,6 +267,13 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
+        domains_str.push_str(
+            "
+
+        let publisher = sui::package::claim(witness, ctx);",
+        );
+        domains_str.push_str(&self.request_policies.write_move_init(nft_data));
+        domains_str.push_str(&self.orderbook.write_move_init(type_name));
 
         format!("
 
@@ -250,6 +282,10 @@ impl CollectionData {
 
         sui::transfer::public_share_object(collection);"
         )
+    }
+
+    pub fn write_move_defs(&self, type_name: &str) -> String {
+        self.orderbook.write_move_defs(type_name)
     }
 
     fn write_move_collection_display_info(&self) -> Option<String> {
