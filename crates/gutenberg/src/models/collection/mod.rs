@@ -212,7 +212,6 @@ impl CollectionData {
     pub fn write_move_init(&self, type_name: &str) -> String {
         let mut domains_str = String::new();
         domains_str.push_str(&self.write_move_creators());
-
         domains_str.push_str(
             self.write_move_collection_display_info()
                 .unwrap_or_default()

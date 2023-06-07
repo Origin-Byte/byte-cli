@@ -77,21 +77,19 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
 
         let publisher = sui::package::claim(witness, ctx);
 
-        let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
-
-        nft_protocol::royalty_strategy_bps::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
+        let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
         );
-        nft_protocol::transfer_allowlist::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
+        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
+
+        let (borrow_policy, borrow_policy_cap) = ob_request::borrow_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
         );
 
-        let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
-
-        let (withdraw_policy, withdraw_policy_cap) =
-            ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+        let (withdraw_policy, withdraw_policy_cap) = ob_request::withdraw_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
+        );
         ob_request::request::enforce_rule_no_state<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>, Witness>(
             &mut withdraw_policy, &withdraw_policy_cap,
         );

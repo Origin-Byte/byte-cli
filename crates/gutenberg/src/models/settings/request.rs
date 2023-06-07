@@ -31,15 +31,11 @@ impl RequestPolicies {
             request_policies.push_str(&format!(
                 "
 
-        let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<{type_name}>(&publisher, ctx);
-
-        nft_protocol::royalty_strategy_bps::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
+        let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<{type_name}>(
+            &publisher, ctx,
         );
-        nft_protocol::transfer_allowlist::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
-        );"
+        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);"
             ));
         }
 
@@ -47,8 +43,9 @@ impl RequestPolicies {
             request_policies.push_str(&format!(
                 "
 
-        let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<{type_name}>(&publisher, ctx);"
+        let (borrow_policy, borrow_policy_cap) = ob_request::borrow_request::init_policy<{type_name}>(
+            &publisher, ctx,
+        );"
             ));
         }
 
@@ -56,8 +53,9 @@ impl RequestPolicies {
             request_policies.push_str(&format!(
                 "
 
-        let (withdraw_policy, withdraw_policy_cap) =
-            ob_request::withdraw_request::init_policy<{type_name}>(&publisher, ctx);"
+        let (withdraw_policy, withdraw_policy_cap) = ob_request::withdraw_request::init_policy<{type_name}>(
+            &publisher, ctx,
+        );"
             ));
 
             // When `NftData` requires a withdraw policy we must be careful to
