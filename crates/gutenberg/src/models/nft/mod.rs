@@ -5,8 +5,6 @@ use burn::Burn;
 use dynamic::Dynamic;
 use serde::{Deserialize, Serialize};
 
-use crate::contract::modules::Display;
-
 use super::{collection::CollectionData, settings::Settings};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -64,11 +62,10 @@ impl NftData {
         let type_name = self.type_name();
         let witness = collection_data.witness_name();
 
-        let display = Display::write_display(type_name);
-
         let transfer_fns = self.write_transfer_fns(settings);
-        let collection_init = collection_data.write_move_init();
+        let collection_init = collection_data.write_move_init(type_name);
         let settings_init = settings.write_move_init(self, collection_data);
+        let display_init = self.write_move_display();
 
         // Opt for `collection::create` over `collection::create_from_otw` in
         // order to statically assert `DelegatedWitness` gets created for the
@@ -77,13 +74,9 @@ impl NftData {
             "
 
     fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{settings_init}{display_init}
 
-        let collection = nft_protocol::collection::create<{type_name}>(delegated_witness, ctx);
-        let collection_id = sui::object::id(&collection);{collection_init}{settings_init}{display}
-
-        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(collection);{transfer_fns}
+        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));{transfer_fns}
     }}"
         )
     }
@@ -147,5 +140,22 @@ impl NftData {
         }
 
         code
+    }
+
+    fn write_move_display(&self) -> String {
+        let type_name = self.type_name();
+
+        format!("
+
+        let display = sui::display::new<{type_name}>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b\"name\"), std::string::utf8(b\"{{name}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"description\"), std::string::utf8(b\"{{description}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"image_url\"), std::string::utf8(b\"{{url}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));
+        sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);
+
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));"
+        )
     }
 }

@@ -45,24 +45,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             nft_protocol::symbol::new(std::string::utf8(b"PRAMA")),
         );
 
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::supply::new(
-                delegated_witness, 600, false,
-            )
-        );
-
-        let tags: vector<std::string::String> = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
-        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
-            &witness, collection_id, 600, ctx
-        );
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-
-        let publisher = sui::package::claim(witness, ctx);
-
         let royalty_map = sui::vec_map::empty();
         sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
         sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
@@ -74,6 +56,26 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             700,
             ctx,
         );
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::supply::new(
+                delegated_witness, 600, false,
+            )
+        );
+
+        let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+
+        sui::transfer::public_share_object(collection);
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
+            &witness, collection_id, 600, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+
+        let publisher = sui::package::claim(witness, ctx);
 
         let (transfer_policy, transfer_policy_cap) =
             ob_request::transfer_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
@@ -111,7 +113,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(collection);
 
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);

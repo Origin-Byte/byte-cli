@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    contract::modules::DisplayInfoMod,
-    models::{collection::CollectionData, nft::NftData},
-};
+use crate::models::{collection::CollectionData, nft::NftData};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
@@ -57,7 +54,7 @@ impl MintPolicies {
         let type_name = nft_data.type_name();
 
         let mut base_params = vec!["name".to_string()];
-        base_params.extend(DisplayInfoMod::params().into_iter());
+        base_params.extend(self.params().into_iter());
         base_params.push("mint_cap".to_string());
 
         if collection_data.supply().requires_collection() {
@@ -68,7 +65,7 @@ impl MintPolicies {
         nft_params.push("ctx".to_string());
 
         let mut base_param_types = vec!["std::string::String".to_string()];
-        base_param_types.extend(DisplayInfoMod::param_types().into_iter());
+        base_param_types.extend(self.param_types().into_iter());
         base_param_types
             .push(format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>"));
 
@@ -220,6 +217,25 @@ impl MintPolicies {
         ));
 
         mint_fns
+    }
+
+    fn params(&self) -> Vec<String> {
+        vec!["description", "url", "attribute_keys", "attribute_values"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+
+    fn param_types(&self) -> Vec<String> {
+        vec![
+            "std::string::String",
+            "vector<u8>",
+            "vector<std::ascii::String>",
+            "vector<std::ascii::String>",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
     }
 }
 

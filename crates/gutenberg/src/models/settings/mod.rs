@@ -1,14 +1,10 @@
-pub mod composability;
 pub mod minting;
 pub mod orderbook;
 pub mod request;
-pub mod royalties;
 
-pub use composability::Composability;
 pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
-pub use royalties::RoyaltyPolicy;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,8 +15,6 @@ use super::{collection::CollectionData, nft::NftData};
 pub struct Settings {
     mint_policies: MintPolicies,
     request_policies: RequestPolicies,
-    royalties: Option<RoyaltyPolicy>,
-    composability: Option<Composability>,
     orderbook: Orderbook,
 }
 
@@ -28,15 +22,11 @@ impl Settings {
     pub fn new(
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
-        royalties: Option<RoyaltyPolicy>,
-        composability: Option<Composability>,
         orderbook: Orderbook,
     ) -> Settings {
         Settings {
             mint_policies,
             request_policies,
-            royalties,
-            composability,
             orderbook,
         }
     }
@@ -47,14 +37,6 @@ impl Settings {
 
     pub fn request_policies(&self) -> &RequestPolicies {
         &self.request_policies
-    }
-
-    pub fn royalties(&self) -> &Option<RoyaltyPolicy> {
-        &self.royalties
-    }
-
-    pub fn composability(&self) -> &Option<Composability> {
-        &self.composability
     }
 
     pub fn orderbook(&self) -> &Orderbook {
@@ -76,13 +58,6 @@ impl Settings {
             "
 
         let publisher = sui::package::claim(witness, ctx);",
-        );
-        init_str.push_str(
-            self.royalties
-                .as_ref()
-                .map(|royalties| royalties.write_move_init())
-                .unwrap_or_default()
-                .as_str(),
         );
         init_str.push_str(&self.request_policies.write_policies(nft_data));
         init_str.push_str(&self.orderbook.write_move_init(type_name));

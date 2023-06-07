@@ -2,15 +2,18 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+mod royalties;
 mod supply;
 mod tags;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{contract::modules::DisplayInfoMod, err::GutenError};
-
 pub use supply::Supply;
 pub use tags::Tags;
+
+use crate::err::GutenError;
+
+use self::royalties::RoyaltyPolicy;
 
 use super::Address;
 
@@ -30,6 +33,7 @@ pub struct CollectionData {
     /// The addresses of creators
     creators: Vec<Address>,
     supply: Supply,
+    royalties: Option<RoyaltyPolicy>,
     tags: Option<Tags>,
 }
 
@@ -47,6 +51,7 @@ impl Default for CollectionData {
             url: Some("https://originbyte.io".to_string()),
             supply: Supply::Untracked,
             creators: Vec::new(),
+            royalties: None,
             tags: None,
         }
     }
@@ -60,6 +65,7 @@ impl CollectionData {
         url: Option<String>,
         creators: Vec<Address>,
         supply: Supply,
+        royalties: Option<RoyaltyPolicy>,
         tags: Option<Tags>,
     ) -> CollectionData {
         CollectionData {
@@ -69,6 +75,7 @@ impl CollectionData {
             url,
             creators,
             supply,
+            royalties,
             tags,
         }
     }
@@ -202,27 +209,34 @@ impl CollectionData {
         Ok(())
     }
 
-    pub fn write_move_init(&self) -> String {
-        let mut code = String::new();
+    pub fn write_move_init(&self, type_name: &str) -> String {
+        let mut domains_str = String::new();
+        domains_str.push_str(&self.write_move_creators());
 
-        code.push_str(self.write_move_creators().as_str());
-
-        if let Some(display) = DisplayInfoMod::add_collection_display_info(self)
-        {
-            code.push_str(&display);
-        }
-
-        if let Some(symbol) = DisplayInfoMod::add_collection_symbol(self) {
-            code.push_str(&symbol);
-        }
-
-        if let Some(url) = DisplayInfoMod::add_collection_url(self) {
-            code.push_str(&url);
-        }
-
-        code.push_str(&self.supply().write_move_domain());
-
-        code.push_str(
+        domains_str.push_str(
+            self.write_move_collection_display_info()
+                .unwrap_or_default()
+                .as_str(),
+        );
+        domains_str.push_str(
+            self.write_move_collection_symbol()
+                .unwrap_or_default()
+                .as_str(),
+        );
+        domains_str.push_str(
+            self.write_move_collection_url()
+                .unwrap_or_default()
+                .as_str(),
+        );
+        domains_str.push_str(
+            self.royalties
+                .as_ref()
+                .map(|royalties| royalties.write_move_init())
+                .unwrap_or_default()
+                .as_str(),
+        );
+        domains_str.push_str(&self.supply().write_move_domain());
+        domains_str.push_str(
             self.tags
                 .as_ref()
                 .map(|tags| tags.write_move_init())
@@ -230,7 +244,59 @@ impl CollectionData {
                 .as_str(),
         );
 
-        code
+        format!("
+
+        let collection = nft_protocol::collection::create<{type_name}>(delegated_witness, ctx);
+        let collection_id = sui::object::id(&collection);{domains_str}
+
+        sui::transfer::public_share_object(collection);"
+        )
+    }
+
+    fn write_move_collection_display_info(&self) -> Option<String> {
+        let name = self.name();
+        self.description().as_ref().map(|description| {
+            format!(
+                "
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::display_info::new(
+                std::string::utf8(b\"{name}\"),
+                std::string::utf8(b\"{description}\"),
+            ),
+        );"
+            )
+        })
+    }
+
+    pub fn write_move_collection_url(&self) -> Option<String> {
+        self.url().as_ref().map(|url| {
+            format!(
+                "
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            sui::url::new_unsafe_from_bytes(b\"{url}\"),
+        );"
+            )
+        })
+    }
+
+    pub fn write_move_collection_symbol(&self) -> Option<String> {
+        self.symbol().as_ref().map(|symbol| {
+            format!(
+                "
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::symbol::new(std::string::utf8(b\"{symbol}\")),
+        );",
+            )
+        })
     }
 
     // TODO: Separate out into `creators` module
