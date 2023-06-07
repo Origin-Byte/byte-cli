@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use serde::{Deserialize, Serialize};
 
 use crate::models::collection::CollectionData;
@@ -5,6 +7,26 @@ use crate::models::collection::CollectionData;
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(transparent)]
 pub struct Dynamic(bool);
+
+impl Default for Dynamic {
+    /// Static NFT by default is a reasonable default as it does not introduce
+    /// any extra attack vectors that the creator might be forced to consider
+    /// and dynamic features can always be added at a later date.
+    fn default() -> Self {
+        Self(false)
+    }
+}
+
+impl Display for Dynamic {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let string = match self.0 {
+            true => "Dynamic",
+            false => "Static",
+        };
+
+        f.write_str(string)
+    }
+}
 
 impl From<bool> for Dynamic {
     fn from(value: bool) -> Self {
@@ -17,7 +39,7 @@ impl Dynamic {
         self.0
     }
 
-    pub fn write_dynamic_fns(&self, type_name: &String) -> String {
+    pub fn write_move_defs(&self, type_name: &str) -> String {
         let mut code = String::new();
 
         if !self.0 {
@@ -72,7 +94,7 @@ impl Dynamic {
         code
     }
 
-    pub fn write_dynamic_tests(
+    pub fn write_move_tests(
         &self,
         type_name: &str,
         collection_data: &CollectionData,

@@ -2,9 +2,7 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::contract::modules::Display;
 use crate::err::GutenError;
-use crate::models::settings::Settings;
 use crate::models::{collection::CollectionData, nft::NftData};
 
 use serde::{Deserialize, Serialize};
@@ -22,21 +20,14 @@ pub struct Schema {
     collection: CollectionData,
     #[builder(field(public))]
     nft: NftData,
-    #[builder(field(public))]
-    pub settings: Settings,
 }
 
 impl Schema {
-    pub fn new(
-        collection: CollectionData,
-        nft: NftData,
-        settings: Settings,
-    ) -> Schema {
+    pub fn new(collection: CollectionData, nft: NftData) -> Schema {
         Schema {
             package_name: None,
             collection,
             nft,
-            settings,
         }
     }
 
@@ -55,72 +46,23 @@ impl Schema {
         &self.nft
     }
 
-    pub fn write_init_fn(&self) -> String {
-        let domains = self.collection.write_move_domains();
-
-        let feature_domains =
-            self.settings.write_feature_domains(&self.collection);
-
-        let tags = self.collection.write_move_tags();
-
-        let type_name = self.nft.type_name();
-        let display = Display::write_display(type_name);
-
-        let orderbook = self.settings.orderbook.write_orderbook(type_name);
-
-        let witness = self.collection().witness_name();
-
-        let create_collection = self
-            .settings
-            .mint_policies
-            .write_collection_create_with_mint_cap(&witness, type_name);
-
-        let request_policies = self.settings.write_request_policies(&self.nft);
-        let transfer_fns = self.settings.write_transfer_fns(&self.nft);
-
-        format!(
-            "
-
-    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        {create_collection}
-
-        let publisher = sui::package::claim(witness, ctx);
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-{tags}{display}{domains}{feature_domains}{request_policies}{orderbook}{transfer_fns}
-    }}"
-        )
-    }
-
-    pub fn write_entry_fns(&self) -> String {
-        let mut code = String::new();
-
+    pub fn write_move_defs(&self) -> String {
         let nft_data = &self.nft;
         let collection_data = &self.collection;
 
-        code.push_str(
-            &self
-                .settings
-                .mint_policies
-                .write_move_mint_fns(nft_data, collection_data),
-        );
-
-        // TODO: Conditional on importing LiquidityLayer V1
-        code.push_str(
-            self.settings.orderbook.write_entry_fns(nft_data).as_str(),
-        );
-
-        code.push_str(&self.nft.write_dynamic_fns());
-        code.push_str(&self.nft.write_burn_fns(collection_data));
-
-        code
+        let mut defs_str = String::new();
+        defs_str.push_str(&self.nft.write_move_defs(collection_data));
+        defs_str
+            .push_str(&self.collection.write_move_defs(nft_data.type_name()));
+        defs_str
     }
 
     pub fn write_tests(&self) -> String {
         let type_name = self.nft.type_name();
-        let collection = self.collection();
+        let collection_data = self.collection();
 
-        let witness = collection.witness_name();
-        let supply = collection.supply();
+        let witness = collection_data.witness_name();
+        let supply = collection_data.supply();
 
         let requires_collection = supply.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
@@ -198,8 +140,7 @@ impl Schema {
         sui::test_scenario::end(scenario);
     }}");
 
-        tests.push_str(&self.nft.write_dynamic_tests(collection));
-        tests.push_str(&self.nft.write_burn_tests(collection));
+        tests.push_str(&self.nft.write_move_tests(collection_data));
 
         tests
     }
@@ -215,22 +156,20 @@ impl Schema {
         let witness = self.collection().witness_name();
         let package_name = self.package_name();
 
-        let type_declarations = self.settings.write_type_declarations();
-        let init_function = self.write_init_fn();
-        let entry_functions = self.write_entry_fns();
-        let nft_struct = self.nft.write_struct();
-
+        let definitions = self.write_move_defs();
         let tests = self.write_tests();
 
         let res = format!(
-            include_str!("../templates/template.move"),
-            witness = witness,
-            package_name = package_name,
-            type_declarations = type_declarations,
-            init_function = init_function,
-            entry_functions = entry_functions,
-            nft_struct = nft_struct,
-            tests = tests
+            "module {package_name}::{package_name} {{
+    /// One time witness is only instantiated in the init method
+    struct {witness} has drop {{}}
+
+    /// Can be used for authorization of other actions post-creation. It is
+    /// vital that this struct is not freely given to any contract, because it
+    /// serves as an auth token.
+    struct Witness has drop {{}}{definitions}{tests}
+}}
+"
         );
 
         output.write_all(res.as_bytes())?;

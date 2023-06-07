@@ -1,37 +1,27 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    contract::modules::DisplayInfoMod,
-    models::{collection::CollectionData, nft::NftData},
-};
+use crate::models::collection::CollectionData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
-    supply: Option<u64>,
     launchpad: bool,
     airdrop: bool,
 }
 
 impl MintPolicies {
-    pub fn new(supply: Option<u64>, launchpad: bool, airdrop: bool) -> Self {
-        Self {
-            supply,
-            launchpad,
-            airdrop,
-        }
+    pub fn new(launchpad: bool, airdrop: bool) -> Self {
+        Self { launchpad, airdrop }
     }
 
-    pub fn write_move_mint_fns(
+    pub fn write_move_defs(
         &self,
-        nft_data: &NftData,
+        type_name: &str,
         collection_data: &CollectionData,
     ) -> String {
         let mut mint_fns = String::new();
 
-        let type_name = nft_data.type_name();
-
         let mut base_params = vec!["name".to_string()];
-        base_params.extend(DisplayInfoMod::params().into_iter());
+        base_params.extend(self.params().into_iter());
         base_params.push("mint_cap".to_string());
 
         if collection_data.supply().requires_collection() {
@@ -42,7 +32,7 @@ impl MintPolicies {
         nft_params.push("ctx".to_string());
 
         let mut base_param_types = vec!["std::string::String".to_string()];
-        base_param_types.extend(DisplayInfoMod::param_types().into_iter());
+        base_param_types.extend(self.param_types().into_iter());
         base_param_types
             .push(format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>"));
 
@@ -98,7 +88,7 @@ impl MintPolicies {
             params.push("ctx".to_string());
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!("&mut sui::kiosk::Kiosk"));
+            param_types.push("&mut sui::kiosk::Kiosk".to_string());
             param_types.push("&mut sui::tx_context::TxContext".to_string());
 
             mint_fns.push_str(&write_move_fn(
@@ -127,7 +117,7 @@ impl MintPolicies {
             params.push("ctx".to_string());
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!("address"));
+            param_types.push("address".to_string());
             param_types.push("&mut sui::tx_context::TxContext".to_string());
 
             mint_fns.push_str(&write_move_fn(
@@ -196,22 +186,23 @@ impl MintPolicies {
         mint_fns
     }
 
-    pub fn write_collection_create_with_mint_cap(
-        &self,
-        witness: &str,
-        nft_type_name: &str,
-    ) -> String {
-        match self.supply {
-            Some(supply) => format!(
-"let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
-            &witness, std::option::some({supply}), ctx
-        );"),
-            None =>
-            format!(
-"let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<{witness}, {nft_type_name}>(
-            &witness, std::option::none(), ctx
-        );")
-        }
+    fn params(&self) -> Vec<String> {
+        vec!["description", "url", "attribute_keys", "attribute_values"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+
+    fn param_types(&self) -> Vec<String> {
+        vec![
+            "std::string::String",
+            "vector<u8>",
+            "vector<std::ascii::String>",
+            "vector<std::ascii::String>",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
     }
 }
 

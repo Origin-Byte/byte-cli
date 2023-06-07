@@ -16,25 +16,15 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
     }
 
     fun init(witness: PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, ctx: &mut sui::tx_context::TxContext) {
-        let (collection, mint_cap) = nft_protocol::collection::create_with_mint_cap<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
-            &witness, std::option::some(600), ctx
-        );
-
-        let publisher = sui::package::claim(witness, ctx);
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
-        let tags: vector<std::string::String> = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+        let collection = nft_protocol::collection::create<AurahmaPreReveal>(delegated_witness, ctx);
+        let collection_id = sui::object::id(&collection);
 
-        let display = sui::display::new<AurahmaPreReveal>(&publisher, ctx);
-        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
-        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
-        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
-        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
-        sui::display::update_version(&mut display);
-
-        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
+        let mint_cap = nft_protocol::mint_cap::new_limited<PROJECT_ELUUNE_AURAHMA_PRE_REVEAL, AurahmaPreReveal>(
+            &witness, collection_id, 600, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
@@ -80,21 +70,24 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
             ctx,
         );
 
-        let (transfer_policy, transfer_policy_cap) =
-            ob_request::transfer_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+        let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
 
-        nft_protocol::royalty_strategy_bps::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
+        let publisher = sui::package::claim(witness, ctx);
+
+        let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
         );
-        nft_protocol::transfer_allowlist::enforce(
-            &mut transfer_policy, &transfer_policy_cap,
+        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
+
+        let (borrow_policy, borrow_policy_cap) = ob_request::borrow_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
         );
 
-        let (borrow_policy, borrow_policy_cap) =
-            ob_request::borrow_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
-
-        let (withdraw_policy, withdraw_policy_cap) =
-            ob_request::withdraw_request::init_policy<AurahmaPreReveal>(&publisher, ctx);
+        let (withdraw_policy, withdraw_policy_cap) = ob_request::withdraw_request::init_policy<AurahmaPreReveal>(
+            &publisher, ctx,
+        );
         ob_request::request::enforce_rule_no_state<ob_request::request::WithNft<AurahmaPreReveal, ob_request::withdraw_request::WITHDRAW_REQ>, Witness>(
             &mut withdraw_policy, &withdraw_policy_cap,
         );
@@ -105,10 +98,19 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         );
         liquidity_layer_v1::orderbook::share(orderbook);
 
-        // Setup Transfers
-        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(collection);
+
+        let display = sui::display::new<AurahmaPreReveal>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
+        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
+        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
+        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
+        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);
+
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
+
+        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
 
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);
@@ -234,29 +236,6 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         nft
     }
 
-    // Protected orderbook functions
-    public entry fun enable_orderbook(
-        publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<AurahmaPreReveal, sui::sui::SUI>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        liquidity_layer_v1::orderbook::set_protection(
-            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
-        );
-    }
-
-    public entry fun disable_orderbook(
-        publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<AurahmaPreReveal, sui::sui::SUI>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        liquidity_layer_v1::orderbook::set_protection(
-            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
-        );
-    }
-
     public fun set_metadata(
         _delegated_witness: ob_permissions::witness::Witness<AurahmaPreReveal>,
         nft: &mut AurahmaPreReveal,
@@ -362,6 +341,29 @@ module project_eluune_aurahma_pre_reveal::project_eluune_aurahma_pre_reveal {
         ob_request::withdraw_request::confirm(withdraw_request, policy);
 
         burn_own_nft(collection, nft);
+    }
+
+    // Protected orderbook functions
+    public entry fun enable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<AurahmaPreReveal, sui::sui::SUI>,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
+        );
+    }
+
+    public entry fun disable_orderbook(
+        publisher: &sui::package::Publisher,
+        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<AurahmaPreReveal, sui::sui::SUI>,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+
+        liquidity_layer_v1::orderbook::set_protection(
+            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
+        );
     }
 
     #[test_only]

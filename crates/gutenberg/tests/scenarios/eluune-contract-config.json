@@ -6,29 +6,15 @@
     "creators": [
       "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
     ],
+    "supply": {
+      "enforced": 600
+    },
+    "mintCap": {
+      "supply": 600
+    },
     "tags": [
       "Gaming"
     ],
-    "supply": {
-      "enforced": 600
-    }
-  },
-  "nft": {
-    "typeName": "AurahmaPreReveal",
-    "burn": "permissionless",
-    "dynamic": true
-  },
-  "settings": {
-    "mintPolicies": {
-      "supply": 600,
-      "launchpad": true,
-      "airdrop": true
-    },
-    "requestPolicies": {
-      "transfer": true,
-      "withdraw": false,
-      "borrow": false
-    },
     "royalties": {
       "proportional": {
         "shares": [
@@ -44,6 +30,18 @@
         "collectionRoyaltyBps": 700
       }
     },
+    "requestPolicies": {
+      "transfer": true
+    },
     "orderbook": "protected"
+  },
+  "nft": {
+    "typeName": "AurahmaPreReveal",
+    "burn": "permissionless",
+    "dynamic": true,
+    "mintPolicies": {
+      "launchpad": true,
+      "airdrop": true
+    }
   }
 }

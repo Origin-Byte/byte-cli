@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate derive_builder;
 
-pub mod contract;
 pub mod err;
 pub mod models;
 pub mod package;
