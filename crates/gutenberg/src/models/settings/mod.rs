@@ -1,38 +1,29 @@
-pub mod minting;
 pub mod orderbook;
 pub mod request;
 
-pub use minting::MintPolicies;
 pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 
 use serde::{Deserialize, Serialize};
 
-use super::{collection::CollectionData, nft::NftData};
+use super::nft::NftData;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    mint_policies: MintPolicies,
     request_policies: RequestPolicies,
     orderbook: Orderbook,
 }
 
 impl Settings {
     pub fn new(
-        mint_policies: MintPolicies,
         request_policies: RequestPolicies,
         orderbook: Orderbook,
     ) -> Settings {
         Settings {
-            mint_policies,
             request_policies,
             orderbook,
         }
-    }
-
-    pub fn mint_policies(&self) -> &MintPolicies {
-        &self.mint_policies
     }
 
     pub fn request_policies(&self) -> &RequestPolicies {
@@ -43,17 +34,10 @@ impl Settings {
         &self.orderbook
     }
 
-    pub fn write_move_init(
-        &self,
-        nft_data: &NftData,
-        collection_data: &CollectionData,
-    ) -> String {
+    pub fn write_move_init(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
-        let witness = collection_data.witness_name();
 
         let mut init_str = String::new();
-        init_str
-            .push_str(&self.mint_policies.write_move_init(&witness, type_name));
         init_str.push_str(
             "
 
@@ -64,19 +48,10 @@ impl Settings {
         init_str
     }
 
-    pub fn write_move_defs(
-        &self,
-        nft_data: &NftData,
-        collection_data: &CollectionData,
-    ) -> String {
+    pub fn write_move_defs(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
 
         let mut defs_str: String = String::new();
-        defs_str.push_str(
-            &self
-                .mint_policies
-                .write_move_defs(nft_data, collection_data),
-        );
         defs_str.push_str(&self.orderbook.write_move_defs(type_name));
         defs_str
     }

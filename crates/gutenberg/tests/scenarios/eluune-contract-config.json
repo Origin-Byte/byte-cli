@@ -31,14 +31,14 @@
   "nft": {
     "typeName": "AurahmaPreReveal",
     "burn": "permissionless",
-    "dynamic": true
-  },
-  "settings": {
+    "dynamic": true,
     "mintPolicies": {
       "supply": 600,
       "launchpad": true,
       "airdrop": true
-    },
+    }
+  },
+  "settings": {
     "requestPolicies": {
       "transfer": true,
       "withdraw": false,

@@ -62,12 +62,7 @@ impl Schema {
         defs_str.push_str(
             &self.nft.write_move_defs(collection_data, &self.settings),
         );
-        defs_str.push_str(
-            &self
-                .settings
-                .write_move_defs(nft_data, collection_data)
-                .as_str(),
-        );
+        defs_str.push_str(&self.settings.write_move_defs(nft_data));
         defs_str
     }
 

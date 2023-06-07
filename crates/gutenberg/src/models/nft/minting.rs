@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::{collection::CollectionData, nft::NftData};
+use crate::models::collection::CollectionData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
@@ -46,12 +46,10 @@ impl MintPolicies {
 
     pub fn write_move_defs(
         &self,
-        nft_data: &NftData,
+        type_name: &str,
         collection_data: &CollectionData,
     ) -> String {
         let mut mint_fns = String::new();
-
-        let type_name = nft_data.type_name();
 
         let mut base_params = vec!["name".to_string()];
         base_params.extend(self.params().into_iter());
