@@ -24,9 +24,13 @@ impl MoveToml {
             .dependencies
             .iter()
             .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
-                    panic!("Could not find Package Name {} in PackageMap", name)
-                });
+                let dep_pack = package_map.0.get(name).expect(
+                    format!(
+                        "Could not find Package Name {} in PackageMap",
+                        name
+                    )
+                    .as_str(),
+                );
 
                 get_object_id_from_rev(dep_pack, &specs.rev)
             })
@@ -39,8 +43,7 @@ impl MoveToml {
         &'a self,
         package_map: &'a PackageMap,
     ) -> Vec<LibSpecs> {
-        let dep_ids = self
-            .dependencies
+        self.dependencies
             .iter()
             .map(|(name, specs)| {
                 let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
@@ -49,17 +52,14 @@ impl MoveToml {
 
                 get_contract_ref(specs, dep_pack)
             })
-            .collect::<Vec<LibSpecs>>();
-
-        dep_ids
+            .collect::<Vec<LibSpecs>>()
     }
 
     pub fn get_contracts<'a>(
         &'a self,
         package_map: &'a PackageMap,
     ) -> Vec<&'a MoveLib> {
-        let dep_ids = self
-            .dependencies
+        self.dependencies
             .iter()
             .map(|(name, specs)| {
                 let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
@@ -68,9 +68,7 @@ impl MoveToml {
 
                 get_contract(specs, dep_pack)
             })
-            .collect::<Vec<&'a MoveLib>>();
-
-        dep_ids
+            .collect::<Vec<&'a MoveLib>>()
     }
 
     pub fn update_toml(&mut self, package_map: &PackageMap) {
@@ -192,11 +190,7 @@ pub fn get_updated_dependency<'a>(
 
     let latest = versions.get(latest_version).unwrap();
 
-    if dep.package.version == latest.package.version {
-        None
-    } else {
-        Some(latest)
-    }
+    (dep.package.version == latest.package.version).then_some(latest)
 }
 
 pub fn get_version_from_object_id(

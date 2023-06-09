@@ -18,7 +18,7 @@ use byte_cli::consts::{BPS_100_PERCENT, CONFIG_FILENAME, PROJECT_FILENAME};
 use convert_case::{Case, Casing};
 use endpoints::*;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
 
@@ -302,7 +302,7 @@ async fn run() -> Result<()> {
 
             let _repo = match Repository::clone(url, temp_dir.path()) {
                 Ok(repo) => repo,
-                Err(e) => panic!("failed to clone: {}", e),
+                Err(e) => return Err(anyhow!("failed to clone: {}", e)),
             };
 
             // if repo.is_bare() {

@@ -85,7 +85,7 @@ impl<'de> Visitor<'de> for AddressVisitor {
     type Value = Address;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> fmt::Result {
-        write!(formatter, "The address provided is not valid.")
+        write!(formatter, "Not valid 32-byte hex-encoded string")
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
