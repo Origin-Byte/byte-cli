@@ -22,6 +22,7 @@ use anyhow::Result;
 use clap::Parser;
 use console::style;
 
+use git2::Repository;
 use gutenberg::{
     models::{
         collection::CollectionData,
@@ -37,12 +38,9 @@ use gutenberg::{
 };
 use io::{LocalRead, LocalWrite};
 use models::project::Project;
-use package_manager::{
-    info::BuildInfo,
-    move_lib::PackageMap,
-    toml::{self as move_toml, MoveToml},
-};
+use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
 use rust_sdk::coin;
+use tempfile::TempDir;
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -52,7 +50,10 @@ async fn main() {
             println!(
                 "\n{}{}",
                 consts::ROCKET_EMOJI,
-                style("Process ran successfully.").green().bold().dim()
+                style("Process ran successfully.")
+                    .green()
+                    .bold()
+                    .on_bright()
             );
         }
         Err(err) => {
@@ -288,21 +289,35 @@ async fn run() -> Result<()> {
         Commands::CheckDependencies { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("contract/Move.toml");
-            let map_path = PathBuf::from(Path::new("versions/versions.json"));
 
             let toml_string: String = fs::read_to_string(file_path)?.parse()?;
 
-            let move_toml: MoveToml =
+            let mut move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
 
-            // println!("Move TOML: {:?}", move_toml);
+            let url = "https://github.com/Origin-Byte/program-registry";
 
-            // println!("************************************");
+            let temp_dir =
+                TempDir::new().expect("Failed to create temporary directory");
+
+            let _repo = match Repository::clone(url, temp_dir.path()) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to clone: {}", e),
+            };
+
+            // if repo.is_bare() {
+            //     println!("Repository cloned successfully!");
+            // } else {
+            //     return Err(anyhow!(
+            //         "Something went wrong while accessing the Program Registry"
+            //     ));
+            // }
+
+            let file_name = PathBuf::from("registry-main.json");
+            let mut map_path = temp_dir.path().to_path_buf();
+            map_path.push(&file_name);
 
             let package_map = PackageMap::read(&map_path)?;
-            // println!("Protocol MAP: {:?}", package_map);
-
-            println!("************************************");
 
             // Note: This code block assumes that there is only one folder
             // in the build folder, which is the case.
@@ -319,24 +334,11 @@ async fn run() -> Result<()> {
 
             let mut info = BuildInfo::read_yaml(&build_info_path)?;
 
-            info.packages.filter_for_originbyte();
             info.packages.make_name_canonical();
-            println!("Build Info: {:?}", info);
 
-            println!("************************************");
+            move_toml.update_toml(&package_map);
 
-            let dependencies =
-                move_toml.get_contracts_with_fall_back(&package_map, &info);
-            println!("Dependencies: {:?}", dependencies);
-
-            println!("************************************");
-
-            let to_update = move_toml::get_dependencies_to_update(
-                &dependencies,
-                &package_map,
-            );
-
-            println!("To UPDATE: {:?}", to_update);
+            // TODO: Update actual Move.toml file
         }
     }
 

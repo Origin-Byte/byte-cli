@@ -60,6 +60,7 @@ impl LocalRead for SchemaBuilder {
 pub trait LocalRead: DeserializeOwned {
     fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
         let file = File::open(path_buf)?;
+        // TODO: Return a more tellin error message
         let obj = serde_json::from_reader(file)?;
 
         Ok(obj)

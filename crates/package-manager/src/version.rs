@@ -126,6 +126,12 @@ impl PartialOrd for Version {
     }
 }
 
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
 #[cfg(test)]
 mod test_version {
     use super::*;

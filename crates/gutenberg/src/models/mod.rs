@@ -26,6 +26,12 @@ impl Address {
         Ok(Address(Address::validate_address(address)?))
     }
 
+    // pub fn from_uncanonical(address: String) -> Result<Self, GutenError> {
+    //     let mut canonical = String::from("0x");
+    //     canonical.push_str(address.as_str());
+    //     Self::new(canonical)
+    // }
+
     pub fn as_string(&self) -> &String {
         &self.0
     }

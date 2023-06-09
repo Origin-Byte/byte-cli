@@ -21,7 +21,7 @@ pub struct CompiledPackageInfo {
 
 impl CompiledPackageInfo {
     // Ideally this function should run at deserialization time
-    pub fn filter_for_originbyte(&mut self) {
+    pub fn remove_ob_prefix(&mut self) {
         self.ob_packages.retain(|name, _| {
             // Removes `ob_` prefix from the package names
             // Note: Susceptible to false positives if a

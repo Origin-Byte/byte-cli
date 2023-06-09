@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
+use console::style;
 use gutenberg::models::Address;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
 
 use crate::{
-    info::BuildInfo,
     move_lib::{Dependency, LibSpecs, MoveLib, Package, PackageMap},
     version::Version,
 };
@@ -73,32 +73,33 @@ impl MoveToml {
         dep_ids
     }
 
-    pub fn get_contracts_with_fall_back<'a>(
-        &'a self,
-        package_map: &'a PackageMap,
-        fall_back: &'a BuildInfo,
-    ) -> Vec<&'a MoveLib> {
-        let dep_ids = self
-            .dependencies
+    pub fn update_toml(&mut self, package_map: &PackageMap) {
+        let dependencies = self.get_contracts(package_map);
+
+        let to_update = get_dependencies_to_update(&dependencies, package_map);
+
+        let mut updated_deps = to_update
             .iter()
-            .map(|(name, specs)| {
-                let dep_pack = package_map
-                    .0
-                    .get(name)
-                    .ok_or_else(|| {
-                        fall_back
-                            .packages
-                            .ob_packages
-                            .get(name)
-                            .expect("Could not find package ID")
-                    })
-                    .unwrap();
-
-                get_contract(specs, dep_pack)
+            .map(|dep| {
+                (
+                    dep.package.name.clone(),
+                    dep.contract_ref.path.clone(),
+                    dep.package.version,
+                )
             })
-            .collect::<Vec<&'a MoveLib>>();
+            .collect::<Vec<(String, Dependency, Version)>>();
 
-        dep_ids
+        updated_deps
+            .drain(..)
+            .for_each(|(dep_name, dep, dep_version)| {
+                println!(
+                    "{}{}",
+                    style("Updated ").green().bold().on_bright(),
+                    format!("{} to version {}", dep_name, dep_version).as_str()
+                );
+
+                self.dependencies.insert(dep_name, dep);
+            });
     }
 }
 
@@ -175,6 +176,7 @@ pub fn get_updated_dependency<'a>(
     dep: &'a MoveLib,
     package_map: &'a PackageMap,
 ) -> Option<&'a MoveLib> {
+    // Fetch available versions by package name
     let versions = package_map.0.get(&dep.package.name).unwrap_or_else(|| {
         panic!(
             "Could not find Package Name {} in PackageMap",
