@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
     None,
@@ -8,8 +8,15 @@ pub enum Orderbook {
     Protected,
 }
 
+impl Default for Orderbook {
+    /// No orderbook by default is a safe choice
+    fn default() -> Self {
+        Orderbook::None
+    }
+}
+
 impl Orderbook {
-    pub fn write_orderbook(&self, type_name: &String) -> String {
+    pub fn write_move_init(&self, type_name: &str) -> String {
         match self {
             Orderbook::Unprotected => format!(
                 "
@@ -31,7 +38,8 @@ impl Orderbook {
         }
     }
 
-    pub fn write_entry_fns(&self, type_name: &String) -> String {
+    pub fn write_move_defs(&self, type_name: &str) -> String {
+        // TODO: Conditional on importing LiquidityLayer V1
         match self {
             Orderbook::Unprotected => String::new(), // do nothing
             Orderbook::Protected => format!(

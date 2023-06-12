@@ -1,13 +1,9 @@
 //! Unit tests on input validation for the Schema struct
-
-use std::collections::BTreeSet;
-
 use gutenberg::{
     err::GutenError,
     models::{
         collection::CollectionData,
         launchpad::{listing::Listing, market::Market},
-        settings::Composability,
         Address,
     },
 };
@@ -115,26 +111,6 @@ fn input_creators() -> Result<(), GutenError> {
         Address::new("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df".to_string())?,
     ];
     assert_eq!(collection.creators(), &creators_);
-
-    Ok(())
-}
-
-#[ignore]
-#[test]
-fn input_composability() -> Result<(), GutenError> {
-    // let mut settings = Settings::default();
-
-    let mut types = BTreeSet::new();
-
-    types.insert(String::from("Avatar"));
-    types.insert(String::from("Hat"));
-    types.insert(String::from("Shoes"));
-
-    let _composability =
-        Composability::new_from_tradeable_traits(types, String::from("Avatar"));
-
-    // settings.set_composability(composability.clone());
-    //  assert_eq!(settings.composability.unwrap(), composability);
 
     Ok(())
 }

@@ -150,9 +150,10 @@ impl Tags {
     }
 
     /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write_move(&self) -> String {
+    pub fn write_move_init(&self) -> String {
         let mut code = String::from(
             "
+
         let tags: vector<std::string::String> = std::vector::empty();",
         );
 

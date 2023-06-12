@@ -1,8 +1,32 @@
+use std::fmt::{self, Display};
+
 use serde::{Deserialize, Serialize};
+
+use crate::models::collection::CollectionData;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(transparent)]
 pub struct Dynamic(bool);
+
+impl Default for Dynamic {
+    /// Static NFT by default is a reasonable default as it does not introduce
+    /// any extra attack vectors that the creator might be forced to consider
+    /// and dynamic features can always be added at a later date.
+    fn default() -> Self {
+        Self(false)
+    }
+}
+
+impl Display for Dynamic {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let string = match self.0 {
+            true => "Dynamic",
+            false => "Static",
+        };
+
+        f.write_str(string)
+    }
+}
 
 impl From<bool> for Dynamic {
     fn from(value: bool) -> Self {
@@ -15,7 +39,7 @@ impl Dynamic {
         self.0
     }
 
-    pub fn write_dynamic_fns(&self, type_name: &String) -> String {
+    pub fn write_move_defs(&self, type_name: &str) -> String {
         let mut code = String::new();
 
         if !self.0 {
@@ -70,16 +94,40 @@ impl Dynamic {
         code
     }
 
-    pub fn write_dynamic_tests(
+    pub fn write_move_tests(
         &self,
-        type_name: &String,
-        witness: &String,
+        type_name: &str,
+        collection_data: &CollectionData,
     ) -> String {
         let mut code = String::new();
 
         if !self.is_dynamic() {
             return code;
         }
+
+        let witness = collection_data.witness_name();
+        let supply = collection_data.supply();
+
+        let requires_collection = supply.requires_collection();
+        let collection_take_str = requires_collection.then(|| format!("
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
+            &scenario,
+        );")).unwrap_or_default();
+
+        let collection_param_str = requires_collection
+            .then_some(
+                "
+            &mut collection,",
+            )
+            .unwrap_or_default();
+
+        let collection_return_str = requires_collection
+            .then_some(
+                "
+        sui::test_scenario::return_shared(collection);",
+            )
+            .unwrap_or_default();
 
         code.push_str(&format!("
 
@@ -93,7 +141,7 @@ impl Dynamic {
         let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
             &scenario,
             CREATOR,
-        );
+        );{collection_take_str}
 
         let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
             &scenario,
@@ -109,7 +157,7 @@ impl Dynamic {
             b\"https://originbyte.io/\",
             vector[std::ascii::string(b\"avg_return\")],
             vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,
+            &mut mint_cap,{collection_param_str}
             sui::test_scenario::ctx(&mut scenario)
         );
         let nft_id = sui::object::id(&nft);
@@ -130,7 +178,7 @@ impl Dynamic {
 
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::return_to_address(CREATOR, publisher);
-        sui::test_scenario::return_shared(borrow_policy);
+        sui::test_scenario::return_shared(borrow_policy);{collection_return_str}
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
     }}"));

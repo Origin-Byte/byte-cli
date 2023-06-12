@@ -102,49 +102,40 @@ impl RoyaltyPolicy {
         push_beneficiary(beneficiaries_vec, shares);
     }
 
-    pub fn write_strategy(&self) -> String {
-        let (royalty_shares, royalty_strategy) = match self {
-            RoyaltyPolicy::Proportional { shares, collection_royalty_bps: bps } => (
-                shares.clone(),
-                format!(
-                    "        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
+    pub fn write_move_init(&self) -> String {
+        match self {
+            RoyaltyPolicy::Proportional {
+                shares,
+                collection_royalty_bps,
+            } => {
+                let mut creators_str = "
+
+        let royalty_map = sui::vec_map::empty();"
+                    .to_string();
+
+                for share in shares {
+                    creators_str.push_str(&format!(
+                        "
+        sui::vec_map::insert(&mut royalty_map, @{address}, {share});",
+                        share = share.share_bps,
+                        address = share.address
+                    ));
+                }
+
+                let domain = format!(
+                    "
+
+        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness,
             &mut collection,
             nft_protocol::royalty::from_shares(royalty_map, ctx),
-            {},
+            {collection_royalty_bps},
             ctx,
-        );",
-                    bps
-                ),
-            ),
-        };
-
-        let mut code = {
-            let mut vecmap = String::from(
-                "\n        let royalty_map = sui::vec_map::empty();\n",
-            );
-
-            royalty_shares
-                .iter()
-                .map(|share| {
-                    vecmap.push_str(
-                        format!(
-                        "        sui::vec_map::insert(&mut royalty_map, @{address}, {share});\n",
-                        share = share.share_bps,
-                        address = share.address
-                    )
-                        .as_str(),
-                    );
-                })
-                .for_each(drop);
-
-            vecmap.push('\n');
-
-            vecmap
-        };
-
-        code.push_str(royalty_strategy.as_str());
-
-        code
+        );"
+                );
+                creators_str.push_str(&domain);
+                creators_str
+            }
+        }
     }
 }
