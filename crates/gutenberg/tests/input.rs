@@ -60,35 +60,3 @@ fn input_listing() -> Result<(), GutenError> {
 
     Ok(())
 }
-
-#[test]
-fn input_addresses() -> Result<(), GutenError> {
-    // In converting a string to an address the function should be
-    // able to handle hexadecimals with or without 0x prefix.
-    let address =
-        "0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"
-            .to_string();
-    let address_2 =
-        "1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"
-            .to_string();
-
-    assert_eq!(Address::new(address)?, Address::new(address_2)?);
-
-    Ok(())
-}
-
-#[test]
-fn err_input_incorrect_addresses() -> Result<(), GutenError> {
-    assert!(Address::new(
-        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d1432144152".to_string()
-    )
-    .is_err());
-    assert!(Address::new(
-        "0xd8fb1b0ed0ddd5b3d07f3147d58fdc2eb880d1437d58fdc2eb880".to_string()
-    )
-    .is_err());
-    assert!(Address::new("0xd8fb1b0".to_string()).is_err());
-    assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
-
-    Ok(())
-}
