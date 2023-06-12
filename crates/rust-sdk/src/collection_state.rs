@@ -1,9 +1,5 @@
-use std::{fs::File, path::PathBuf};
-
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-
-use derive_more::Display;
+use std::fmt;
 use sui_sdk::types::base_types::ObjectID;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -15,7 +11,7 @@ pub struct CollectionState {
     pub warehouses: Vec<ObjectType>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Display)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ObjectType {
     Package(ObjectID),
     Collection(ObjectID),
@@ -28,18 +24,19 @@ pub enum ObjectType {
     TransferPolicyCap(ObjectID),
 }
 
-impl CollectionState {
-    pub fn try_read_config(path_buf: &PathBuf) -> Result<Self> {
-        let f = File::open(path_buf);
-
-        let schema = match f {
-            Ok(file) => match serde_json::from_reader(file) {
-                Ok(schema) => Ok(schema),
-                Err(err) => Err(anyhow!("The following error has occurred while reading objects.json: {},", err)),
-            },
-            Err(err) => Err(anyhow!("The following error has occurred while reading objects.json: {},", err)),
-        }?;
-
-        Ok(schema)
+impl fmt::Display for ObjectType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Transparently pass through ObjectID
+        match self {
+            ObjectType::Package(id)
+            | ObjectType::Collection(id)
+            | ObjectType::MintCap(id)
+            | ObjectType::Warehouse(id)
+            | ObjectType::BpsRoyaltyStrategy(id)
+            | ObjectType::PolicyCap(id)
+            | ObjectType::Policy(id)
+            | ObjectType::TransferPolicy(id)
+            | ObjectType::TransferPolicyCap(id) => fmt::Display::fmt(id, f),
+        }
     }
 }

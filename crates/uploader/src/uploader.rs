@@ -28,10 +28,6 @@ pub struct StorageState {
     pub missed_items: IndexMap<String, u64>,
 }
 
-// impl StorageState {
-//     pub fn sync_state(&mut self, )
-// }
-
 #[derive(Debug, Default)]
 pub struct StorageItems(pub IndexMap<String, Item>);
 
