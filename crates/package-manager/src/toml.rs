@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::models::Address;
-use serde::Deserialize;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
 use crate::{
@@ -9,10 +10,11 @@ use crate::{
     version::Version,
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub struct MoveToml {
     pub package: Package,
     pub dependencies: HashMap<String, Dependency>,
+    pub addresses: HashMap<String, Address>,
 }
 
 impl MoveToml {
@@ -61,12 +63,15 @@ impl MoveToml {
     ) -> Vec<&'a MoveLib> {
         self.dependencies
             .iter()
-            .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
-                    panic!("Could not find Package Name {} in PackageMap", name)
-                });
+            .filter_map(|(name, specs)| {
+                let dep_pack = package_map.0.get(name);
 
-                get_contract(specs, dep_pack)
+                if let Some(pack) = dep_pack {
+                    Some(get_contract(specs, pack))
+                } else {
+                    println!("{} Skipping Package {:?}, could not find it in the Package Registry", style("Warning ").yellow().bold(), name);
+                    None
+                }
             })
             .collect::<Vec<&'a MoveLib>>()
     }
@@ -89,12 +94,14 @@ impl MoveToml {
 
         updated_deps
             .drain(..)
-            .for_each(|(dep_name, dep, dep_version)| {
+            .for_each(|(dep_name, mut dep, dep_version)| {
                 println!(
                     "{}{}",
                     style("Updated ").green().bold().on_bright(),
                     format!("{} to version {}", dep_name, dep_version).as_str()
                 );
+
+                dep.sanitize_subdir();
 
                 self.dependencies.insert(dep_name, dep);
             });
@@ -190,7 +197,7 @@ pub fn get_updated_dependency<'a>(
 
     let latest = versions.get(latest_version).unwrap();
 
-    (dep.package.version == latest.package.version).then_some(latest)
+    (dep.package.version != latest.package.version).then_some(latest)
 }
 
 pub fn get_version_from_object_id(
@@ -208,4 +215,11 @@ pub fn get_version_from_object_id(
     }
 
     Err(anyhow!("Unable to find object ID in package map"))
+}
+
+/// This function is here because Toml serialiser seems to be
+/// failing to add a vertical space between the tables `package` and `dependencies`
+pub fn add_vertical_spacing(input: &str) -> String {
+    let re = Regex::new(r"(?m)^(version.*)").unwrap();
+    re.replace_all(input, "$1\n").to_string()
 }

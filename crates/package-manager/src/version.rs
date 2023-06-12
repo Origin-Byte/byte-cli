@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt, marker::PhantomData};
 
 use serde::{
     de::{self, Unexpected, Visitor},
-    Deserialize, Deserializer,
+    Deserialize, Deserializer, Serialize, Serializer,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -129,6 +129,21 @@ impl PartialOrd for Version {
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl Serialize for Version {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let version_str = self.major.to_string()
+            + "."
+            + self.minor.to_string().as_str()
+            + "."
+            + self.patch.to_string().as_str();
+
+        serializer.serialize_str(version_str.as_str())
     }
 }
 

@@ -25,7 +25,7 @@ impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
 impl LocalWrite for CollectionState {}
 impl LocalWrite for SchemaBuilder {}
-// impl LocalWrite for MoveToml {}
+impl LocalWrite for MoveToml {}
 
 impl LocalRead for SchemaBuilder {
     fn read(path_buf: &PathBuf) -> Result<Self, CliError> {

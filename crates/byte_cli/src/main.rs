@@ -8,14 +8,15 @@ pub mod models;
 pub mod prelude;
 
 use std::{
-    collections::BTreeSet,
-    fs,
+    fs::{self, File},
     path::{Path, PathBuf},
 };
 
 use crate::prelude::*;
-use byte_cli::consts::{BPS_100_PERCENT, CONFIG_FILENAME, PROJECT_FILENAME};
-use convert_case::{Case, Casing};
+use byte_cli::{
+    consts::{CONFIG_FILENAME, PROJECT_FILENAME},
+    io::{LocalRead, LocalWrite},
+};
 use endpoints::*;
 
 use anyhow::{anyhow, Result};
@@ -23,23 +24,14 @@ use clap::Parser;
 use console::style;
 
 use git2::Repository;
-use gutenberg::{
-    models::{
-        collection::CollectionData,
-        nft::{burn::Burn, NftData},
-        settings::{
-            royalties::Share, MintPolicies, Orderbook, RequestPolicies,
-            RoyaltyPolicy, Settings,
-        },
-        Address,
-    },
-    schema::SchemaBuilder,
-    Schema,
+use gutenberg::schema::SchemaBuilder;
+use package_manager::{
+    info::BuildInfo,
+    move_lib::PackageMap,
+    toml::{self as move_toml, MoveToml},
 };
-use io::{LocalRead, LocalWrite};
-use models::project::Project;
-use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
 use rust_sdk::coin;
+use std::io::Write;
 use tempfile::TempDir;
 use uploader::writer::Storage;
 
@@ -80,30 +72,8 @@ async fn run() -> Result<()> {
             schema_path.push(CONFIG_FILENAME);
             project_path.push(PROJECT_FILENAME);
 
-            let keystore = rust_sdk::utils::get_keystore().await?;
-            let sender = rust_sdk::utils::get_active_address(&keystore)?;
-            let sender_string = Address::new(sender.to_string())?;
-
-            let nft_type = name.as_str().to_case(Case::Pascal);
-
-            let project = Project::new(name.clone(), sender);
-
-            let royalties = Some(RoyaltyPolicy::new(
-                BTreeSet::from([Share::new(sender_string, BPS_100_PERCENT)]),
-                royalty_bps as u64,
-            ));
-
-            let schema = Schema::new(
-                CollectionData::new(name, None, None, None, vec![], None),
-                NftData::new(nft_type, Burn::Permissionless, false),
-                Settings::new(
-                    royalties,
-                    MintPolicies::new(Some(supply as u64), true, true),
-                    RequestPolicies::new(true, false, false),
-                    None,
-                    Orderbook::Protected,
-                ),
-            );
+            let (schema, project) =
+                new_simple::init_schema(&name, supply, royalty_bps).await?;
 
             schema.write(&schema_path)?;
             project.write(&project_path)?;
@@ -290,7 +260,8 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push("contract/Move.toml");
 
-            let toml_string: String = fs::read_to_string(file_path)?.parse()?;
+            let toml_string: String =
+                fs::read_to_string(file_path.clone())?.parse()?;
 
             let mut move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
@@ -300,18 +271,18 @@ async fn run() -> Result<()> {
             let temp_dir =
                 TempDir::new().expect("Failed to create temporary directory");
 
-            let _repo = match Repository::clone(url, temp_dir.path()) {
+            let repo = match Repository::clone(url, temp_dir.path()) {
                 Ok(repo) => repo,
                 Err(e) => return Err(anyhow!("failed to clone: {}", e)),
             };
 
-            // if repo.is_bare() {
-            //     println!("Repository cloned successfully!");
-            // } else {
-            //     return Err(anyhow!(
-            //         "Something went wrong while accessing the Program Registry"
-            //     ));
-            // }
+            if !repo.is_empty()? {
+                println!("Fetched Program Registry successfully");
+            } else {
+                return Err(anyhow!(
+                    "Something went wrong while accessing the Program Registry"
+                ));
+            }
 
             let file_name = PathBuf::from("registry-main.json");
             let mut map_path = temp_dir.path().to_path_buf();
@@ -338,7 +309,12 @@ async fn run() -> Result<()> {
 
             move_toml.update_toml(&package_map);
 
-            // TODO: Update actual Move.toml file
+            let mut toml_string = toml::to_string_pretty(&move_toml)?;
+
+            toml_string = move_toml::add_vertical_spacing(toml_string.as_str());
+
+            let mut file = File::create(file_path)?;
+            file.write_all(toml_string.as_bytes())?;
         }
     }
 

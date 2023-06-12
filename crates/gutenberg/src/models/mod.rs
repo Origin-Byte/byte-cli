@@ -5,7 +5,7 @@ use std::{
 
 use serde::{
     de::{self, Visitor},
-    Deserialize, Deserializer, Serialize,
+    Deserialize, Deserializer, Serialize, Serializer,
 };
 
 use crate::err::{self, GutenError};
@@ -16,9 +16,7 @@ pub mod nft;
 pub mod settings;
 
 // TODO: Custom deserialize that validates address
-#[derive(
-    Debug, Serialize, Default, PartialEq, PartialOrd, Eq, Ord, Clone, Hash,
-)]
+#[derive(Debug, Default, PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct Address(String);
 
 impl Address {
@@ -37,7 +35,14 @@ impl Address {
     }
 
     fn validate_address(input: String) -> Result<String, GutenError> {
-        let hexa_str = input.strip_prefix("0x").unwrap_or(&input);
+        let mut hexa_str = input.strip_prefix("0x").unwrap_or(&input);
+        let padded_input = Self::add_padding(hexa_str);
+
+        if hexa_str.len() < 64 {
+            // Adding padding
+            hexa_str = padded_input.as_str();
+        }
+
         let hexa = hex::decode(hexa_str).map_err(|err| {
             err::invalid_address(
                 hexa_str.to_string(),
@@ -60,6 +65,13 @@ impl Address {
         } else {
             Ok(hex::encode(hexa))
         }
+    }
+
+    fn add_padding(hex_string: &str) -> String {
+        let padding_length = 64 - hex_string.len();
+        let padding = "0".repeat(padding_length);
+
+        format!("{}{}", padding, hex_string)
     }
 }
 
@@ -108,5 +120,17 @@ impl<'de> Deserialize<'de> for Address {
         // Instantiate VersionVisitor and ask the Deserializer to drive
         // it over the input data, resulting in an instance of Version.
         deserializer.deserialize_str(AddressVisitor::new())
+    }
+}
+
+impl Serialize for Address {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut addr = String::from("0x");
+        addr.push_str(self.0.as_str());
+
+        serializer.serialize_str(addr.as_str())
     }
 }
