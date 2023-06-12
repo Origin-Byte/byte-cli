@@ -11,6 +11,18 @@ pub enum Supply {
 }
 
 impl Supply {
+    pub fn untracked() -> Self {
+        Supply::Untracked
+    }
+
+    pub fn tracked() -> Self {
+        Supply::Tracked
+    }
+
+    pub fn enforced(supply: u64) -> Self {
+        Supply::Enforced(supply)
+    }
+
     /// Whether supply needs to be tracked on the `Collection` level
     pub fn requires_collection(&self) -> bool {
         !matches!(self, Supply::Untracked)

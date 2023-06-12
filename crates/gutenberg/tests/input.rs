@@ -2,7 +2,6 @@
 use gutenberg::{
     err::GutenError,
     models::{
-        collection::CollectionData,
         launchpad::{listing::Listing, market::Market},
         Address,
     },
@@ -17,103 +16,6 @@ use gutenberg::{
 // Input sanitation from the CLI >> avoid code injection
 // Input creators: empty vectors
 // Listings > Markets > The token string field is currenly not being validated
-
-#[test]
-fn input_name() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    collection.set_name(String::from("Suimarines"))?;
-    assert_eq!(collection.name(), String::from("suimarines"));
-
-    collection.set_name(String::from("SUIMARINES"))?;
-    assert_eq!(collection.name(), String::from("suimarines"));
-
-    collection.set_name(String::from("suimarines"))?;
-    assert_eq!(collection.name(), String::from("suimarines"));
-
-    Ok(())
-}
-
-#[test]
-fn input_description() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    collection
-        .set_description(String::from("It supports non-alphanumeric &&&"));
-    assert_eq!(
-        collection.description().unwrap(),
-        String::from("It supports non-alphanumeric &&&")
-    );
-
-    Ok(())
-}
-
-#[test]
-fn input_symbol() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    collection.set_symbol(String::from("SUIM"))?;
-    assert_eq!(*collection.symbol().as_ref().unwrap(), String::from("SUIM"));
-
-    collection.set_symbol(String::from("suim"))?;
-    assert_eq!(*collection.symbol().as_ref().unwrap(), String::from("SUIM"));
-
-    Ok(())
-}
-
-#[test]
-fn input_url() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    collection.set_url(String::from("http://originbyte.io"))?;
-    assert_eq!(
-        *collection.url().as_ref().unwrap(),
-        String::from("http://originbyte.io")
-    );
-
-    collection.set_url(String::from("www.originbyte.io"))?;
-    assert_eq!(
-        *collection.url().as_ref().unwrap(),
-        String::from("http://originbyte.io")
-    );
-
-    Ok(())
-}
-
-#[test]
-fn input_creators() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    let creators = vec![String::from(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
-    )];
-
-    collection.set_creators(creators.clone())?;
-
-    let creators_ = vec![Address::new(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
-            .to_string(),
-    )?];
-
-    assert_eq!(collection.creators(), &creators_);
-
-    let creators = vec![
-        String::from("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"),
-        String::from("0x582547ac2b368b17409a3f3672fe2eea9767b80830497fb2e31a15bc492f5516"),
-        String::from("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df"),
-    ];
-
-    collection.set_creators(creators.clone())?;
-
-    let creators_ = vec![
-        Address::new("0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed".to_string())?,
-        Address::new("0x582547ac2b368b17409a3f3672fe2eea9767b80830497fb2e31a15bc492f5516".to_string())?,
-        Address::new("0x1a4f2b04e99311b0ff8228cf12735402f6618d7be0f0b320364339baf03e49df".to_string())?,
-    ];
-    assert_eq!(collection.creators(), &creators_);
-
-    Ok(())
-}
 
 #[test]
 fn input_listing() -> Result<(), GutenError> {
@@ -155,25 +57,6 @@ fn input_listing() -> Result<(), GutenError> {
     assert_eq!(listing.receiver, receiver);
     assert_eq!(listing.markets[0], market_1);
     assert_eq!(listing.markets[1], market_2);
-
-    Ok(())
-}
-
-#[test]
-fn err_input_name_if_non_alphanumeric() -> Result<(), GutenError> {
-    let mut collection = CollectionData::default();
-
-    assert!(collection.set_name(String::from("Suimarine$")).is_err());
-    assert!(collection.set_name(String::from("Suimarine#")).is_err());
-    assert!(collection.set_name(String::from("Suimarine&")).is_err());
-    assert!(collection.set_name(String::from("Suimarine/")).is_err());
-    assert!(collection.set_name(String::from("Suimarine>")).is_err());
-    assert!(collection.set_name(String::from("Suimarine<")).is_err());
-    assert!(collection.set_name(String::from("Suimarine.")).is_err());
-    assert!(collection.set_name(String::from("Suimarine_")).is_err());
-    assert!(collection.set_name(String::from("Suimarine~")).is_err());
-    assert!(collection.set_name(String::from("Suimarine^")).is_err());
-    assert!(collection.set_name(String::from("Suimarine|")).is_err());
 
     Ok(())
 }

@@ -78,20 +78,9 @@ impl RoyaltyPolicy {
 
     pub fn add_beneficiary_vecs(
         &mut self,
-        beneficiaries_vec: &Vec<Address>,
-        shares_vec: &Vec<u64>,
+        beneficiaries_vec: &[Address],
+        shares_vec: &[u64],
     ) {
-        let push_beneficiary =
-            |beneficiaries_vec: &Vec<Address>, shares: &mut BTreeSet<Share>| {
-                beneficiaries_vec
-                    .iter()
-                    .zip(shares_vec.iter())
-                    .map(|(address, share)| {
-                        shares.insert(Share::new(address.clone(), *share))
-                    })
-                    .for_each(drop);
-            };
-
         let shares = match self {
             RoyaltyPolicy::Proportional {
                 shares,
@@ -99,7 +88,11 @@ impl RoyaltyPolicy {
             } => shares,
         };
 
-        push_beneficiary(beneficiaries_vec, shares);
+        beneficiaries_vec.iter().zip(shares_vec.iter()).for_each(
+            |(address, share)| {
+                shares.insert(Share::new(address.clone(), *share));
+            },
+        );
     }
 
     pub fn write_move_init(&self) -> String {

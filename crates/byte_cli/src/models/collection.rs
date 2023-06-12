@@ -6,17 +6,58 @@ use super::{
 };
 use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
-use dialoguer::{Confirm, Input};
-use gutenberg::{models::collection::CollectionData, schema::SchemaBuilder};
+use dialoguer::{Confirm, Input, Select};
+use gutenberg::{
+    models::{
+        collection::{
+            CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
+            Supply,
+        },
+        Address,
+    },
+    schema::SchemaBuilder,
+};
 
-impl FromPrompt for CollectionData {
+const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
+
+impl FromPrompt for MintCap {
     fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
         let theme = get_dialoguer_theme();
 
-        let mut collection = CollectionData::default();
+        let supply_index = Select::with_theme(&theme)
+            .with_prompt(
+                "Which supply policy do you want your Collection to have?",
+            )
+            .items(&SUPPLY_OPTIONS)
+            .interact()
+            .unwrap();
+
+        let limit = match SUPPLY_OPTIONS[supply_index] {
+            "Limited" => Some(
+                Input::with_theme(&theme)
+                    .with_prompt("What is the supply limit of the Collection?")
+                    .validate_with(positive_integer_validator)
+                    .interact()
+                    .unwrap()
+                    .parse::<u64>()
+                    .unwrap(),
+            ),
+            _ => None,
+        };
+
+        Ok(MintCap::new(limit))
+    }
+}
+
+impl FromPrompt for CollectionData {
+    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        let theme = get_dialoguer_theme();
 
         let name = Input::with_theme(&theme)
             .with_prompt("Please provide the name of the Collection:")
@@ -24,14 +65,10 @@ impl FromPrompt for CollectionData {
             .interact()
             .unwrap();
 
-        collection.set_name(name)?;
-
         let description = Input::with_theme(&theme)
             .with_prompt("Please provide the description of the Collection:")
             .interact()
             .unwrap();
-
-        collection.set_description(description);
 
         let symbol = Input::with_theme(&theme)
             .with_prompt(format!(
@@ -42,23 +79,20 @@ impl FromPrompt for CollectionData {
             .interact()
             .unwrap();
 
-        collection.set_symbol(symbol)?;
-
         let has_url = Confirm::with_theme(&theme)
             .with_prompt("Do you want to add a URL to your project's website?")
             .interact()
             .unwrap();
 
-        if has_url {
-            let url = Input::with_theme(&theme)
+        let url = has_url.then(|| {
+            Input::with_theme(&theme)
                 .with_prompt("What is the URL of the project's website?")
                 .validate_with(url_validator)
                 .interact()
-                .unwrap();
+                .unwrap()
+        });
 
-            collection.set_url(url)?;
-        };
-
+        // TODO: Separate into `Creators::from_prompt`
         let creators_num = Input::with_theme(&theme)
             .with_prompt("How many creator addresses are there?")
             .validate_with(positive_integer_validator)
@@ -80,7 +114,8 @@ impl FromPrompt for CollectionData {
                     ))
                     .validate_with(address_validator)
                     .interact()
-                    .unwrap();
+                    .map(Address::new)
+                    .unwrap()?;
 
                 if creators.contains(&address) {
                     println!("The address {} has already been added, please provide a different one.", address)
@@ -92,22 +127,20 @@ impl FromPrompt for CollectionData {
             creators.insert(address);
         }
 
-        collection.set_creators(creators.into_iter().collect())?;
-
-        // TODO:
-        // if features.contains(&String::from("tags")) {
-        //     let tag_indices = MultiSelect::with_theme(&theme)
-        //         .with_prompt("Which tags do you want to add? (use [SPACEBAR] to select options you want and hit [ENTER] when done)")
-        //         .items(&TAG_OPTIONS)
-        //         .interact()
-        //         .unwrap();
-
-        //     let tags =
-        //         Tags::new(&super::map_indices(tag_indices, &TAG_OPTIONS))?;
-
-        //     settings.set_tags(tags);
-        // }
-
-        Ok(collection)
+        Ok(CollectionData::new(
+            name.to_lowercase(),
+            Some(description),
+            Some(symbol.to_uppercase()),
+            url,
+            creators.into_iter().collect(),
+            // Use tracked supply as default as it is most compatible
+            Supply::tracked(),
+            MintCap::from_prompt(schema)?,
+            Some(RoyaltyPolicy::from_prompt(schema)?),
+            // TODO: Tags
+            None,
+            RequestPolicies::default(),
+            Orderbook::Protected,
+        ))
     }
 }
