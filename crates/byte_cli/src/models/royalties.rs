@@ -6,20 +6,18 @@ use super::{address_validator, bps_validator, number_validator, FromPrompt};
 use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::{
-    models::{
-        collection::{RoyaltyPolicy, Share},
-        Address,
-    },
-    schema::SchemaBuilder,
+use gutenberg::models::{
+    collection::{RoyaltyPolicy, Share},
+    Address,
 };
 
 impl FromPrompt for RoyaltyPolicy {
-    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a> = &'a [Address];
+
+    fn from_prompt(creators: &[Address]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
-        let creators = schema.collection.as_ref().unwrap().creators();
         let mut policy = get_policy_type()?;
 
         if are_royalty_owners_creators() {

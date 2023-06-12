@@ -4,16 +4,15 @@ use super::{map_indices, FromPrompt};
 use crate::prelude::get_dialoguer_theme;
 
 use dialoguer::{Confirm, Input, MultiSelect, Select};
-use gutenberg::{
-    models::nft::{Burn, MintPolicies, NftData},
-    schema::SchemaBuilder,
-};
+use gutenberg::models::nft::{Burn, MintPolicies, NftData};
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 const BURN_PERMISSIONS: [&str; 3] = ["None", "Permissioned", "Permissionless"];
 
 impl FromPrompt for MintPolicies {
-    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a> = ();
+
+    fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -35,7 +34,9 @@ impl FromPrompt for MintPolicies {
 }
 
 impl FromPrompt for NftData {
-    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a> = ();
+
+    fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -61,7 +62,7 @@ impl FromPrompt for NftData {
             type_name,
             Burn::from_str(BURN_PERMISSIONS[burn_permission_idx]).unwrap(),
             dynamic,
-            MintPolicies::from_prompt(schema)?,
+            MintPolicies::from_prompt(())?,
         );
 
         Ok(nft)

@@ -1,10 +1,8 @@
 use crate::models::FromPrompt;
 
+use byte_cli::SchemaBuilder;
 use console::style;
-use gutenberg::{
-    models::{collection::CollectionData, nft::NftData},
-    schema::SchemaBuilder,
-};
+use gutenberg::models::{collection::CollectionData, nft::NftData};
 
 pub fn init_collection_config(
     mut builder: SchemaBuilder,
@@ -23,7 +21,7 @@ pub fn init_collection_config(
                 .dim()
         );
 
-        builder.collection = Some(CollectionData::from_prompt(&builder)?);
+        builder.collection = Some(CollectionData::from_prompt(())?);
     }
 
     if !to_complete {
@@ -35,7 +33,7 @@ pub fn init_collection_config(
                 .dim()
         );
 
-        builder.nft = Some(NftData::from_prompt(&builder)?);
+        builder.nft = Some(NftData::from_prompt(())?);
     }
 
     println!(
