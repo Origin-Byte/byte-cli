@@ -27,18 +27,8 @@ impl FromPrompt for MintPolicies {
 
         let mint_options = map_indices(mint_options_indices, &MINTING_OPTIONS);
 
-        let launchpad =
-            if mint_options.contains(&String::from("OriginByte Launchpad")) {
-                true
-            } else {
-                false
-            };
-
-        let airdrop = if mint_options.contains(&String::from("NFT Airdrop")) {
-            true
-        } else {
-            false
-        };
+        let launchpad = mint_options.contains(&"OriginByte Launchpad");
+        let airdrop = mint_options.contains(&"NFT Airdrop");
 
         Ok(MintPolicies::new(launchpad, airdrop))
     }
