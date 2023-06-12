@@ -2,7 +2,7 @@ use crate::models::FromPrompt;
 
 use console::style;
 use gutenberg::{
-    models::{collection::CollectionData, nft::NftData, settings::Settings},
+    models::{collection::CollectionData, nft::NftData},
     schema::SchemaBuilder,
 };
 
@@ -36,18 +36,6 @@ pub fn init_collection_config(
         );
 
         builder.nft = Some(NftData::from_prompt(&builder)?);
-    }
-
-    println!(
-        "{}",
-        style("Awesome! As a last step we need to configure some settings.")
-            .blue()
-            .bold()
-            .dim()
-    );
-
-    if !to_complete || builder.settings.is_none() {
-        builder.settings = Some(Settings::from_prompt(&builder)?);
     }
 
     println!(

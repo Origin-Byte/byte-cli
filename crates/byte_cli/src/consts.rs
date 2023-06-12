@@ -8,8 +8,6 @@ pub const FEATURE_OPTIONS: [&str; 3] = [
     "Immediate Secondary Market Trading",
     "NFT Burning",
 ];
-pub const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-pub const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 pub const MARKET_OPTIONS: [&str; 2] =
     ["Fixed price sale", "Dutch auction sale"];
 pub const TAG_OPTIONS: [&str; 11] = [

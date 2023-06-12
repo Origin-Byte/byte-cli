@@ -35,6 +35,10 @@ impl From<bool> for Dynamic {
 }
 
 impl Dynamic {
+    pub fn new(dynamic: bool) -> Self {
+        Self(dynamic)
+    }
+
     pub fn is_dynamic(&self) -> bool {
         self.0
     }

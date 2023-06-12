@@ -8,7 +8,7 @@ use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 use dialoguer::{Confirm, Input};
 use gutenberg::{
     models::{
-        settings::royalties::{RoyaltyPolicy, Share},
+        collection::{RoyaltyPolicy, Share},
         Address,
     },
     schema::SchemaBuilder,

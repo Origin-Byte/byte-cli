@@ -1,16 +1,48 @@
 use std::str::FromStr;
 
-use super::FromPrompt;
+use super::{map_indices, FromPrompt};
 use crate::prelude::get_dialoguer_theme;
 
-use dialoguer::{Confirm, Input, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select};
 use gutenberg::{
-    models::nft::{burn::Burn, NftData},
+    models::nft::{Burn, MintPolicies, NftData},
     schema::SchemaBuilder,
 };
 
-const BURN_PERMISSIONS: [&'static str; 3] =
-    ["None", "Permissioned", "Permissionless"];
+const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
+const BURN_PERMISSIONS: [&str; 3] = ["None", "Permissioned", "Permissionless"];
+
+impl FromPrompt for MintPolicies {
+    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        let theme = get_dialoguer_theme();
+
+        let mint_options_indices = MultiSelect::with_theme(&theme)
+            .with_prompt("What minting options do you want to use? (use [SPACEBAR] to select options)")
+            .items(&MINTING_OPTIONS)
+            .interact()
+            .unwrap();
+
+        let mint_options = map_indices(mint_options_indices, &MINTING_OPTIONS);
+
+        let launchpad =
+            if mint_options.contains(&String::from("OriginByte Launchpad")) {
+                true
+            } else {
+                false
+            };
+
+        let airdrop = if mint_options.contains(&String::from("NFT Airdrop")) {
+            true
+        } else {
+            false
+        };
+
+        Ok(MintPolicies::new(launchpad, airdrop))
+    }
+}
 
 impl FromPrompt for NftData {
     fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
@@ -38,7 +70,8 @@ impl FromPrompt for NftData {
         let nft = NftData::new(
             type_name,
             Burn::from_str(BURN_PERMISSIONS[burn_permission_idx]).unwrap(),
-            dynamic.into(),
+            dynamic,
+            MintPolicies::new(true, true),
         );
 
         Ok(nft)

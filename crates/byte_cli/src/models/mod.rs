@@ -10,7 +10,6 @@ pub mod collection;
 pub mod nft;
 pub mod project;
 pub mod royalties;
-pub mod settings;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {

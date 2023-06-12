@@ -21,12 +21,11 @@ use console::style;
 
 use gutenberg::{
     models::{
-        collection::{CollectionData, Supply},
-        nft::{burn::Burn, NftData},
-        settings::{
-            royalties::Share, MintPolicies, Orderbook, RequestPolicies,
-            RoyaltyPolicy, Settings,
+        collection::{
+            CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
+            Share, Supply,
         },
+        nft::{Burn, MintPolicies, NftData},
         Address,
     },
     schema::SchemaBuilder,
@@ -92,15 +91,17 @@ async fn run() -> Result<()> {
                     None,
                     vec![],
                     Supply::Untracked,
-                    None,
-                ),
-                NftData::new(nft_type, Burn::Permissionless, false),
-                Settings::new(
+                    MintCap::new(Some(supply as u64)),
                     royalties,
-                    MintPolicies::new(Some(supply as u64), true, true),
-                    RequestPolicies::new(true, false, false),
                     None,
+                    RequestPolicies::new(true, false, false),
                     Orderbook::Protected,
+                ),
+                NftData::new(
+                    nft_type,
+                    Burn::Permissionless,
+                    false,
+                    MintPolicies::new(true, true),
                 ),
             );
 
