@@ -35,7 +35,7 @@ impl FromPrompt for MintPolicies {
 }
 
 impl FromPrompt for NftData {
-    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -61,7 +61,7 @@ impl FromPrompt for NftData {
             type_name,
             Burn::from_str(BURN_PERMISSIONS[burn_permission_idx]).unwrap(),
             dynamic,
-            MintPolicies::new(true, true),
+            MintPolicies::from_prompt(schema)?,
         );
 
         Ok(nft)
