@@ -74,8 +74,8 @@ async fn run() -> Result<()> {
             let (schema, project) =
                 new_simple::init_schema(&name, supply, royalty_bps).await?;
 
-            schema.write(&schema_path)?;
-            project.write(&project_path)?;
+            schema.write_json(&schema_path)?;
+            project.write_json(&project_path)?;
         }
         Commands::ConfigCollection {
             project_dir,
@@ -84,12 +84,12 @@ async fn run() -> Result<()> {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push(CONFIG_FILENAME);
 
-            let mut builder = SchemaBuilder::read(&file_path)?;
+            let mut builder = SchemaBuilder::read_json(&file_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, complete)?;
 
-            builder.write(&file_path)?;
+            builder.write_json(&file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -97,20 +97,20 @@ async fn run() -> Result<()> {
 
             let uploader = config_upload::init_upload_config()?;
 
-            uploader.write(&file_path)?;
+            uploader.write_json(&file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
             file_path.push(CONFIG_FILENAME);
 
-            let mut builder = SchemaBuilder::read(&file_path)?;
+            let mut builder = SchemaBuilder::read_json(&file_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, false)?;
             let uploader = config_upload::init_upload_config()?;
 
-            builder.write(&file_path)?;
-            uploader.write(&file_path)?;
+            builder.write_json(&file_path)?;
+            uploader.write_json(&file_path)?;
         }
         Commands::DeployAssets { project_dir } => {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
@@ -124,7 +124,7 @@ async fn run() -> Result<()> {
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            let uploader = Storage::read(&file_path)?;
+            let uploader = Storage::read_json(&file_path)?;
 
             deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
                 .await?
@@ -173,7 +173,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            state.write(&state_path)?;
+            state.write_json(&state_path)?;
         }
         Commands::MintNfts {
             project_dir,
@@ -208,7 +208,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            state.write(&state_path)?;
+            state.write_json(&state_path)?;
         }
         Commands::ParallelMint {
             project_dir,
@@ -287,7 +287,7 @@ async fn run() -> Result<()> {
             let mut map_path = temp_dir.path().to_path_buf();
             map_path.push(&file_name);
 
-            let package_map = PackageMap::read(&map_path)?;
+            let package_map = PackageMap::read_json(&map_path)?;
 
             // Note: This code block assumes that there is only one folder
             // in the build folder, which is the case.

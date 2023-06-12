@@ -48,9 +48,13 @@ impl MoveToml {
         self.dependencies
             .iter()
             .map(|(name, specs)| {
-                let dep_pack = package_map.0.get(name).unwrap_or_else(|| {
-                    panic!("Could not find Package Name {} in PackageMap", name)
-                });
+                let dep_pack = package_map.0.get(name).expect(
+                    format!(
+                        "Could not find Package Name {} in PackageMap",
+                        name
+                    )
+                    .as_str(),
+                );
 
                 get_contract_ref(specs, dep_pack)
             })
@@ -115,7 +119,7 @@ pub fn get_contract_from_rev<'a>(
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
-        .unwrap_or_else(|| panic!("Could not find rev {} in version map", rev))
+        .expect(format!("Could not find rev {} in version map", rev).as_str())
         .1
 }
 
@@ -126,7 +130,7 @@ pub fn get_version_and_contract_from_rev<'a>(
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
-        .unwrap_or_else(|| panic!("Could not find rev {} in version map", rev))
+        .expect(format!("Could not find rev {} in version map", rev).as_str())
 }
 
 pub fn get_object_id_from_rev<'a>(
@@ -182,18 +186,25 @@ pub fn get_updated_dependency<'a>(
     package_map: &'a PackageMap,
 ) -> Option<&'a MoveLib> {
     // Fetch available versions by package name
-    let versions = package_map.0.get(&dep.package.name).unwrap_or_else(|| {
-        panic!(
+    let versions = package_map.0.get(&dep.package.name).expect(
+        format!(
             "Could not find Package Name {} in PackageMap",
             &dep.package.name
         )
-    });
+        .as_str(),
+    );
 
     let latest_version = versions
         .keys()
         .max()
         // This error should not occur
-        .expect("Failed while retrieving latest version");
+        .expect(
+            format!(
+                "Unexpected error: Unable to retrieve latest version of {}",
+                &dep.package.name
+            )
+            .as_str(),
+        );
 
     let latest = versions.get(latest_version).unwrap();
 

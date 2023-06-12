@@ -28,7 +28,7 @@ impl LocalWrite for SchemaBuilder {}
 impl LocalWrite for MoveToml {}
 
 impl LocalRead for SchemaBuilder {
-    fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
+    fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {
         let f = File::open(path_buf);
 
         let schema = match f {
@@ -50,15 +50,20 @@ impl LocalRead for SchemaBuilder {
                 Ok(schema) => Ok(schema),
                 Err(err) => Err(err),
             },
-            Err(_) => Ok(SchemaBuilder::default()),
+            Err(_) => {
+                println!("Unable to find schema in: {:?}", path_buf);
+                println!("Creating new schema");
+                Ok(SchemaBuilder::default())
+            }
         }?;
 
         Ok(schema)
     }
 }
 
+// TODO: Consider removing LocalRead in favor of DeserializeOwned
 pub trait LocalRead: DeserializeOwned {
-    fn read(path_buf: &PathBuf) -> Result<Self, CliError> {
+    fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {
         let file = File::open(path_buf)?;
         // TODO: Return a more tellin error message
         let obj = serde_json::from_reader(file)?;
@@ -74,7 +79,7 @@ pub trait LocalRead: DeserializeOwned {
 }
 
 pub trait LocalWrite: Serialize {
-    fn write(&self, output_file: &Path) -> Result<(), anyhow::Error> {
+    fn write_json(&self, output_file: &Path) -> Result<(), anyhow::Error> {
         let file = File::create(output_file).map_err(|err| {
             anyhow!(
                 r#"Could not create file "{}": {err}"#,
