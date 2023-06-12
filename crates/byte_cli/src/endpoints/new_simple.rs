@@ -1,21 +1,16 @@
 use std::collections::BTreeSet;
 
-use crate::{consts::BPS_100_PERCENT, models::FromPrompt};
-
 use byte_cli::models::project::Project;
-use console::style;
 use convert_case::{Case, Casing};
 use gutenberg::{
     models::{
-        collection::CollectionData,
-        nft::{burn::Burn, NftData},
-        settings::{
-            royalties::Share, MintPolicies, Orderbook, RequestPolicies,
-            RoyaltyPolicy, Settings,
+        collection::{
+            CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
+            Share, Supply,
         },
+        nft::{Burn, MintPolicies, NftData},
         Address,
     },
-    schema::SchemaBuilder,
     Schema,
 };
 
@@ -33,19 +28,29 @@ pub async fn init_schema(
     let project = Project::new(name.clone(), sender);
 
     let royalties = Some(RoyaltyPolicy::new(
-        BTreeSet::from([Share::new(sender_string, BPS_100_PERCENT)]),
+        BTreeSet::from([Share::new(sender_string, 10_000)]),
         royalty_bps as u64,
     ));
 
     let schema = Schema::new(
-        CollectionData::new(name.clone(), None, None, None, vec![], None),
-        NftData::new(nft_type, Burn::Permissionless, false),
-        Settings::new(
-            royalties,
-            MintPolicies::new(Some(supply as u64), true, true),
-            RequestPolicies::new(true, false, false),
+        CollectionData::new(
+            name.clone(),
             None,
+            None,
+            None,
+            vec![],
+            Supply::Untracked,
+            MintCap::new(Some(supply as u64)),
+            royalties,
+            None,
+            RequestPolicies::new(true, false, false),
             Orderbook::Protected,
+        ),
+        NftData::new(
+            nft_type,
+            Burn::Permissionless,
+            false,
+            MintPolicies::new(true, true),
         ),
     );
 

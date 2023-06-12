@@ -9,12 +9,15 @@ mod royalties;
 mod supply;
 mod tags;
 
-use self::{
-    mint_cap::MintCap, orderbook::Orderbook, request::RequestPolicies,
-    royalties::RoyaltyPolicy, supply::Supply, tags::Tags,
+pub use self::{
+    mint_cap::MintCap,
+    orderbook::Orderbook,
+    request::RequestPolicies,
+    royalties::{RoyaltyPolicy, Share},
+    supply::Supply,
+    tags::Tags,
 };
 use super::{nft::NftData, Address};
-use crate::err::GutenError;
 use serde::{Deserialize, Serialize};
 
 /// Contains the metadata fields of the collection
@@ -42,30 +45,8 @@ pub struct CollectionData {
     orderbook: Orderbook,
 }
 
-impl Default for CollectionData {
-    /// TODO: `CollectionData` should not implement `Default` as there isn't a notion
-    /// of a default collection.
-    ///
-    /// This implementation provides a reasonable default that shouldn't break
-    /// anything.
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            description: None,
-            symbol: None,
-            url: Some("https://originbyte.io".to_string()),
-            supply: Supply::Untracked,
-            mint_cap: MintCap::new(None),
-            creators: Vec::new(),
-            royalties: None,
-            tags: None,
-            request_policies: RequestPolicies::default(),
-            orderbook: Orderbook::default(),
-        }
-    }
-}
-
 impl CollectionData {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         description: Option<String>,
@@ -154,77 +135,6 @@ impl CollectionData {
 
     pub fn request_policies(&self) -> &RequestPolicies {
         &self.request_policies
-    }
-
-    pub fn set_name(&mut self, mut name: String) -> Result<(), GutenError> {
-        if !name.chars().all(|c| c.is_ascii_alphanumeric()) {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The collection name provided `{}` should only have alphanumeric characters.",
-                name
-            )));
-        }
-
-        name = name.to_lowercase();
-        self.name = name;
-
-        Ok(())
-    }
-
-    pub fn set_description(&mut self, description: String) {
-        self.description = Some(description);
-    }
-
-    pub fn set_symbol(&mut self, mut symbol: String) -> Result<(), GutenError> {
-        if !symbol.chars().all(|c| c.is_ascii_alphanumeric()) {
-            return Err(GutenError::UnsupportedCollectionInput(format!(
-                "The collection symbol provided `{}` should only have alphanumeric characters.",
-                symbol
-            )));
-        }
-
-        symbol = symbol.to_uppercase();
-        self.symbol = Some(symbol);
-
-        Ok(())
-    }
-
-    pub fn set_url(&mut self, url_string: String) -> Result<(), GutenError> {
-        let mut url: String;
-
-        if url_string.starts_with("www.") {
-            url = String::from("http://");
-            url.push_str(url_string.split_at(4).1);
-        } else {
-            url = url_string;
-        }
-
-        let _ = url::Url::parse(&url).map_err(|err| {
-            GutenError::UnsupportedCollectionInput(format!(
-                "The following error has occured: {}
-        The Collection URL input `{}` is not valid.",
-                err, url
-            ))
-        })?;
-
-        self.url = Some(url);
-
-        Ok(())
-    }
-
-    pub fn set_creators(
-        &mut self,
-        creators: Vec<String>,
-    ) -> Result<(), GutenError> {
-        // Guarantees that creator addresses are valid
-        let creator_addresses = creators
-            .into_iter()
-            .map(Address::new)
-            .collect::<Result<Vec<Address>, GutenError>>()?;
-
-        // Validate that creator strings are addresses
-        self.creators = creator_addresses;
-
-        Ok(())
     }
 
     pub fn write_move_init(&self, nft_data: &NftData) -> String {

@@ -10,7 +10,6 @@ pub mod collection;
 pub mod nft;
 pub mod project;
 pub mod royalties;
-pub mod settings;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
@@ -132,12 +131,8 @@ pub fn address_validator(input: &String) -> Result<(), CliError> {
     }
 }
 
-fn map_indices(indices: Vec<usize>, arr: &[&str]) -> Vec<String> {
-    let vec: Vec<String> = indices
-        .iter()
-        .map(|index| arr[*index].to_string())
-        .collect();
-    vec
+fn map_indices<'a>(indices: Vec<usize>, arr: &[&'a str]) -> Vec<&'a str> {
+    indices.iter().map(|index| arr[*index]).collect()
 }
 
 pub fn multi_select<'a>(

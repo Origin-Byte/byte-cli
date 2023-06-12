@@ -2,18 +2,13 @@ use std::collections::BTreeSet;
 
 use dialoguer::{Input, MultiSelect, Select};
 use gutenberg::{
-    models::settings::{
-        composability::Composability, minting::MintPolicies,
-        royalties::RoyaltyPolicy, Orderbook, RequestPolicies, Settings,
-    },
+    models::collection::{Orderbook, RequestPolicies, RoyaltyPolicy},
+    models::nft::MintPolicies,
     schema::SchemaBuilder,
 };
 
 use super::{map_indices, number_validator, FromPrompt};
-use crate::{
-    consts::{FEATURE_OPTIONS, MINTING_OPTIONS, SUPPLY_OPTIONS},
-    prelude::get_dialoguer_theme,
-};
+use crate::{consts::FEATURE_OPTIONS, prelude::get_dialoguer_theme};
 
 impl FromPrompt for Settings {
     fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
@@ -98,52 +93,5 @@ impl FromPrompt for Composability {
         let core_trait = traits.first().unwrap().clone();
 
         Ok(Composability::new_from_tradeable_traits(traits, core_trait))
-    }
-}
-
-impl FromPrompt for MintPolicies {
-    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized,
-    {
-        let theme = get_dialoguer_theme();
-
-        let supply_index = Select::with_theme(&theme)
-            .with_prompt(
-                "Which Supply Policy do you want your Collection to have?",
-            )
-            .items(&SUPPLY_OPTIONS)
-            .interact()
-            .unwrap();
-
-        let supply_policy = SUPPLY_OPTIONS[supply_index];
-
-        let limit = if supply_policy == "Limited" {
-            Some(
-                Input::with_theme(&theme)
-                    .with_prompt("What is the supply limit of the Collection?")
-                    .validate_with(number_validator)
-                    .interact()
-                    .unwrap()
-                    .parse::<u64>()
-                    .expect("Failed to parse String into u64 - This error should not occur has input has been already validated.")
-            )
-        } else {
-            None
-        };
-
-        let mint_options_indices = MultiSelect::with_theme(&theme)
-            .with_prompt("What minting options do you want to use? (use [SPACEBAR] to select options)")
-            .items(&MINTING_OPTIONS)
-            .interact()
-            .unwrap();
-
-        let mint_options = map_indices(mint_options_indices, &MINTING_OPTIONS);
-
-        let launchpad =
-            mint_options.contains(&String::from("OriginByte Launchpad"));
-        let airdrop = mint_options.contains(&String::from("NFT Airdrop"));
-
-        Ok(MintPolicies::new(limit, launchpad, airdrop))
     }
 }

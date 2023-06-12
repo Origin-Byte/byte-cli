@@ -2,9 +2,9 @@ mod burn;
 mod dynamic;
 mod minting;
 
-use burn::Burn;
-use dynamic::Dynamic;
-use minting::MintPolicies;
+pub use burn::Burn;
+pub use dynamic::Dynamic;
+pub use minting::MintPolicies;
 use serde::{Deserialize, Serialize};
 
 use super::collection::CollectionData;
