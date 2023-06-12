@@ -1,8 +1,8 @@
 {
   "collection": {
-    "name": "Project Eluüne: Aurahma Pre-Reveal",
-    "description": "Project Eluüne is a gaming sci-fi fantasy universe brought to you by OG game veterans who built Call Of Duty, Dota2 and many of your favorite video games. As a player, you answer the call of Eluüne, a mysterious entity who has sent an SOS message to us humans from a hidden world… Techno-magical, teeming with fantastic life and rich secrecy spanning millions of years… Will you answer the call?",
-    "symbol": "PRAMA",
+    "name": "Joysticks",
+    "description": "Joysticks is a dummy collection",
+    "symbol": "JOYS",
     "creators": [
       "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
     ],
@@ -36,7 +36,7 @@
     "orderbook": "protected"
   },
   "nft": {
-    "typeName": "AurahmaPreReveal",
+    "typeName": "Joystick",
     "burn": "permissionless",
     "dynamic": true,
     "mintPolicies": {
