@@ -32,12 +32,6 @@ pub const TX_SENDER_ADDRESS: &str = "tx_context::sender(ctx)";
 pub const MAX_SYMBOL_LENGTH: u64 = 5;
 pub const BPS_100_PERCENT: u64 = 10_000;
 
-/// Default path for assets folder.
-// TODO: Needs to be OS root folder
-pub const DEFAULT_FOLDER: &str = "";
-pub const CONFIG_FILENAME: &str = "config.json";
-pub const PROJECT_FILENAME: &str = "project.json";
-
 pub const ROCKET_EMOJI: Emoji<'_, '_> = Emoji("🚀 ", "");
 
 // Package commits

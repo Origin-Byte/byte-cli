@@ -1939,6 +1939,7 @@ dependencies = [
  "console",
  "convert_case 0.6.0",
  "dialoguer",
+ "dirs 5.0.1",
  "dotenv",
  "git2",
  "glob",

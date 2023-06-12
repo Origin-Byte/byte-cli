@@ -6,16 +6,15 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
+use dirs;
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
 };
 
 use crate::prelude::*;
-use byte_cli::{
-    consts::{CONFIG_FILENAME, PROJECT_FILENAME},
-    io::{LocalRead, LocalWrite},
-};
+use byte_cli::io::{LocalRead, LocalWrite};
+use dialoguer::Confirm;
 use endpoints::*;
 
 use anyhow::{anyhow, Result};
@@ -29,7 +28,7 @@ use package_manager::{
     move_lib::PackageMap,
     toml::{self as move_toml, MoveToml},
 };
-use rust_sdk::coin;
+use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use std::io::Write;
 use tempfile::TempDir;
 use uploader::writer::Storage;
@@ -64,80 +63,96 @@ async fn run() -> Result<()> {
             royalty_bps,
             project_dir,
         } => {
-            let mut project_path =
-                PathBuf::from(Path::new(project_dir.as_str()));
+            // Input
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
 
-            let mut schema_path = project_path.clone();
-            schema_path.push(CONFIG_FILENAME);
-            project_path.push(PROJECT_FILENAME);
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
+            // Logic
             let (schema, project) =
                 new_simple::init_schema(&name, supply, royalty_bps).await?;
 
+            // Output
             schema.write_json(&schema_path)?;
             project.write_json(&project_path)?;
         }
         Commands::ConfigCollection {
+            name,
             project_dir,
             complete,
         } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push(CONFIG_FILENAME);
+            // Input
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let mut builder = SchemaBuilder::read_json(&file_path)?;
+            // Logic
+            let mut builder = SchemaBuilder::read_json(&schema_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, complete)?;
 
-            builder.write_json(&file_path)?;
+            // Output
+            builder.write_json(&schema_path)?;
         }
-        Commands::ConfigUpload { project_dir } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push(CONFIG_FILENAME);
+        Commands::ConfigUpload { name, project_dir } => {
+            // Input
+            // TODO: These config file is currently not setup
+            let upload_path =
+                io::get_upload_filepath(name.as_str(), &project_dir);
 
+            // Logic
             let uploader = config_upload::init_upload_config()?;
 
-            uploader.write_json(&file_path)?;
+            // Output
+            uploader.write_json(&upload_path)?;
         }
-        Commands::Config { project_dir } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push(CONFIG_FILENAME);
+        Commands::Config { name, project_dir } => {
+            // Input
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let mut builder = SchemaBuilder::read_json(&file_path)?;
+            // TODO: These config file is currently not setup
+            let upload_path =
+                io::get_upload_filepath(name.as_str(), &project_dir);
+
+            // Logic
+            let mut builder = SchemaBuilder::read_json(&schema_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, false)?;
             let uploader = config_upload::init_upload_config()?;
 
-            builder.write_json(&file_path)?;
-            uploader.write_json(&file_path)?;
+            // Output
+            builder.write_json(&schema_path)?;
+            uploader.write_json(&upload_path)?;
         }
-        Commands::DeployAssets { project_dir } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
+        Commands::DeployAssets { name, project_dir } => {
+            // Input
+            let assets_path = io::get_assets_path(name.as_str(), &project_dir);
+            let metadata_path =
+                io::get_assets_path(name.as_str(), &project_dir);
 
-            let mut file_path = project_path.clone();
-            // TODO: Incorrect since we separated files
-            file_path.push(CONFIG_FILENAME);
+            // TODO: These config file is currently not setup
+            let upload_path =
+                io::get_upload_filepath(name.as_str(), &project_dir);
 
-            let mut assets_path = project_path.clone();
-            assets_path.push("assets/");
-            let mut metadata_path = project_path.clone();
-            metadata_path.push("metadata/");
-
-            let uploader = Storage::read_json(&file_path)?;
+            // Logic
+            let uploader = Storage::read_json(&upload_path)?;
 
             deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
                 .await?
         }
-        Commands::GenerateContract { project_dir } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            let mut file_path = project_path.clone();
-            file_path.push("config.json");
+        Commands::GenerateContract { name, project_dir } => {
+            // Input
+            let mut schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
+            let mut contract_dir =
+                io::get_contract_path(name.as_str(), &project_dir);
 
-            let schema = deploy_contract::parse_config(file_path.as_path())?;
-
-            let mut contract_dir = project_path;
-            contract_dir.push("contract/");
+            // Logic
+            let schema = deploy_contract::parse_config(schema_path.as_path())?;
 
             deploy_contract::generate_contract(
                 &schema,
@@ -145,20 +160,23 @@ async fn run() -> Result<()> {
             )?;
         }
         Commands::DeployContract {
+            name,
             project_dir,
             gas_budget,
             skip_generation,
         } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            let mut file_path = project_path.clone();
-            file_path.push("config.json");
-            let mut state_path = project_path.clone();
-            state_path.push("objects.json");
+            // Input
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let schema = deploy_contract::parse_config(file_path.as_path())?;
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
 
-            let mut contract_dir = project_path.clone();
-            contract_dir.push("contract/");
+            let mut contract_dir =
+                io::get_contract_path(name.as_str(), &project_dir);
+
+            // Logic
+            let schema = deploy_contract::parse_config(schema_path.as_path())?;
 
             if !skip_generation {
                 deploy_contract::generate_contract(
@@ -167,31 +185,50 @@ async fn run() -> Result<()> {
                 )?;
             }
 
-            let state = deploy_contract::publish_contract(
-                gas_budget,
-                &PathBuf::from(contract_dir.as_path()),
-            )
-            .await?;
+            let theme = get_dialoguer_theme();
 
-            state.write_json(&state_path)?;
+            let agreed = Confirm::with_theme(&theme)
+                .with_prompt(format!(
+                "This action has a cost of {} MIST. Do you want to proceed?",
+                PRICE_PUBLISH,
+                ))
+                .interact()
+                .unwrap();
+
+            if agreed {
+                let state = deploy_contract::publish_contract(
+                    gas_budget,
+                    &PathBuf::from(contract_dir.as_path()),
+                )
+                .await?;
+
+                // Output
+
+                // TODO: This project.json will not deserialize to this struct
+                state.write_json(&project_path)?;
+            }
         }
         Commands::MintNfts {
+            name,
             project_dir,
             gas_budget,
             warehouse_id: _,
         } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            let mut file_path = project_path.clone();
-            file_path.push("config.json");
+            // Input
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let mut state_path = project_path.clone();
-            state_path.push("objects.json");
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
 
-            let mut metadata_path = project_path.clone();
-            metadata_path.push("metadata/");
+            let metadata_path =
+                io::get_assets_path(name.as_str(), &project_dir);
 
-            let _schema = deploy_contract::parse_config(file_path.as_path())?;
-            let mut state = deploy_contract::parse_state(state_path.as_path())?;
+            // Logic
+            // TODO: Replace this logic with the our IO Trait
+            let _schema = deploy_contract::parse_config(schema_path.as_path())?;
+            let mut state =
+                deploy_contract::parse_state(project_path.as_path())?;
 
             // if schema.contract.is_none() {
             //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
@@ -208,25 +245,29 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            state.write_json(&state_path)?;
+            // Output
+            // TODO: This project.json will not deserialize to this struct
+            state.write_json(&project_path)?;
         }
         Commands::ParallelMint {
+            name,
             project_dir,
             gas_budget,
             warehouse_id: _,
         } => {
-            let project_path = PathBuf::from(Path::new(project_dir.as_str()));
-            let mut file_path = project_path.clone();
-            file_path.push("config.json");
+            // Input
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let mut state_path = project_path.clone();
-            state_path.push("objects.json");
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
 
-            let mut metadata_path = project_path.clone();
-            metadata_path.push("metadata/");
+            let metadata_path =
+                io::get_assets_path(name.as_str(), &project_dir);
 
+            // Logic
             // let schema = deploy_contract::parse_config(file_path.as_path())?;
-            let state = deploy_contract::parse_state(state_path.as_path())?;
+            let state = deploy_contract::parse_state(project_path.as_path())?;
 
             // if schema.contract.is_none() {
             //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
@@ -243,6 +284,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
+            // Output
             // io::write_collection_state(&state, &state_path)?;
         }
         Commands::SplitCoin {
@@ -255,20 +297,20 @@ async fn run() -> Result<()> {
         Commands::CombineCoins { gas_budget } => {
             coin::combine(gas_budget as u64).await?;
         }
-        Commands::CheckDependencies { project_dir } => {
-            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("contract/Move.toml");
+        Commands::CheckDependencies { name, project_dir } => {
+            // Input
+            let toml_path = io::get_toml_path(name.as_str(), &project_dir);
 
+            let (temp_dir, registry_path) = io::get_pakage_registry_paths();
+
+            // Logic
             let toml_string: String =
-                fs::read_to_string(file_path.clone())?.parse()?;
+                fs::read_to_string(toml_path.clone())?.parse()?;
 
             let mut move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
 
             let url = "https://github.com/Origin-Byte/program-registry";
-
-            let temp_dir =
-                TempDir::new().expect("Failed to create temporary directory");
 
             let repo = match Repository::clone(url, temp_dir.path()) {
                 Ok(repo) => repo,
@@ -283,28 +325,7 @@ async fn run() -> Result<()> {
                 ));
             }
 
-            let file_name = PathBuf::from("registry-main.json");
-            let mut map_path = temp_dir.path().to_path_buf();
-            map_path.push(&file_name);
-
-            let package_map = PackageMap::read_json(&map_path)?;
-
-            // Note: This code block assumes that there is only one folder
-            // in the build folder, which is the case.
-            let mut build_info_path =
-                PathBuf::from(Path::new(project_dir.as_str()));
-
-            build_info_path.push("contract/build/");
-            let mut paths = fs::read_dir(&build_info_path).unwrap();
-
-            if let Some(path) = paths.next() {
-                build_info_path = path?.path();
-                build_info_path.push("BuildInfo.yaml");
-            }
-
-            let mut info = BuildInfo::read_yaml(&build_info_path)?;
-
-            info.packages.make_name_canonical();
+            let package_map = PackageMap::read_json(&registry_path)?;
 
             move_toml.update_toml(&package_map);
 
@@ -312,7 +333,9 @@ async fn run() -> Result<()> {
 
             toml_string = move_toml::add_vertical_spacing(toml_string.as_str());
 
-            let mut file = File::create(file_path)?;
+            // Output
+            let mut file = File::create(toml_path)?;
+            file.write_all(toml_string.as_bytes())?;
             file.write_all(toml_string.as_bytes())?;
         }
     }

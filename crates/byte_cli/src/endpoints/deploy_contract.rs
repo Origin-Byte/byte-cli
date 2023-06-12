@@ -4,8 +4,9 @@ use byte_cli::consts::{
     SUI_PACKAGE_COMMIT_TEST,
 };
 use console::style;
+use dialoguer::Confirm;
 use gutenberg::{package, Schema};
-use rust_sdk::coin;
+use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
@@ -159,7 +160,7 @@ pub async fn publish_contract(
     let gas_coin =
         rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
 
-    let collection_state = publish::publish_contract(
+    let collection_state = publish::publish_contract_and_pay(
         &wallet_ctx,
         contract_dir,
         gas_coin,

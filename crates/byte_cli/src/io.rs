@@ -1,16 +1,20 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     path::{Path, PathBuf},
 };
 
 use crate::models::project::Project;
 use crate::prelude::CliError;
 use anyhow::anyhow;
-use gutenberg::schema::{Schema, SchemaBuilder};
+use gutenberg::{
+    err::GutenError,
+    schema::{Schema, SchemaBuilder},
+};
 
 use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
 use rust_sdk::collection_state::CollectionState;
 use serde::{de::DeserializeOwned, Serialize};
+use tempfile::TempDir;
 use uploader::writer::Storage;
 
 impl LocalRead for Schema {}
@@ -96,4 +100,87 @@ pub trait LocalWrite: Serialize {
             )
         })
     }
+}
+
+pub fn get_project_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "configs", Some("project.json"))
+}
+
+pub fn get_schema_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "configs", Some("schema.json"))
+}
+
+pub fn get_upload_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "configs", Some("upload.json"))
+}
+
+pub fn get_assets_path(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "assets", None)
+}
+
+pub fn get_metadata_path(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "metadata", None)
+}
+
+pub fn get_contract_path(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "contract", None)
+}
+
+pub fn get_toml_path(name: &str, path_opt: &Option<String>) -> PathBuf {
+    get_file_path(name, path_opt, "contract", Some("Move.toml"))
+}
+
+pub fn get_pakage_registry_paths() -> (TempDir, PathBuf) {
+    let temp_dir =
+        TempDir::new().expect("Failed to create temporary directory");
+
+    let filename = PathBuf::from("registry-main.json");
+    let mut registry_path = temp_dir.path().to_path_buf();
+    registry_path.push(&filename);
+
+    (temp_dir, registry_path)
+}
+
+pub fn get_build_info_path(
+    name: &str,
+    path_opt: &Option<String>,
+) -> Result<PathBuf, CliError> {
+    // Note: This code block assumes that there is only one folder
+    // in the build folder, which is the case.PathBuf::from(Path::new(project_dir.as_str()));
+    let mut build_info_path =
+        get_file_path(name, path_opt, "contract/build", None);
+    let mut paths = fs::read_dir(&build_info_path).unwrap();
+
+    if let Some(path) = paths.next() {
+        build_info_path = path?.path();
+        build_info_path.push("BuildInfo.yaml");
+    } else {
+        return Err(CliError::from(anyhow!("Could not find path to BuildInfo.yaml. Call `sui move build` to compile the Sui Move package")));
+    }
+
+    Ok(build_info_path)
+}
+
+fn get_file_path(
+    name: &str,
+    path_opt: &Option<String>,
+    folder: &str,
+    filename: Option<&str>,
+) -> PathBuf {
+    let mut filepath: PathBuf;
+
+    if let Some(path) = path_opt {
+        filepath = PathBuf::from(Path::new(path.clone().as_str()));
+    } else {
+        filepath = dirs::home_dir().unwrap();
+        filepath.push(format!(".byte/projects/{}", name));
+    }
+
+    filepath.push(format!("{}/", folder));
+
+    if let Some(file) = filename {
+        filepath.push(format!("{}", file));
+    }
+
+    filepath
 }
