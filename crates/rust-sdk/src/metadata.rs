@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, marker::PhantomData, str::FromStr};
+use std::{collections::BTreeMap, fmt, marker::PhantomData, str::FromStr};
 
 use anyhow::Result;
 use dashmap::DashMap;
@@ -14,20 +14,26 @@ use url::Url;
 pub struct GlobalMetadata(pub DashMap<u32, Metadata>);
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct StorableMetadata(pub HashMap<u32, Metadata>);
+pub struct StorableMetadata(pub BTreeMap<u32, Metadata>);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Metadata {
     pub name: Option<String>,
     pub url: Option<Url>,
     pub description: Option<String>,
-    pub attributes: Option<HashMap<String, String>>,
+    pub attributes: Option<Vec<Trait>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Trait {
+    trait_type: String,
+    value: String,
 }
 
 impl GlobalMetadata {
-    pub fn into_map(self) -> HashMap<u32, Metadata> {
+    pub fn into_map(self) -> BTreeMap<u32, Metadata> {
         let GlobalMetadata(dash_map) = self;
-        let mut hash_map = HashMap::new();
+        let mut hash_map = BTreeMap::new();
 
         dash_map.into_iter().for_each(|(k, e)| {
             hash_map.insert(k, e);
@@ -38,7 +44,7 @@ impl GlobalMetadata {
 }
 
 impl StorableMetadata {
-    pub fn from_map(hash_map: HashMap<u32, Metadata>) -> Self {
+    pub fn from_map(hash_map: BTreeMap<u32, Metadata>) -> Self {
         Self(hash_map)
     }
 }
@@ -60,8 +66,10 @@ impl Metadata {
         }
 
         if let Some(map) = &self.attributes {
-            let keys: Vec<String> = map.clone().into_keys().collect();
-            let values: Vec<String> = map.clone().into_values().collect();
+            let (keys, values): (Vec<String>, Vec<String>) = map
+                .iter()
+                .map(|att| (att.trait_type.clone(), att.value.clone()))
+                .unzip();
 
             let keys_arr = json!(keys);
             let values_arr = json!(values);
@@ -117,6 +125,6 @@ impl<'de> Deserialize<'de> for GlobalMetadata {
     {
         // Instantiate VersionVisitor and ask the Deserializer to drive
         // it over the input data, resulting in an instance of Version.
-        deserializer.deserialize_str(GlobalMetadataVisitor::new())
+        deserializer.deserialize_map(GlobalMetadataVisitor::new())
     }
 }

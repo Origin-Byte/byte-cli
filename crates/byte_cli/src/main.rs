@@ -127,17 +127,22 @@ async fn run() -> Result<()> {
         Commands::DeployAssets { name, project_dir } => {
             // Input
             let assets_path = io::get_assets_path(name.as_str(), &project_dir);
-            let metadata_path =
-                io::get_pre_upload_metadata_path(name.as_str(), &project_dir);
+            let (pre_upload, post_upload) =
+                io::get_upload_metadata(name.as_str(), &project_dir);
 
-            let upload_path =
+            let upload_config_path =
                 io::get_upload_filepath(name.as_str(), &project_dir);
 
             // Logic
-            let uploader = Storage::read_json(&upload_path)?;
+            let uploader = Storage::read_json(&upload_config_path)?;
 
-            deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
-                .await?
+            deploy_assets::deploy_assets(
+                &uploader,
+                assets_path,
+                pre_upload,
+                post_upload,
+            )
+            .await?
         }
         Commands::GenerateContract { name, project_dir } => {
             // Input

@@ -79,10 +79,8 @@ impl AWSSetup {
         directory: String,
         url: String,
         asset: Asset,
-        // mut nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
     ) -> Result<UploadedAsset> {
-        println!("Reading from {:?}", asset.path);
         let content = fs::read(&asset.path)?;
 
         let path = Path::new(&directory).join(&asset.name);
@@ -148,8 +146,6 @@ impl ParallelUploader for AWSSetup {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
-
-        // let nft_data = metadata.0.get_mut(&asset.index).unwrap();
 
         tokio::spawn(async move {
             AWSSetup::write(bucket, directory, url, asset, metadata).await

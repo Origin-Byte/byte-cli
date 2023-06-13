@@ -71,7 +71,7 @@ impl LocalRead for SchemaBuilder {
 pub trait LocalRead: DeserializeOwned {
     fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {
         let file = File::open(path_buf)?;
-        // TODO: Return a more tellin error message
+        // TODO: Return a more telling error message
         let obj = serde_json::from_reader(file)?;
 
         Ok(obj)
@@ -127,11 +127,16 @@ pub fn get_metadata_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "metadata", None)
 }
 
-pub fn get_pre_upload_metadata_path(
+pub fn get_upload_metadata(
     name: &str,
     path_opt: &Option<String>,
-) -> PathBuf {
-    get_file_path(name, path_opt, "metadata", Some("pre-upload.json"))
+) -> (PathBuf, PathBuf) {
+    let pre_upload =
+        get_file_path(name, path_opt, "metadata", Some("pre-upload.json"));
+    let post_upload =
+        get_file_path(name, path_opt, "metadata", Some("post-upload.json"));
+
+    (pre_upload, post_upload)
 }
 
 pub fn get_contract_path(name: &str, path_opt: &Option<String>) -> PathBuf {

@@ -20,11 +20,17 @@ use uploader::{
 pub async fn deploy_assets(
     storage: &Storage,
     assets_dir: PathBuf,
-    metadata_dir: PathBuf,
+    pre_upload_path: PathBuf,
+    post_upload_path: PathBuf,
 ) -> Result<()> {
     let assets_dir = assets_dir.display().to_string();
 
     dotenv().ok();
+
+    let shared_metadata: Arc<GlobalMetadata> =
+        Arc::new(GlobalMetadata::read_json(&pre_upload_path)?);
+
+    // let how_many_metadata = shared_metadata.0.len();
 
     let mut assets: Vec<Asset> = vec![];
 
@@ -39,8 +45,6 @@ pub async fn deploy_assets(
             file = file_string
         );
 
-        println!("§ {:?}", path_string);
-
         let path = Path::new(path_string.as_str());
         let file_name = path.file_stem().unwrap().to_str().unwrap();
         let extension = path.extension().and_then(OsStr::to_str);
@@ -54,8 +58,10 @@ pub async fn deploy_assets(
         // Can safely unwrap as we have asserted that !is_none
         content_type.push_str(extension.unwrap());
 
+        let index: u32 = file_name.parse().unwrap();
+
         let asset = Asset::new(
-            1, // TODO: This should not be hardcoded...
+            index,
             file_string,
             PathBuf::from(path),
             content_type, // MIME content type
@@ -67,9 +73,6 @@ pub async fn deploy_assets(
     if assets.is_empty() {
         panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
     }
-
-    let shared_metadata: Arc<GlobalMetadata> =
-        Arc::new(GlobalMetadata::read_json(&metadata_dir)?);
 
     println!("{} Uploading images to storage", style("WIP").cyan().bold());
     match storage {
@@ -108,7 +111,7 @@ pub async fn deploy_assets(
 
     let map = StorableMetadata::from_map(dash_map.into_map());
 
-    map.write_json(metadata_dir.as_path())?;
+    map.write_json(post_upload_path.as_path())?;
 
     println!(
         "{} Uploading images to storage",
