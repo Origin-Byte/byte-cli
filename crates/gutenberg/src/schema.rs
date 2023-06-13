@@ -47,14 +47,7 @@ impl Schema {
     }
 
     pub fn write_move_defs(&self) -> String {
-        let nft_data = &self.nft;
-        let collection_data = &self.collection;
-
-        let mut defs_str = String::new();
-        defs_str.push_str(&self.nft.write_move_defs(collection_data));
-        defs_str
-            .push_str(&self.collection.write_move_defs(nft_data.type_name()));
-        defs_str
+        self.nft.write_move_defs(&self.collection)
     }
 
     pub fn write_tests(&self) -> String {
