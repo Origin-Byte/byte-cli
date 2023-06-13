@@ -14,6 +14,9 @@ use url::Url;
 pub struct GlobalMetadata(pub DashMap<u32, Metadata>);
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct StorableMetadata(pub HashMap<u32, Metadata>);
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Metadata {
     pub name: Option<String>,
     pub url: Option<Url>,
@@ -22,8 +25,8 @@ pub struct Metadata {
 }
 
 impl GlobalMetadata {
-    pub fn into_map(metadata: GlobalMetadata) -> HashMap<u32, Metadata> {
-        let GlobalMetadata(dash_map) = metadata;
+    pub fn into_map(self) -> HashMap<u32, Metadata> {
+        let GlobalMetadata(dash_map) = self;
         let mut hash_map = HashMap::new();
 
         dash_map.into_iter().for_each(|(k, e)| {
@@ -31,6 +34,12 @@ impl GlobalMetadata {
         });
 
         hash_map
+    }
+}
+
+impl StorableMetadata {
+    pub fn from_map(hash_map: HashMap<u32, Metadata>) -> Self {
+        Self(hash_map)
     }
 }
 

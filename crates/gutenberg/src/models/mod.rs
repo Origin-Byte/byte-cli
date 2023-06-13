@@ -140,8 +140,8 @@ impl Serialize for Address {
 }
 
 mod test {
-    use crate::err::GutenError;
     use super::Address;
+    use crate::err::GutenError;
 
     #[test]
     fn input_addresses() -> Result<(), GutenError> {
@@ -217,7 +217,6 @@ mod test {
                 .to_string()
         )
         .is_err());
-        // assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
 
         Ok(())
     }
@@ -229,7 +228,6 @@ mod test {
                 .to_string()
         )
         .is_err());
-        // assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
 
         Ok(())
     }

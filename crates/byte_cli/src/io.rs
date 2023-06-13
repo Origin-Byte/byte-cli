@@ -9,7 +9,10 @@ use anyhow::anyhow;
 use gutenberg::schema::{Schema, SchemaBuilder};
 
 use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
-use rust_sdk::{collection_state::CollectionState, metadata::GlobalMetadata};
+use rust_sdk::{
+    collection_state::CollectionState,
+    metadata::{GlobalMetadata, StorableMetadata},
+};
 use serde::{de::DeserializeOwned, Serialize};
 use tempfile::TempDir;
 use uploader::writer::Storage;
@@ -28,6 +31,7 @@ impl LocalWrite for Storage {}
 impl LocalWrite for CollectionState {}
 impl LocalWrite for SchemaBuilder {}
 impl LocalWrite for MoveToml {}
+impl LocalWrite for StorableMetadata {}
 
 impl LocalRead for SchemaBuilder {
     fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {

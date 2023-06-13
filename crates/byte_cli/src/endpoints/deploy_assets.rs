@@ -1,9 +1,10 @@
-use anyhow::Result;
+use crate::io::LocalWrite;
+use anyhow::{anyhow, Result};
 use byte_cli::io::LocalRead;
 use console::style;
 use dotenv::dotenv;
 use glob::glob;
-use rust_sdk::metadata::GlobalMetadata;
+use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -102,7 +103,12 @@ pub async fn deploy_assets(
         }
     }
 
-    // TODO: Need to store the data...
+    let dash_map = Arc::try_unwrap(shared_metadata)
+        .map_err(|_| anyhow!("Failed to unwrap Arc"))?;
+
+    let map = StorableMetadata::from_map(dash_map.into_map());
+
+    map.write_json(metadata_dir.as_path())?;
 
     println!(
         "{} Uploading images to storage",
