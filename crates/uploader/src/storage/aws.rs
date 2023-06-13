@@ -1,16 +1,14 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use ini::ini;
+use rust_sdk::metadata::GlobalMetadata;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
-use crate::uploader::{
-    write_state, Asset, ParallelUploader, Prepare, UploadedAsset,
-};
+use crate::uploader::{Asset, ParallelUploader, Prepare, UploadedAsset};
 
 // Maximum number of times to retry each individual upload.
 const MAX_RETRY: u8 = 3;
@@ -77,13 +75,14 @@ impl AWSSetup {
     }
 
     async fn write(
-        // tx: Sender<UploadedAsset>,
         bucket: Arc<Bucket>,
         directory: String,
         url: String,
         asset: Asset,
-        state: PathBuf,
+        // mut nft_data: RefMut<'a, u32, Metadata, RandomState>,
+        metadata: Arc<GlobalMetadata>,
     ) -> Result<UploadedAsset> {
+        println!("Reading from {:?}", asset.path);
         let content = fs::read(&asset.path)?;
 
         let path = Path::new(&directory).join(&asset.name);
@@ -108,7 +107,7 @@ impl AWSSetup {
                     _ => {
                         return Err(anyhow!(
                             "Failed to upload {} to S3 with Http Code: {code}",
-                            asset.id
+                            asset.index
                         ));
                     }
                 },
@@ -122,11 +121,13 @@ impl AWSSetup {
             }
         }
 
-        let link = url::Url::parse(&url)?.join("/")?.join(path_str)?;
+        let uri = url::Url::parse(&url)?.join("/")?.join(path_str)?;
 
-        write_state(state, asset.id.clone(), link.to_string()).await?;
+        // Access the url field on the Metadata struct
+        let mut nft_data = metadata.0.get_mut(&asset.index).unwrap();
+        nft_data.url = Some(uri.clone());
 
-        Ok(UploadedAsset::new(asset.id.clone(), link.to_string()))
+        Ok(UploadedAsset::new(asset.index, uri.to_string()))
     }
 }
 
@@ -142,14 +143,16 @@ impl ParallelUploader for AWSSetup {
     fn upload_asset(
         &self,
         asset: Asset,
-        state: PathBuf,
+        metadata: Arc<GlobalMetadata>,
     ) -> JoinHandle<Result<UploadedAsset>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
 
+        // let nft_data = metadata.0.get_mut(&asset.index).unwrap();
+
         tokio::spawn(async move {
-            AWSSetup::write(bucket, directory, url, asset, state).await
+            AWSSetup::write(bucket, directory, url, asset, metadata).await
         })
     }
 }

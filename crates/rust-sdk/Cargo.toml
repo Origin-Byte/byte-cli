@@ -43,6 +43,8 @@ serde_yaml = "0.9"
 signature = "1.6"
 colorize = "0.1"
 terminal-link = "0.1"
+dashmap = "5.0"
+url = {version = "2.4", features = ["serde"]}
 
 aws-config = "0.53"
 aws-sdk-s3 = "0.23"

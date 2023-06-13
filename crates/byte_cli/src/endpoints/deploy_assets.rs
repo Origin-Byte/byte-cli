@@ -1,9 +1,12 @@
 use anyhow::Result;
+use byte_cli::io::LocalRead;
 use console::style;
 use dotenv::dotenv;
 use glob::glob;
+use rust_sdk::metadata::GlobalMetadata;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use uploader::{
     storage::{
@@ -35,6 +38,8 @@ pub async fn deploy_assets(
             file = file_string
         );
 
+        println!("§ {:?}", path_string);
+
         let path = Path::new(path_string.as_str());
         let file_name = path.file_stem().unwrap().to_str().unwrap();
         let extension = path.extension().and_then(OsStr::to_str);
@@ -49,7 +54,7 @@ pub async fn deploy_assets(
         content_type.push_str(extension.unwrap());
 
         let asset = Asset::new(
-            String::from(file_name),
+            1, // TODO: This should not be hardcoded...
             file_string,
             PathBuf::from(path),
             content_type, // MIME content type
@@ -62,13 +67,18 @@ pub async fn deploy_assets(
         panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
     }
 
+    let shared_metadata: Arc<GlobalMetadata> =
+        Arc::new(GlobalMetadata::read_json(&metadata_dir)?);
+
     println!("{} Uploading images to storage", style("WIP").cyan().bold());
     match storage {
         Storage::Aws(config) => {
             let setup = AWSSetup::new(config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
 
-            uploader.upload(&mut assets, metadata_dir, false).await?;
+            uploader
+                .upload(&mut assets, shared_metadata.clone())
+                .await?;
         }
         Storage::Pinata(config) => {
             let setup = PinataSetup::new(config).await?;
@@ -76,7 +86,9 @@ pub async fn deploy_assets(
 
             uploader.prepare(&assets).await?;
 
-            uploader.upload(&mut assets, metadata_dir, false).await?;
+            uploader
+                .upload(&mut assets, shared_metadata.clone())
+                .await?;
         }
         Storage::NftStorage(config) => {
             let setup = NftStorageSetup::new(config).await?;
@@ -84,9 +96,14 @@ pub async fn deploy_assets(
 
             uploader.prepare(&assets).await?;
 
-            uploader.upload(&mut assets, metadata_dir, false).await?;
+            uploader
+                .upload(&mut assets, shared_metadata.clone())
+                .await?;
         }
     }
+
+    // TODO: Need to store the data...
+
     println!(
         "{} Uploading images to storage",
         style("DONE").green().bold()

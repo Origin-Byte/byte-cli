@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use rust_sdk::metadata::GlobalMetadata;
 use std::{fs, path::Path, sync::Arc};
 
 use async_trait::async_trait;
@@ -11,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
 
 use crate::uploader::{Asset, Prepare, Uploader};
-use std::path::PathBuf;
 
 const NFT_STORAGE_API_URL: &str = "https://api.nft.storage";
 // const NFT_STORAGE_GATEWAY_URL: &str = "https://nftstorage.link/ipfs";
@@ -109,8 +109,8 @@ impl Uploader for NftStorageSetup {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        _state: PathBuf,
-        _lazy: bool,
+        // TODO: Write state to metadata objects
+        _nft_data: Arc<GlobalMetadata>,
     ) -> Result<()> {
         // TODO: Write state to metadata objects
         println!("We are in the upload phase");
@@ -158,8 +158,7 @@ impl Uploader for NftStorageSetup {
                 };
 
                 let file = Part::bytes(data)
-                    .file_name(asset.id.clone())
-                    // .file_name(asset.name.clone())
+                    .file_name(asset.index.to_string())
                     .mime_str(asset.content_type.as_str())?;
                 form = form.part("file", file);
             }

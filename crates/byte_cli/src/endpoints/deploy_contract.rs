@@ -4,9 +4,8 @@ use byte_cli::consts::{
     SUI_PACKAGE_COMMIT_TEST,
 };
 use console::style;
-use dialoguer::Confirm;
 use gutenberg::{package, Schema};
-use rust_sdk::{coin, consts::PRICE_PUBLISH};
+use rust_sdk::coin;
 use serde::Serialize;
 use std::io::Write;
 use std::path::Path;

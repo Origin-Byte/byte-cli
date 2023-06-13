@@ -6,10 +6,9 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
-use dirs;
 use std::{
     fs::{self, File},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::prelude::*;
@@ -24,13 +23,11 @@ use console::style;
 use git2::Repository;
 use gutenberg::schema::SchemaBuilder;
 use package_manager::{
-    info::BuildInfo,
     move_lib::PackageMap,
     toml::{self as move_toml, MoveToml},
 };
 use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use std::io::Write;
-use tempfile::TempDir;
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -113,7 +110,6 @@ async fn run() -> Result<()> {
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
-            // TODO: These config file is currently not setup
             let upload_path =
                 io::get_upload_filepath(name.as_str(), &project_dir);
 
@@ -132,9 +128,8 @@ async fn run() -> Result<()> {
             // Input
             let assets_path = io::get_assets_path(name.as_str(), &project_dir);
             let metadata_path =
-                io::get_assets_path(name.as_str(), &project_dir);
+                io::get_pre_upload_metadata_path(name.as_str(), &project_dir);
 
-            // TODO: These config file is currently not setup
             let upload_path =
                 io::get_upload_filepath(name.as_str(), &project_dir);
 
@@ -146,9 +141,9 @@ async fn run() -> Result<()> {
         }
         Commands::GenerateContract { name, project_dir } => {
             // Input
-            let mut schema_path =
+            let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
-            let mut contract_dir =
+            let contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
             // Logic
@@ -172,7 +167,7 @@ async fn run() -> Result<()> {
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let mut contract_dir =
+            let contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
             // Logic

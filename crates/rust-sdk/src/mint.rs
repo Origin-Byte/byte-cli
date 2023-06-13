@@ -6,15 +6,12 @@ use crate::{
 };
 use anyhow::Result;
 use move_core_types::identifier::Identifier;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use shared_crypto::intent::Intent;
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 use std::{thread, time};
 use sui_json_rpc_types::SuiTransactionBlockEffects;
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
-    json::SuiJsonValue,
     types::{
         base_types::{ObjectID, SuiAddress},
         messages::Transaction,
@@ -27,45 +24,6 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 use tokio::task::JoinHandle;
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct NftData {
-    pub name: Option<String>,
-    pub url: Option<String>,
-    pub description: Option<String>,
-    pub attributes: Option<HashMap<String, String>>,
-}
-
-impl NftData {
-    pub fn to_map(&self) -> Result<Vec<SuiJsonValue>> {
-        let mut params: Vec<SuiJsonValue> = Vec::new();
-
-        if let Some(value) = &self.name {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
-        }
-
-        if let Some(value) = &self.url {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
-        }
-
-        if let Some(value) = &self.description {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
-        }
-
-        if let Some(map) = &self.attributes {
-            let keys: Vec<String> = map.clone().into_keys().collect();
-            let values: Vec<String> = map.clone().into_values().collect();
-
-            let keys_arr = json!(keys);
-            let values_arr = json!(values);
-
-            params.push(SuiJsonValue::new(keys_arr)?);
-            params.push(SuiJsonValue::new(values_arr)?);
-        }
-
-        Ok(params)
-    }
-}
 
 pub async fn create_warehouse(
     wallet_ctx: &WalletContext,

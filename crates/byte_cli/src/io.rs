@@ -6,13 +6,10 @@ use std::{
 use crate::models::project::Project;
 use crate::prelude::CliError;
 use anyhow::anyhow;
-use gutenberg::{
-    err::GutenError,
-    schema::{Schema, SchemaBuilder},
-};
+use gutenberg::schema::{Schema, SchemaBuilder};
 
 use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
-use rust_sdk::collection_state::CollectionState;
+use rust_sdk::{collection_state::CollectionState, metadata::GlobalMetadata};
 use serde::{de::DeserializeOwned, Serialize};
 use tempfile::TempDir;
 use uploader::writer::Storage;
@@ -24,6 +21,7 @@ impl LocalRead for CollectionState {}
 impl LocalRead for MoveToml {}
 impl LocalRead for PackageMap {}
 impl LocalRead for BuildInfo {}
+impl LocalRead for GlobalMetadata {}
 impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
@@ -84,6 +82,9 @@ pub trait LocalRead: DeserializeOwned {
 
 pub trait LocalWrite: Serialize {
     fn write_json(&self, output_file: &Path) -> Result<(), anyhow::Error> {
+        // Create the parent directories if they don't exist
+        fs::create_dir_all(output_file.parent().unwrap())?;
+
         let file = File::create(output_file).map_err(|err| {
             anyhow!(
                 r#"Could not create file "{}": {err}"#,
@@ -120,6 +121,13 @@ pub fn get_assets_path(name: &str, path_opt: &Option<String>) -> PathBuf {
 
 pub fn get_metadata_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "metadata", None)
+}
+
+pub fn get_pre_upload_metadata_path(
+    name: &str,
+    path_opt: &Option<String>,
+) -> PathBuf {
+    get_file_path(name, path_opt, "metadata", Some("pre-upload.json"))
 }
 
 pub fn get_contract_path(name: &str, path_opt: &Option<String>) -> PathBuf {
