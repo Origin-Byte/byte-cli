@@ -15,6 +15,7 @@ use crate::prelude::*;
 use byte_cli::{
     consts::{CONFIG_FILENAME, PROJECT_FILENAME},
     io::{LocalRead, LocalWrite},
+    SchemaBuilder,
 };
 use endpoints::*;
 
@@ -23,7 +24,6 @@ use clap::Parser;
 use console::style;
 
 use git2::Repository;
-use gutenberg::schema::SchemaBuilder;
 use package_manager::{
     info::BuildInfo,
     move_lib::PackageMap,
