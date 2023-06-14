@@ -25,11 +25,11 @@ use move_package::BuildConfig as MoveBuildConfig;
 use sui_move::build::resolve_lock_file_path;
 
 use crate::consts::PRICE_PUBLISH;
+use crate::utils::get_context;
 use crate::{
     collection_state::{CollectionState, ObjectType as OBObjectType},
     consts::VOLCANO_EMOJI,
     err::RustSdkError,
-    utils::{get_active_address, get_client},
 };
 use std::str::FromStr;
 
@@ -41,9 +41,10 @@ pub async fn publish_contract(
 ) -> Result<CollectionState, RustSdkError> {
     let build_config = MoveBuildConfig::default();
 
-    // TODO: get client from context.client: Arc<RwLock<Option<SuiClient>>>
-    let client = get_client().await.unwrap();
-    let sender = get_active_address(&wallet_ctx.config.keystore).unwrap();
+    let context = get_context().await.unwrap();
+    let client = context.get_client().await?;
+    let keystore = &context.config.keystore;
+    let sender = context.config.active_address.unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
 
@@ -84,11 +85,8 @@ pub async fn publish_contract(
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
 
-    let signature = wallet_ctx.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
+    let signature =
+        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
 
     signatures.push(signature);
 
@@ -198,8 +196,10 @@ pub async fn publish_contract_and_pay(
 ) -> Result<CollectionState, RustSdkError> {
     let build_config = MoveBuildConfig::default();
 
-    let client = get_client().await.unwrap();
-    let sender = get_active_address(&wallet_ctx.config.keystore).unwrap();
+    let context = get_context().await.unwrap();
+    let client = context.get_client().await?;
+    let keystore = &context.config.keystore;
+    let sender = context.config.active_address.unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
 
@@ -249,11 +249,8 @@ pub async fn publish_contract_and_pay(
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
 
-    let signature = wallet_ctx.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
+    let signature =
+        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
 
     signatures.push(signature);
 

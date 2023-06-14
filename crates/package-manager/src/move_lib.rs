@@ -29,6 +29,7 @@ pub struct LibSpecs {
 pub struct Package {
     pub name: String,
     pub version: Version,
+    #[serde(rename = "published-at")]
     pub published_at: Option<Address>,
 }
 

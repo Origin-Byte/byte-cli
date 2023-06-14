@@ -17,16 +17,6 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     Ok(ctx)
 }
 
-pub async fn get_client() -> Result<SuiClient, RustSdkError> {
-    let client_builder = SuiClientBuilder::default();
-    let client = client_builder
-        // TODO: Should be according to active env
-        .build("https://fullnode.testnet.sui.io:443")
-        .await?;
-
-    Ok(client)
-}
-
 pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
     // Load keystore from ~/.sui/sui_config/sui.keystore
     let keystore_path = match dirs::home_dir() {

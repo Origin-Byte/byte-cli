@@ -1,6 +1,6 @@
 use crate::{
     err::{self, RustSdkError},
-    utils::{get_active_address, get_client, get_context, get_keystore},
+    utils::get_context,
 };
 use anyhow::{anyhow, Result};
 use shared_crypto::intent::Intent;
@@ -32,10 +32,9 @@ pub async fn split(
     gas_budget: u64,
 ) -> Result<(), RustSdkError> {
     let context = get_context().await.unwrap();
-    let client = get_client().await.unwrap();
-    // Maybe get these from the context
-    let keystore = get_keystore().await.unwrap();
-    let sender = get_active_address(&keystore).unwrap();
+    let client = context.get_client().await?;
+    let keystore = &context.config.keystore;
+    let sender = context.config.active_address.unwrap();
 
     let coin = select_coin(&client, sender).await?;
 
@@ -92,9 +91,9 @@ pub async fn split(
 
 pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
     let context = get_context().await.unwrap();
-    let client = get_client().await.unwrap();
-    let keystore = get_keystore().await.unwrap();
-    let sender = get_active_address(&keystore).unwrap();
+    let client = context.get_client().await?;
+    let keystore = &context.config.keystore;
+    let sender = context.config.active_address.unwrap();
 
     let (main_coin, gas_coin, coins_to_merge) =
         get_main_coin_separated(&client, sender).await?;
@@ -228,8 +227,8 @@ pub async fn get_coins(
 pub async fn get_max_coin(
     wallet_ctx: &WalletContext,
 ) -> Result<Coin, RustSdkError> {
-    let client = get_client().await.unwrap();
-    let sender = get_active_address(&wallet_ctx.config.keystore).unwrap();
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
 
     let mut coins = get_coins(&client, sender).await?;
 
