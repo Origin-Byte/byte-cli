@@ -194,10 +194,6 @@ impl CollectionData {
         )
     }
 
-    pub fn write_move_defs(&self, type_name: &str) -> String {
-        self.orderbook.write_move_defs(type_name)
-    }
-
     fn write_move_collection_display_info(&self) -> Option<String> {
         let name = self.name();
         self.description().as_ref().map(|description| {

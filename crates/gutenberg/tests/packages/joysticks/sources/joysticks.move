@@ -343,29 +343,6 @@ module joysticks::joysticks {
         burn_own_nft(collection, nft);
     }
 
-    // Protected orderbook functions
-    public entry fun enable_orderbook(
-        publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<Joystick, sui::sui::SUI>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        liquidity_layer_v1::orderbook::set_protection(
-            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(false, false, false),
-        );
-    }
-
-    public entry fun disable_orderbook(
-        publisher: &sui::package::Publisher,
-        orderbook: &mut liquidity_layer_v1::orderbook::Orderbook<Joystick, sui::sui::SUI>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        liquidity_layer_v1::orderbook::set_protection(
-            delegated_witness, orderbook, liquidity_layer_v1::orderbook::custom_protection(true, true, true),
-        );
-    }
-
     #[test_only]
     const CREATOR: address = @0xA1C04;
 
