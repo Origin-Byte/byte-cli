@@ -48,32 +48,9 @@ impl Schema {
     pub fn write_tests(&self) -> String {
         let type_name = self.nft.type_name();
         let collection_data = self.collection();
-
         let witness = collection_data.witness_name();
-        let supply = collection_data.supply();
 
-        let requires_collection = supply.requires_collection();
-        let collection_take_str = requires_collection.then(|| format!("
-
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
-            &scenario,
-        );")).unwrap_or_default();
-
-        let collection_param_str = requires_collection
-            .then_some(
-                "
-            &mut collection,",
-            )
-            .unwrap_or_default();
-
-        let collection_return_str = requires_collection
-            .then_some(
-                "
-        sui::test_scenario::return_shared(collection);",
-            )
-            .unwrap_or_default();
-
-        let mut tests = format!(
+        let mut tests_str = format!(
             "
 
     #[test_only]
@@ -96,41 +73,11 @@ impl Schema {
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
         sui::test_scenario::end(scenario);
-    }}
-
-    #[test]
-    fun it_mints_nft() {{
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
-
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
-            &scenario,
-            CREATOR,
-        );{collection_take_str}
-
-        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
-
-        mint_nft_to_warehouse(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,{collection_param_str}
-            &mut warehouse,
-            sui::test_scenario::ctx(&mut scenario)
-        );
-
-        sui::transfer::public_transfer(warehouse, CREATOR);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
-        sui::test_scenario::end(scenario);
     }}");
 
-        tests.push_str(&self.nft.write_move_tests(collection_data));
+        tests_str.push_str(&self.nft.write_move_tests(collection_data));
 
-        tests
+        tests_str
     }
 
     /// Higher level method responsible for generating Move code from the

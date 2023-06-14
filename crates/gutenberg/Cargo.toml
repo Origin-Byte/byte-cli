@@ -16,6 +16,8 @@ serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 
 [features]
+# Whether full functionality of `Gutenberg` is included
+full = []
 cli = ["clap", "serde_json", "serde_yaml"]
 
 [[bin]]

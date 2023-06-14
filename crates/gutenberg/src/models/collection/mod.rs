@@ -4,7 +4,6 @@
 //! by the caller.
 mod mint_cap;
 mod orderbook;
-mod request;
 mod royalties;
 mod supply;
 mod tags;
@@ -12,7 +11,6 @@ mod tags;
 pub use self::{
     mint_cap::MintCap,
     orderbook::Orderbook,
-    request::RequestPolicies,
     royalties::{RoyaltyPolicy, Share},
     supply::Supply,
     tags::Tags,
@@ -39,10 +37,6 @@ pub struct CollectionData {
     mint_cap: MintCap,
     royalties: Option<RoyaltyPolicy>,
     tags: Option<Tags>,
-    #[serde(default)]
-    request_policies: RequestPolicies,
-    #[serde(default)]
-    orderbook: Orderbook,
 }
 
 impl CollectionData {
@@ -57,8 +51,6 @@ impl CollectionData {
         mint_cap: MintCap,
         royalties: Option<RoyaltyPolicy>,
         tags: Option<Tags>,
-        request_policies: RequestPolicies,
-        orderbook: Orderbook,
     ) -> CollectionData {
         CollectionData {
             name,
@@ -70,8 +62,6 @@ impl CollectionData {
             mint_cap,
             royalties,
             tags,
-            request_policies,
-            orderbook,
         }
     }
 
@@ -133,10 +123,6 @@ impl CollectionData {
         &self.supply
     }
 
-    pub fn request_policies(&self) -> &RequestPolicies {
-        &self.request_policies
-    }
-
     pub fn write_move_init(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
 
@@ -177,14 +163,10 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        domains_str.push_str(
-            "
 
-        let publisher = sui::package::claim(witness, ctx);",
-        );
-        domains_str.push_str(&self.request_policies.write_move_init(nft_data));
-        domains_str.push_str(&self.orderbook.write_move_init(type_name));
-
+        // Opt for `collection::create` over `collection::create_from_otw` in
+        // order to statically assert `DelegatedWitness` gets created for the
+        // `Collection<T>` type `T`.
         format!("
 
         let collection = nft_protocol::collection::create<{type_name}>(delegated_witness, ctx);
