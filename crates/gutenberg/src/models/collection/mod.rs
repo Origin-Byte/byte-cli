@@ -96,6 +96,7 @@ impl CollectionData {
             .filter_map(|char| match char {
                 '-' => Some('_'),
                 ' ' => Some('_'),
+                '_' => Some('_'),
                 char => char.is_ascii_alphanumeric().then_some(char),
             })
             .collect()
@@ -146,7 +147,11 @@ impl CollectionData {
                 .mint_cap
                 .write_move_init(&self.witness_name(), type_name),
         );
-        domains_str.push_str(&self.write_move_creators());
+
+        if let Some(code) = &self.write_move_creators() {
+            domains_str.push_str(code);
+        }
+
         domains_str.push_str(
             self.write_move_collection_display_info()
                 .unwrap_or_default()
@@ -241,16 +246,11 @@ impl CollectionData {
     }
 
     // TODO: Separate out into `creators` module
-    fn write_move_creators(&self) -> String {
+    fn write_move_creators(&self) -> Option<String> {
         let mut code = String::new();
 
-        let creators_domain = if self.creators.is_empty() {
-            format!(
-                "nft_protocol::creators::from_address<{witness_name}, Witness>(
-                &Witness {{}}, sui::tx_context::sender(ctx),
-            )",
-                witness_name = self.witness_name(),
-            )
+        if self.creators.is_empty() {
+            return None;
         } else {
             code.push_str(
                 "
@@ -264,21 +264,22 @@ impl CollectionData {
                 ));
             }
 
-            "nft_protocol::creators::new(creators)".to_string()
+            let creators_domain =
+                "nft_protocol::creators::new(creators)".to_string();
+
+            code.push_str(&format!(
+                "
+
+            nft_protocol::collection::add_domain(
+                delegated_witness,
+                &mut collection,
+                {},
+            );",
+                creators_domain
+            ));
+
+            return Some(code);
         };
-
-        code.push_str(&format!(
-            "
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            {},
-        );",
-            creators_domain
-        ));
-
-        code
     }
 }
 
