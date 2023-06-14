@@ -1,42 +1,51 @@
-#[cfg(full)]
+#[cfg(feature = "full")]
 mod burn;
-#[cfg(full)]
+#[cfg(feature = "full")]
 mod dynamic;
+mod mint_cap;
 mod minting;
+#[cfg(feature = "full")]
+mod orderbook;
 mod request;
 
+pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
 pub use request::RequestPolicies;
 
-use super::collection::CollectionData;
+use super::collection::{CollectionData, Tags};
 use serde::{Deserialize, Serialize};
 
-// TODO: Merge `cfg(full)` and `cfg(not(full))` definitions, requires manually
+// TODO: Merge `cfg(feature = "full")` and `cfg(not(feature = "full"))` definitions, requires manually
 // implementing derives
-#[cfg(full)]
+#[cfg(feature = "full")]
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
     /// Type name of the NFT
     type_name: String,
-    /// Burn policy for
+    /// Burn policy for NFT
     burn: burn::Burn,
+    /// Dynamic policies for NFT
     dynamic: dynamic::Dynamic,
+    /// Mint capabilities issued for NFT
+    mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
     /// Launchpad or Airdrop.
     mint_policies: MintPolicies,
     #[serde(default)]
     request_policies: RequestPolicies,
     #[serde(default)]
-    orderbook: Orderbook,
+    orderbook: orderbook::Orderbook,
 }
 
-#[cfg(not(full))]
+#[cfg(not(feature = "full"))]
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NftData {
     /// Type name of the NFT
     type_name: String,
+    /// Mint capabilities issued for NFT
+    mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
     /// Launchpad or Airdrop.
     //
@@ -49,34 +58,42 @@ pub struct NftData {
     request_policies: RequestPolicies,
 }
 
-#[cfg(full)]
+#[cfg(feature = "full")]
 impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
-        burn: Burn,
+        burn: burn::Burn,
         dynamic: bool,
+        mint_cap: MintCap,
         mint_policies: MintPolicies,
+        request_policies: RequestPolicies,
+        orderbook: orderbook::Orderbook,
     ) -> Self {
         NftData {
             type_name,
             burn,
-            dynamic: dynamic.into(),
+            dynamic: dynamic::Dynamic::new(dynamic),
+            mint_cap,
             mint_policies,
+            request_policies,
+            orderbook,
         }
     }
 }
 
-#[cfg(not(full))]
+#[cfg(not(feature = "full"))]
 impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
+        mint_cap: MintCap,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
     ) -> Self {
         NftData {
             type_name,
+            mint_cap,
             mint_policies,
             request_policies,
         }
@@ -92,7 +109,7 @@ impl NftData {
     /// Returns whether NFT requires withdraw policy to be created
     pub fn requires_withdraw(&self) -> bool {
         let requires_withdraw = self.request_policies.has_withdraw();
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         let requires_withdraw =
             requires_withdraw || self.burn.is_permissionless();
         requires_withdraw
@@ -101,7 +118,7 @@ impl NftData {
     /// Returns whether NFT requires borrow policy to be created
     pub fn requires_borrow(&self) -> bool {
         let requires_borrow = self.request_policies.has_borrow();
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         let requires_borrow = requires_borrow || self.dynamic.is_dynamic();
         requires_borrow
     }
@@ -124,23 +141,23 @@ impl NftData {
 
     pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
         let witness = collection_data.witness_name();
+        let type_name = self.type_name();
 
         let collection_init = collection_data.write_move_init(self);
+        let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
         let transfer_fns = self.write_move_transfer_fns();
 
         let mut misc_init = String::new();
-        misc_init.push_str(&self.write_move_display());
+        misc_init.push_str(&self.write_move_display(collection_data.tags()));
         misc_init.push_str(&self.write_move_policies(self));
-        #[cfg(full)]
-        misc_init.push_str(
-            &self.orderbook.write_move_init(collection_data.type_name()),
-        );
+        #[cfg(feature = "full")]
+        misc_init.push_str(&self.orderbook.write_move_init(type_name));
 
         format!(
             "
 
     fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{mint_cap_init}
 
         let publisher = sui::package::claim(witness, ctx);{misc_init}
 
@@ -160,9 +177,9 @@ impl NftData {
                 .mint_policies
                 .write_move_defs(type_name, collection_data),
         );
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         defs_str.push_str(&self.dynamic.write_move_defs(type_name));
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         defs_str
             .push_str(&self.burn.write_move_defs(type_name, collection_data));
         defs_str
@@ -174,11 +191,11 @@ impl NftData {
         #[allow(unused_mut)]
         let mut tests_str = String::new();
         tests_str.push_str(&self.write_mint_test(type_name, collection_data));
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         tests_str.push_str(
             &self.dynamic.write_move_tests(type_name, collection_data),
         );
-        #[cfg(full)]
+        #[cfg(feature = "full")]
         tests_str
             .push_str(&self.burn.write_move_tests(type_name, collection_data));
         tests_str
@@ -332,8 +349,15 @@ impl NftData {
         code
     }
 
-    fn write_move_display(&self) -> String {
+    fn write_move_display(&self, tags: &Option<Tags>) -> String {
         let type_name = self.type_name();
+
+        let tags_str = tags.as_ref().map(|tags| {
+            let tags_str = tags.write_move_init();
+            format!("{tags_str}
+
+        sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));")
+        }).unwrap_or_default();
 
         format!("
 
@@ -341,8 +365,7 @@ impl NftData {
         sui::display::add(&mut display, std::string::utf8(b\"name\"), std::string::utf8(b\"{{name}}\"));
         sui::display::add(&mut display, std::string::utf8(b\"description\"), std::string::utf8(b\"{{description}}\"));
         sui::display::add(&mut display, std::string::utf8(b\"image_url\"), std::string::utf8(b\"{{url}}\"));
-        sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));
-        sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));
+        sui::display::add(&mut display, std::string::utf8(b\"attributes\"), std::string::utf8(b\"{{attributes}}\"));{tags_str}
         sui::display::update_version(&mut display);
 
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));"

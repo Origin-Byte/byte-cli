@@ -2,15 +2,11 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-mod mint_cap;
-mod orderbook;
 mod royalties;
 mod supply;
 mod tags;
 
 pub use self::{
-    mint_cap::MintCap,
-    orderbook::Orderbook,
     royalties::{RoyaltyPolicy, Share},
     supply::Supply,
     tags::Tags,
@@ -34,7 +30,6 @@ pub struct CollectionData {
     /// The addresses of creators
     creators: Vec<Address>,
     supply: Supply,
-    mint_cap: MintCap,
     royalties: Option<RoyaltyPolicy>,
     tags: Option<Tags>,
 }
@@ -48,7 +43,6 @@ impl CollectionData {
         url: Option<String>,
         creators: Vec<Address>,
         supply: Supply,
-        mint_cap: MintCap,
         royalties: Option<RoyaltyPolicy>,
         tags: Option<Tags>,
     ) -> CollectionData {
@@ -59,7 +53,6 @@ impl CollectionData {
             url,
             creators,
             supply,
-            mint_cap,
             royalties,
             tags,
         }
@@ -123,15 +116,14 @@ impl CollectionData {
         &self.supply
     }
 
+    pub fn tags(&self) -> &Option<Tags> {
+        &self.tags
+    }
+
     pub fn write_move_init(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
 
         let mut domains_str = String::new();
-        domains_str.push_str(
-            &self
-                .mint_cap
-                .write_move_init(&self.witness_name(), type_name),
-        );
         domains_str.push_str(&self.write_move_creators());
         domains_str.push_str(
             self.write_move_collection_display_info()

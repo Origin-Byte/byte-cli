@@ -28,12 +28,6 @@ impl Display for Dynamic {
     }
 }
 
-impl From<bool> for Dynamic {
-    fn from(value: bool) -> Self {
-        Self(value)
-    }
-}
-
 impl Dynamic {
     pub fn new(dynamic: bool) -> Self {
         Self(dynamic)
