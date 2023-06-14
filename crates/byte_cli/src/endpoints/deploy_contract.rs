@@ -43,6 +43,7 @@ pub fn generate_contract(
     schema: &Schema,
     contract_dir: &Path,
     package_map: &PackageMap,
+    version: Option<String>,
 ) -> Result<()> {
     println!("{} Generating contract", style("WIP").cyan().bold());
 
@@ -66,18 +67,29 @@ pub fn generate_contract(
 
     let module_name = schema.collection().name();
 
-    let move_toml = MoveToml::get_toml(
-        module_name.as_str(),
-        package_map,
-        &vec![
-            String::from("Sui"),
-            String::from("Originmate"),
-            String::from("NftProtocol"),
-            String::from("Launchpad"),
-            String::from("LiquidityLayerV1"),
-        ],
-        &Version::from_string("0.0.1")?,
-    )?;
+    let move_toml = match version {
+        Some(version) => MoveToml::get_toml(
+            module_name.as_str(),
+            package_map,
+            &vec![
+                String::from("NftProtocol"),
+                String::from("Launchpad"),
+                String::from("LiquidityLayerV1"),
+            ],
+            &vec![String::from("Sui"), String::from("Originmate")],
+            &Version::from_string(version.as_str())?,
+        )?,
+        None => MoveToml::get_toml_latest(
+            module_name.as_str(),
+            package_map,
+            &vec![
+                String::from("NftProtocol"),
+                String::from("Launchpad"),
+                String::from("LiquidityLayerV1"),
+            ],
+            &vec![String::from("Sui"), String::from("Originmate")],
+        )?,
+    };
 
     let mut toml_string = toml::to_string_pretty(&move_toml)?;
 

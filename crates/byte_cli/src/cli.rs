@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
+use package_manager::version::Version;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -52,6 +53,7 @@ pub enum Commands {
     GenerateContract {
         name: String,
         project_dir: Option<String>,
+        version: Option<String>,
     },
 
     /// Deploys NFT contract to Sui Blockchain
@@ -63,6 +65,7 @@ pub enum Commands {
         gas_budget: usize,
         #[clap(short, long, action)]
         skip_generation: bool,
+        version: Option<String>,
     },
 
     /// Mints NFTs by calling the deployed contract

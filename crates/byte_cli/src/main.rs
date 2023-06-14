@@ -140,7 +140,11 @@ async fn run() -> Result<()> {
             )
             .await?
         }
-        Commands::GenerateContract { name, project_dir } => {
+        Commands::GenerateContract {
+            name,
+            project_dir,
+            version,
+        } => {
             // Input
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
@@ -156,6 +160,7 @@ async fn run() -> Result<()> {
                 &schema,
                 contract_dir.as_path(),
                 &package_map,
+                version,
             )?;
         }
         Commands::DeployContract {
@@ -163,6 +168,7 @@ async fn run() -> Result<()> {
             project_dir,
             gas_budget,
             skip_generation,
+            version,
         } => {
             // Input
             let schema_path =
@@ -184,6 +190,7 @@ async fn run() -> Result<()> {
                     &schema,
                     contract_dir.as_path(),
                     &package_map,
+                    version,
                 )?;
             }
 
