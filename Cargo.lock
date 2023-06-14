@@ -1940,16 +1940,20 @@ dependencies = [
  "convert_case 0.6.0",
  "dialoguer",
  "dotenv",
+ "git2",
  "glob",
  "gutenberg",
  "hex",
  "mime_guess",
+ "move-package",
+ "package-manager",
  "pretty_assertions",
  "rust-sdk",
  "serde 1.0.163",
  "serde_json",
  "serde_yaml 0.9.21",
  "sui-sdk",
+ "tempfile",
  "terminal-link",
  "thiserror",
  "tokio",
@@ -4171,6 +4175,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "git2"
+version = "0.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b989d6a7ca95a362cf2cfc5ad688b3a467be1f87e480b8dad07fee8c79b0044"
+dependencies = [
+ "bitflags",
+ "libc",
+ "libgit2-sys",
+ "log",
+ "openssl-probe",
+ "openssl-sys",
+ "url",
+]
+
+[[package]]
 name = "glob"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5268,6 +5287,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b00cc1c228a6782d0f076e7b232802e0c5689d41bb5df366f2a6b6621cfdfe1"
 
 [[package]]
+name = "libgit2-sys"
+version = "0.15.2+1.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a80df2e11fb4a61f4ba2ab42dbe7f74468da143f1a75c74e11dee7c813f694fa"
+dependencies = [
+ "cc",
+ "libc",
+ "libssh2-sys",
+ "libz-sys",
+ "openssl-sys",
+ "pkg-config",
+]
+
+[[package]]
 name = "libloading"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5300,6 +5333,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "libssh2-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dc8a030b787e2119a731f1951d6a773e2280c660f8ec4b0f5e1505a386e71ee"
+dependencies = [
+ "cc",
+ "libc",
+ "libz-sys",
+ "openssl-sys",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
 name = "libtest-mimic"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5317,6 +5364,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ee889ecc9568871456d42f603d6a0ce59ff328d291063a45cbdf0036baf6db"
 dependencies = [
  "cc",
+ "libc",
  "pkg-config",
  "vcpkg",
 ]
@@ -7433,6 +7481,20 @@ dependencies = [
  "elliptic-curve 0.13.4",
  "primeorder",
  "sha2 0.10.6",
+]
+
+[[package]]
+name = "package-manager"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "console",
+ "convert_case 0.6.0",
+ "gutenberg",
+ "regex",
+ "serde 1.0.163",
+ "serde_json",
+ "serde_yaml 0.9.21",
 ]
 
 [[package]]

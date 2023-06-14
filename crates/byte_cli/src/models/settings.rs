@@ -30,7 +30,7 @@ impl FromPrompt for Settings {
 
         let composability =
             if features.contains(&String::from("Tradeable Traits")) {
-                Some(Composability::from_prompt(&schema)?)
+                Some(Composability::from_prompt(schema)?)
             } else {
                 None
             };
@@ -77,9 +77,7 @@ impl FromPrompt for Composability {
 
         for i in 0..traits_num {
             let prompt = if i == 0 {
-                format!(
-                    "Write the name of your core trait/type (This is the trait that glue all other traits together - e.g. Avatar): "
-                )
+                String::from("Write the name of your core trait/type (This is the trait that glue all other traits together - e.g. Avatar): ")
             } else {
                 format!("Write the name of the trait/type no. {} (Please add traits in descending rendering order - e.g. Hat trait should be the Hair trait):", i + 1)
             };

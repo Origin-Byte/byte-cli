@@ -8,7 +8,7 @@ use gutenberg::{package, Schema};
 use rust_sdk::coin;
 use serde::Serialize;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use rust_sdk::{collection_state::CollectionState, publish};
 use std::fs::{self, File};
@@ -152,7 +152,7 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 
 pub async fn publish_contract(
     gas_budget: usize,
-    contract_dir: &PathBuf,
+    contract_dir: &Path,
 ) -> Result<CollectionState> {
     let wallet_ctx = rust_sdk::utils::get_context().await?;
 

@@ -31,5 +31,5 @@ pub fn contextualize(msg: String) -> GutenError {
 
 pub fn invalid_address(address: String, msg: String) -> GutenError {
     print!("{}", msg);
-    GutenError::UnsupportedSettings(address)
+    GutenError::InvalidAddress(address)
 }

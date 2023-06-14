@@ -1,5 +1,5 @@
 [package]
-name = "project_eluune_aurahma_pre_reveal"
+name = "joysticks"
 version = "0.0.0"
 
 [dependencies.Launchpad]
@@ -21,4 +21,4 @@ subdir = "contracts/liquidity_layer_v1"
 rev = "7c8c5d468a18116b682407fbc86756fc121fddb6"
 
 [addresses]
-project_eluune_aurahma_pre_reveal = "0x0"
+joysticks = "0x0"

@@ -132,7 +132,7 @@ impl AWSSetup {
 
 #[async_trait]
 impl Prepare for AWSSetup {
-    async fn prepare(&self, _assets: &Vec<Asset>) -> Result<()> {
+    async fn prepare(&self, _assets: &[Asset]) -> Result<()> {
         Ok(())
     }
 }
@@ -195,7 +195,7 @@ pub fn assert_profile(profile: &str) -> Result<()> {
         .ok_or_else(|| anyhow!("Could not load AWS config file. Make sure you have AWS CLI installed and a profile configured locally"))?);
 
     if !aws_config.contains_key(profile) {
-        return Err(anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally"));
+        Err(anyhow!("Profile not found in AWS config file! Make sure you have AWS CLI installed and a profile configured locally"))
     } else {
         Ok(())
     }

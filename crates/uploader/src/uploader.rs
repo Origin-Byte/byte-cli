@@ -58,7 +58,7 @@ pub async fn write_state(
 
     state.url = Some(url);
 
-    write_state_file(&state, &state_path.as_path()).await?;
+    write_state_file(&state, state_path.as_path()).await?;
 
     Ok(())
 }
@@ -141,7 +141,7 @@ impl UploadedAsset {
 
 #[async_trait]
 pub trait Prepare {
-    async fn prepare(&self, assets: &Vec<Asset>) -> Result<()>;
+    async fn prepare(&self, assets: &[Asset]) -> Result<()>;
 }
 
 #[async_trait]

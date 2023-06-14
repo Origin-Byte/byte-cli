@@ -82,11 +82,11 @@ pub async fn create_warehouse(
 
     let mut builder = ProgrammableTransactionBuilder::new();
     let _res = builder.move_call(
-        package_id, // Package ID
-        module,     // Module Name
-        function,   // Function Name
-        vec![parse_sui_type_tag(collection_type_.as_str())?.into()], // Type Arguments
-        vec![], // Call Arguments
+        package_id,                                           // Package ID
+        module,                                               // Module Name
+        function,                                             // Function Name
+        vec![parse_sui_type_tag(collection_type_.as_str())?], // Type Arguments
+        vec![],                                               // Call Arguments
     );
 
     let data = TransactionData::new_programmable(
@@ -98,15 +98,10 @@ pub async fn create_warehouse(
     );
 
     // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature = wallet_ctx.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
-
-    signatures.push(signature);
+    let signatures: Vec<Signature> = vec![wallet_ctx
+        .config
+        .keystore
+        .sign_secure(&sender, &data, Intent::sui_transaction())?];
 
     let response = wallet_ctx
         .execute_transaction_block(
@@ -115,10 +110,7 @@ pub async fn create_warehouse(
         )
         .await?;
 
-    // We know `init_warehouse` move function will create 1 object.
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     assert!(effects.status.is_ok());
 
@@ -184,12 +176,10 @@ pub async fn mint_nft(
         );
 
         // Sign transaction.
-        let mut signatures: Vec<Signature> = vec![];
-        signatures.push(wallet_ctx.config.keystore.sign_secure(
-            &sender,
-            &data,
-            Intent::sui_transaction(),
-        )?);
+        let signatures: Vec<Signature> = vec![wallet_ctx
+            .config
+            .keystore
+            .sign_secure(&sender, &data, Intent::sui_transaction())?];
 
         // Execute the transaction.
 
@@ -218,9 +208,7 @@ pub async fn mint_nft(
         break response_?;
     };
 
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     let nft_ids = effects.created;
     let mut i = 0;
@@ -294,12 +282,10 @@ pub async fn mint_nft_with_gas_coin(
         );
 
         // Sign transaction.
-        let mut signatures: Vec<Signature> = vec![];
-        signatures.push(wallet_ctx.config.keystore.sign_secure(
-            &sender,
-            &data,
-            Intent::sui_transaction(),
-        )?);
+        let signatures: Vec<Signature> = vec![wallet_ctx
+            .config
+            .keystore
+            .sign_secure(&sender, &data, Intent::sui_transaction())?];
 
         // Execute the transaction.
         let response_ = wallet_ctx
@@ -327,9 +313,7 @@ pub async fn mint_nft_with_gas_coin(
         break response_?;
     };
 
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     let nft_ids = effects.created;
     let mut i = 0;

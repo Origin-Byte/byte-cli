@@ -39,7 +39,7 @@ pub async fn split(
 
     let coin = select_coin(&client, sender).await?;
 
-    if count <= 0 {
+    if count == 0 {
         return Err(RustSdkError::AnyhowError(anyhow!(
             "Coin split count must be greater than 0"
         )));
@@ -83,9 +83,7 @@ pub async fn split(
         )
         .await?;
 
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     assert!(effects.status.is_ok());
 
@@ -133,9 +131,7 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
         )
         .await?;
 
-    let effects = match response.effects.unwrap() {
-        SuiTransactionBlockEffects::V1(effects) => effects,
-    };
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     assert!(effects.status.is_ok());
 
@@ -247,7 +243,7 @@ pub async fn get_max_coin(
 pub async fn merge_coins(
     _signer: SuiAddress,
     main_coin: &Coin,
-    coins_to_merge: &Vec<Coin>,
+    coins_to_merge: &[Coin],
     _gas_budget: u64,
 ) -> anyhow::Result<ProgrammableTransaction> {
     let mut builder = ProgrammableTransactionBuilder::new();
@@ -274,18 +270,15 @@ pub async fn merge_coins(
     let type_args = vec![type_param];
     let _gas_price = 1_000;
 
-    coins_to_merge_args
-        .iter()
-        .map(|coin| {
-            builder.move_call(
-                SUI_FRAMEWORK_OBJECT_ID,              // Package ID
-                coin::PAY_MODULE_NAME.to_owned(),     // Module Name
-                coin::PAY_JOIN_FUNC_NAME.to_owned(),  // Function Name
-                type_args.clone(),                    // Type Arguments
-                vec![main_arg.clone(), coin.clone()], // Call Arguments
-            )
-        })
-        .collect::<Result<()>>()?;
+    coins_to_merge_args.iter().try_for_each(|coin| {
+        builder.move_call(
+            SUI_FRAMEWORK_OBJECT_ID,              // Package ID
+            coin::PAY_MODULE_NAME.to_owned(),     // Module Name
+            coin::PAY_JOIN_FUNC_NAME.to_owned(),  // Function Name
+            type_args.clone(),                    // Type Arguments
+            vec![main_arg.clone(), coin.clone()], // Call Arguments
+        )
+    })?;
 
     Ok(builder.finish())
 }

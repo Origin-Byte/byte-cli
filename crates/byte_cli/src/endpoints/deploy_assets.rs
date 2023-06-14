@@ -65,13 +65,13 @@ pub async fn deploy_assets(
     println!("{} Uploading images to storage", style("WIP").cyan().bold());
     match storage {
         Storage::Aws(config) => {
-            let setup = AWSSetup::new(&config).await?;
+            let setup = AWSSetup::new(config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
 
             uploader.upload(&mut assets, metadata_dir, false).await?;
         }
         Storage::Pinata(config) => {
-            let setup = PinataSetup::new(&config).await?;
+            let setup = PinataSetup::new(config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
 
             uploader.prepare(&assets).await?;
@@ -79,7 +79,7 @@ pub async fn deploy_assets(
             uploader.upload(&mut assets, metadata_dir, false).await?;
         }
         Storage::NftStorage(config) => {
-            let setup = NftStorageSetup::new(&config).await?;
+            let setup = NftStorageSetup::new(config).await?;
             let uploader = Box::new(setup) as Box<dyn Uploader>;
 
             uploader.prepare(&assets).await?;

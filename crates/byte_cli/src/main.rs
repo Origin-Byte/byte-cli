@@ -7,33 +7,31 @@ pub mod models;
 pub mod prelude;
 
 use std::{
-    collections::BTreeSet,
+    fs::{self, File},
     path::{Path, PathBuf},
 };
 
 use crate::prelude::*;
-use convert_case::{Case, Casing};
+use byte_cli::{
+    consts::{CONFIG_FILENAME, PROJECT_FILENAME},
+    io::{LocalRead, LocalWrite},
+};
 use endpoints::*;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
 
-use gutenberg::{
-    models::{
-        collection::{
-            CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
-            Share, Supply,
-        },
-        nft::{Burn, MintPolicies, NftData},
-        Address,
-    },
-    schema::SchemaBuilder,
-    Schema,
+use git2::Repository;
+use gutenberg::schema::SchemaBuilder;
+use package_manager::{
+    info::BuildInfo,
+    move_lib::PackageMap,
+    toml::{self as move_toml, MoveToml},
 };
-use io::{LocalRead, LocalWrite};
-use models::project::Project;
 use rust_sdk::coin;
+use std::io::Write;
+use tempfile::TempDir;
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -43,7 +41,10 @@ async fn main() {
             println!(
                 "\n{}{}",
                 consts::ROCKET_EMOJI,
-                style("Process ran successfully.").green().bold().dim()
+                style("Process ran successfully.")
+                    .green()
+                    .bold()
+                    .on_bright()
             );
         }
         Err(err) => {
@@ -67,95 +68,63 @@ async fn run() -> Result<()> {
                 PathBuf::from(Path::new(project_dir.as_str()));
 
             let mut schema_path = project_path.clone();
-            schema_path.push("config.json");
-            project_path.push("project.json");
+            schema_path.push(CONFIG_FILENAME);
+            project_path.push(PROJECT_FILENAME);
 
-            let keystore = rust_sdk::utils::get_keystore().await?;
-            let sender = rust_sdk::utils::get_active_address(&keystore)?;
-            let sender_string = Address::new(sender.to_string())?;
+            let (schema, project) =
+                new_simple::init_schema(&name, supply, royalty_bps).await?;
 
-            let nft_type = name.as_str().to_case(Case::Pascal);
-
-            let project = Project::new(name.clone(), sender);
-
-            let royalties = Some(RoyaltyPolicy::new(
-                BTreeSet::from([Share::new(sender_string, 10_000)]),
-                royalty_bps as u64,
-            ));
-
-            let schema = Schema::new(
-                CollectionData::new(
-                    name,
-                    None,
-                    None,
-                    None,
-                    vec![],
-                    Supply::Untracked,
-                    MintCap::new(Some(supply as u64)),
-                    royalties,
-                    None,
-                    RequestPolicies::new(true, false, false),
-                    Orderbook::Protected,
-                ),
-                NftData::new(
-                    nft_type,
-                    Burn::Permissionless,
-                    false,
-                    MintPolicies::new(true, true),
-                ),
-            );
-
-            schema.write(&schema_path)?;
-            project.write(&project_path)?;
+            schema.write_json(&schema_path)?;
+            project.write_json(&project_path)?;
         }
         Commands::ConfigCollection {
             project_dir,
             complete,
         } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
-            let mut builder = SchemaBuilder::read(&file_path)?;
+            let mut builder = SchemaBuilder::read_json(&file_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, complete)?;
 
-            builder.write(&file_path)?;
+            builder.write_json(&file_path)?;
         }
         Commands::ConfigUpload { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let uploader = config_upload::init_upload_config()?;
 
-            uploader.write(&file_path)?;
+            uploader.write_json(&file_path)?;
         }
         Commands::Config { project_dir } => {
             let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
-            let mut builder = SchemaBuilder::read(&file_path)?;
+            let mut builder = SchemaBuilder::read_json(&file_path)?;
 
             builder =
                 config_collection::init_collection_config(builder, false)?;
             let uploader = config_upload::init_upload_config()?;
 
-            builder.write(&file_path)?;
-            uploader.write(&file_path)?;
+            builder.write_json(&file_path)?;
+            uploader.write_json(&file_path)?;
         }
         Commands::DeployAssets { project_dir } => {
             let project_path = PathBuf::from(Path::new(project_dir.as_str()));
 
             let mut file_path = project_path.clone();
             // TODO: Incorrect since we separated files
-            file_path.push("config.json");
+            file_path.push(CONFIG_FILENAME);
 
             let mut assets_path = project_path.clone();
             assets_path.push("assets/");
             let mut metadata_path = project_path.clone();
             metadata_path.push("metadata/");
 
-            let uploader = Storage::read(&file_path)?;
+            let uploader = Storage::read_json(&file_path)?;
 
             deploy_assets::deploy_assets(&uploader, assets_path, metadata_path)
                 .await?
@@ -167,7 +136,7 @@ async fn run() -> Result<()> {
 
             let schema = deploy_contract::parse_config(file_path.as_path())?;
 
-            let mut contract_dir = project_path.clone();
+            let mut contract_dir = project_path;
             contract_dir.push("contract/");
 
             deploy_contract::generate_contract(
@@ -191,7 +160,7 @@ async fn run() -> Result<()> {
             let mut contract_dir = project_path.clone();
             contract_dir.push("contract/");
 
-            if skip_generation == false {
+            if !skip_generation {
                 deploy_contract::generate_contract(
                     &schema,
                     contract_dir.as_path(),
@@ -204,7 +173,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            state.write(&state_path)?;
+            state.write_json(&state_path)?;
         }
         Commands::MintNfts {
             project_dir,
@@ -239,7 +208,7 @@ async fn run() -> Result<()> {
             )
             .await?;
 
-            state.write(&state_path)?;
+            state.write_json(&state_path)?;
         }
         Commands::ParallelMint {
             project_dir,
@@ -285,6 +254,66 @@ async fn run() -> Result<()> {
         }
         Commands::CombineCoins { gas_budget } => {
             coin::combine(gas_budget as u64).await?;
+        }
+        Commands::CheckDependencies { project_dir } => {
+            let mut file_path = PathBuf::from(Path::new(project_dir.as_str()));
+            file_path.push("contract/Move.toml");
+
+            let toml_string: String =
+                fs::read_to_string(file_path.clone())?.parse()?;
+
+            let mut move_toml: MoveToml =
+                toml::from_str(toml_string.as_str()).unwrap();
+
+            let url = "https://github.com/Origin-Byte/program-registry";
+
+            let temp_dir =
+                TempDir::new().expect("Failed to create temporary directory");
+
+            let repo = match Repository::clone(url, temp_dir.path()) {
+                Ok(repo) => repo,
+                Err(e) => return Err(anyhow!("failed to clone: {}", e)),
+            };
+
+            if !repo.is_empty()? {
+                println!("Fetched Program Registry successfully");
+            } else {
+                return Err(anyhow!(
+                    "Something went wrong while accessing the Program Registry"
+                ));
+            }
+
+            let file_name = PathBuf::from("registry-main.json");
+            let mut map_path = temp_dir.path().to_path_buf();
+            map_path.push(&file_name);
+
+            let package_map = PackageMap::read_json(&map_path)?;
+
+            // Note: This code block assumes that there is only one folder
+            // in the build folder, which is the case.
+            let mut build_info_path =
+                PathBuf::from(Path::new(project_dir.as_str()));
+
+            build_info_path.push("contract/build/");
+            let mut paths = fs::read_dir(&build_info_path).unwrap();
+
+            if let Some(path) = paths.next() {
+                build_info_path = path?.path();
+                build_info_path.push("BuildInfo.yaml");
+            }
+
+            let mut info = BuildInfo::read_yaml(&build_info_path)?;
+
+            info.packages.make_name_canonical();
+
+            move_toml.update_toml(&package_map);
+
+            let mut toml_string = toml::to_string_pretty(&move_toml)?;
+
+            toml_string = move_toml::add_vertical_spacing(toml_string.as_str());
+
+            let mut file = File::create(file_path)?;
+            file.write_all(toml_string.as_bytes())?;
         }
     }
 

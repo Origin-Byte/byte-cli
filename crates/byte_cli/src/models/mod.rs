@@ -21,14 +21,12 @@ pub trait FromPrompt {
 pub fn bps_validator(input: &String) -> Result<(), String> {
     if input.parse::<u64>().is_err() {
         Err(format!("Couldn't parse '{input}' to a number."))
+    } else if input.parse::<u64>().unwrap() > 10_000 {
+        Err(format!(
+            "The Basis Points number {input} provided is above 100%."
+        ))
     } else {
-        if input.parse::<u64>().unwrap() > 10_000 {
-            Err(format!(
-                "The Basis Points number {input} provided is above 100%."
-            ))
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
 }
 
@@ -36,7 +34,7 @@ pub fn url_validator(input: &String) -> Result<(), String> {
     if input.parse::<String>().is_err() {
         Err(format!("Couldn't parse '{input}' to a string."))
     } else {
-        let url_ = input.parse::<String>().unwrap().to_string();
+        let url_ = input.parse::<String>().unwrap();
         let mut url: String;
 
         if url_.starts_with("www.") {
@@ -97,7 +95,7 @@ pub fn positive_integer_validator(input: &String) -> Result<(), String> {
         Err(format!("Couldn't parse '{input}' to a number."))
     } else {
         let numb = input.parse::<u64>().unwrap();
-        if numb <= 0 {
+        if numb == 0 {
             Err(format!(
                 "The number {input} provided has to be bigger than 0."
             ))
@@ -168,7 +166,7 @@ fn get_options<'a>(
     let mut chosen_opts =
         multi_select(theme, prompt, options_fields, options_values)?;
 
-    while chosen_opts.len() == 0 {
+    while chosen_opts.is_empty() {
         println!("You have to select at least one option.");
         chosen_opts =
             multi_select(theme, prompt, options_fields, options_values)?;

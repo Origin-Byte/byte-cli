@@ -83,7 +83,7 @@ impl NftStorageSetup {
 
 #[async_trait]
 impl Prepare for NftStorageSetup {
-    async fn prepare(&self, assets: &Vec<Asset>) -> Result<()> {
+    async fn prepare(&self, assets: &[Asset]) -> Result<()> {
         assets.iter().try_for_each(|asset| {
             let size = {
                 let path = Path::new(&asset.path);
