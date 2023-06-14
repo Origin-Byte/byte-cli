@@ -4,21 +4,16 @@
 //! by the caller.
 use crate::err::GutenError;
 use crate::models::{collection::CollectionData, nft::NftData};
-
 use serde::{Deserialize, Serialize};
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize, Builder)]
-#[builder(derive(Debug, Serialize, Deserialize))]
-#[builder(setter(into))]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
-    #[builder(field(public))]
     collection: CollectionData,
-    #[builder(field(public))]
     nft: NftData,
 }
 
@@ -47,14 +42,7 @@ impl Schema {
     }
 
     pub fn write_move_defs(&self) -> String {
-        let nft_data = &self.nft;
-        let collection_data = &self.collection;
-
-        let mut defs_str = String::new();
-        defs_str.push_str(&self.nft.write_move_defs(collection_data));
-        defs_str
-            .push_str(&self.collection.write_move_defs(nft_data.type_name()));
-        defs_str
+        self.nft.write_move_defs(&self.collection)
     }
 
     pub fn write_tests(&self) -> String {

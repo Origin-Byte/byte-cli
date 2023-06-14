@@ -139,6 +139,7 @@ impl Serialize for Address {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::Address;
     use crate::err::GutenError;

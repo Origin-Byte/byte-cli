@@ -7,7 +7,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 use serde_json::json;
-use sui_json::SuiJsonValue;
+use sui_sdk::json::SuiJsonValue;
 use url::Url;
 
 #[derive(Debug)]

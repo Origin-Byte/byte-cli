@@ -6,6 +6,11 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
+use anyhow::Result;
+use clap::Parser;
+use console::style;
+use dialoguer::Confirm;
+use std::io::Write;
 use std::{
     fs::{self, File},
     path::PathBuf,
@@ -13,17 +18,10 @@ use std::{
 
 use crate::prelude::*;
 use byte_cli::io::{LocalRead, LocalWrite};
-use dialoguer::Confirm;
+use byte_cli::SchemaBuilder;
 use endpoints::*;
-
-use anyhow::Result;
-use clap::Parser;
-use console::style;
-
-use gutenberg::schema::SchemaBuilder;
 use package_manager::toml::{self as move_toml, MoveToml};
 use rust_sdk::{coin, consts::PRICE_PUBLISH};
-use std::io::Write;
 use uploader::writer::Storage;
 
 #[tokio::main]
