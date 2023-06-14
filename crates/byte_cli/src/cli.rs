@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
-use package_manager::version::Version;
 
 #[derive(Parser)]
 #[clap(author, version, about)]

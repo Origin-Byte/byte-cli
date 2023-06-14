@@ -169,7 +169,7 @@ pub fn get_dependencies(
     dep_names: &Vec<String>,
     version: &Version,
 ) -> HashMap<String, Dependency> {
-    let mut deps = dep_names
+    let deps = dep_names
         .iter()
         .map(|dep_name| {
             (

@@ -2,11 +2,9 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
-    collections::BTreeMap,
     fs::File,
-    io,
     path::{Path, PathBuf},
-    sync::{atomic::AtomicBool, Arc},
+    sync::Arc,
 };
 use tokio::task::{JoinHandle, JoinSet};
 

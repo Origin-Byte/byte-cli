@@ -230,7 +230,7 @@ async fn run() -> Result<()> {
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let metadata_path =
+            let _metadata_path =
                 io::get_assets_path(name.as_str(), &project_dir);
 
             // Logic
@@ -265,13 +265,13 @@ async fn run() -> Result<()> {
             warehouse_id: _,
         } => {
             // Input
-            let schema_path =
+            let _schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let metadata_path =
+            let _metadata_path =
                 io::get_assets_path(name.as_str(), &project_dir);
 
             // Logic
