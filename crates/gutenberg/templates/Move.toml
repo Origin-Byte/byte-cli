@@ -5,20 +5,17 @@ version = "0.0.0"
 [dependencies.Launchpad]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
 subdir = "contracts/launchpad"
-# mainnet
-rev = "a754d4772ed85455fc9f7d653f8d66bf8046f36c"
+rev = "v1.2.0-mainnet"
 
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
 subdir = "contracts/nft_protocol"
-# mainnet
-rev = "a754d4772ed85455fc9f7d653f8d66bf8046f36c"
+rev = "v1.2.0-mainnet"
 
 [dependencies.LiquidityLayerV1]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
 subdir = "contracts/liquidity_layer_v1"
-# mainnet
-rev = "a754d4772ed85455fc9f7d653f8d66bf8046f36c"
+rev = "v1.2.0-mainnet"
 
 [addresses]
 {package_name} = "0x0"
