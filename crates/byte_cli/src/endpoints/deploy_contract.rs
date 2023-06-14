@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
-use byte_cli::consts::{
-    ORIGINMATE_PACKAGE_COMMIT_TEST, PROTOCOL_PACKAGE_COMMIT_TEST,
-    SUI_PACKAGE_COMMIT_TEST,
-};
 use console::style;
-use gutenberg::{package, Schema};
+use gutenberg::Schema;
+use package_manager::{
+    move_lib::PackageMap,
+    toml::{self as move_toml, MoveToml},
+    version::Version,
+};
 use rust_sdk::coin;
-use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
 
@@ -39,7 +39,11 @@ Call `byte_cli init-collection-config` to initialize the configuration file."#,
         .map_err(|err| anyhow!(r#"ERR TODO: {err}."#))
 }
 
-pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
+pub fn generate_contract(
+    schema: &Schema,
+    contract_dir: &Path,
+    package_map: &PackageMap,
+) -> Result<()> {
     println!("{} Generating contract", style("WIP").cyan().bold());
 
     let sources_dir = &contract_dir.join("sources");
@@ -62,75 +66,25 @@ pub fn generate_contract(schema: &Schema, contract_dir: &Path) -> Result<()> {
 
     let module_name = schema.collection().name();
 
-    let package = package::Move {
-        package: package::Package {
-            name: module_name.clone(),
-            version: "0.0.1".to_string(),
-        },
-        dependencies: package::Dependencies::new([
-            (
-                "Sui".to_string(),
-                package::Dependency::new(
-                    "https://github.com/MystenLabs/sui.git".to_string(),
-                    SUI_PACKAGE_COMMIT_TEST.to_string(),
-                )
-                .subdir(
-                    "crates/sui-framework/packages/sui-framework".to_string(),
-                ),
-            ),
-            (
-                "Originmate".to_string(),
-                package::Dependency::new(
-                    "https://github.com/Origin-Byte/originmate.git".to_string(),
-                    ORIGINMATE_PACKAGE_COMMIT_TEST.to_string(),
-                ),
-            ),
-            (
-                "NftProtocol".to_string(),
-                package::Dependency::new(
-                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
-                )
-                .subdir("contracts/nft_protocol".to_string()),
-            ),
-            (
-                "Launchpad".to_string(),
-                package::Dependency::new(
-                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
-                )
-                .subdir("contracts/launchpad".to_string()),
-            ),
-            (
-                "LiquidityLayerV1".to_string(),
-                package::Dependency::new(
-                    "https://github.com/Origin-Byte/nft-protocol".to_string(),
-                    PROTOCOL_PACKAGE_COMMIT_TEST.to_string(),
-                )
-                .subdir("contracts/liquidity_layer_v1".to_string()),
-            ),
-        ]),
-        addresses: package::Addresses::new([(
-            module_name.clone(),
-            "0x0".to_string(),
-        )]),
-    };
+    let move_toml = MoveToml::get_toml(
+        module_name.as_str(),
+        package_map,
+        &vec![
+            String::from("Sui"),
+            String::from("Originmate"),
+            String::from("NftProtocol"),
+            String::from("Launchpad"),
+            String::from("LiquidityLayerV1"),
+        ],
+        &Version::from_string("0.0.1")?,
+    )?;
 
-    let mut buffer = String::new();
-    let mut ser = toml::Serializer::pretty(&mut buffer);
-    package.serialize(&mut ser).map_err(|err| {
-        anyhow!(
-            r#"Could not write package file "{}": {err}"#,
-            package_path.display()
-        )
-    })?;
+    let mut toml_string = toml::to_string_pretty(&move_toml)?;
 
-    package_file.write_all(buffer.as_bytes()).map_err(|err| {
-        anyhow!(
-            r#"Could not write package file "{}": {err}"#,
-            package_path.display()
-        )
-    })?;
+    toml_string = move_toml::add_vertical_spacing(toml_string.as_str());
+
+    // Output
+    package_file.write_all(toml_string.as_bytes())?;
 
     // Write Move contract
     let move_path = &sources_dir.join(format!("{module_name}.move"));

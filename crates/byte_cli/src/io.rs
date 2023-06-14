@@ -5,7 +5,8 @@ use std::{
 
 use crate::models::project::Project;
 use crate::prelude::CliError;
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
+use git2::Repository;
 use gutenberg::schema::{Schema, SchemaBuilder};
 
 use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
@@ -221,4 +222,27 @@ pub fn write_json(
     vec.serialize(ser).map_err(|err| {
         anyhow!(r#"Could not write file "{}": {err}"#, output_file.display())
     })
+}
+
+pub fn get_program_registry() -> Result<PackageMap> {
+    let (temp_dir, registry_path) = get_pakage_registry_paths();
+
+    let url = "https://github.com/Origin-Byte/program-registry";
+
+    let repo = match Repository::clone(url, temp_dir.path()) {
+        Ok(repo) => repo,
+        Err(e) => return Err(anyhow!("failed to clone: {}", e)),
+    };
+
+    if !repo.is_empty()? {
+        println!("Fetched Program Registry successfully");
+    } else {
+        return Err(anyhow!(
+            "Something went wrong while accessing the Program Registry"
+        ));
+    }
+
+    let map = PackageMap::read_json(&registry_path)?;
+
+    Ok(map)
 }

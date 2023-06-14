@@ -110,6 +110,46 @@ impl MoveToml {
                 self.dependencies.insert(dep_name, dep);
             });
     }
+
+    pub fn get_toml(
+        name: &str,
+        package_map: &PackageMap,
+        dep_names: &Vec<String>,
+        version: &Version,
+    ) -> Result<Self> {
+        let empty_addr = Address::new(String::from("0x0"))?;
+
+        let toml = MoveToml {
+            package: Package {
+                name: name.to_string(),
+                version: Version::from_string("1.0.0")?,
+                published_at: Some(empty_addr.clone()),
+            },
+            dependencies: get_dependencies(package_map, dep_names, version),
+            addresses: HashMap::from([(String::from(name), empty_addr)]),
+        };
+
+        Ok(toml)
+    }
+}
+
+pub fn get_dependencies(
+    package_map: &PackageMap,
+    dep_names: &Vec<String>,
+    version: &Version,
+) -> HashMap<String, Dependency> {
+    dep_names
+        .iter()
+        .map(|dep_name| {
+            (
+                dep_name.clone(),
+                get_dependency(dep_name, package_map, version)
+                    .contract_ref
+                    .path
+                    .clone(),
+            )
+        })
+        .collect::<HashMap<String, Dependency>>()
 }
 
 pub fn get_contract_from_rev<'a>(
@@ -209,6 +249,22 @@ pub fn get_updated_dependency<'a>(
     let latest = versions.get(latest_version).unwrap();
 
     (dep.package.version != latest.package.version).then_some(latest)
+}
+
+pub fn get_dependency<'a>(
+    dep_name: &String,
+    package_map: &'a PackageMap,
+    version: &Version,
+) -> &'a MoveLib {
+    // Fetch available versions by package name
+    let versions = package_map.0.get(dep_name).expect(
+        format!("Could not find Package Name {} in PackageMap", dep_name)
+            .as_str(),
+    );
+
+    let dependency = versions.get(version).unwrap();
+
+    dependency
 }
 
 pub fn get_version_from_object_id(

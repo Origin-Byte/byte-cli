@@ -16,16 +16,12 @@ use byte_cli::io::{LocalRead, LocalWrite};
 use dialoguer::Confirm;
 use endpoints::*;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Parser;
 use console::style;
 
-use git2::Repository;
 use gutenberg::schema::SchemaBuilder;
-use package_manager::{
-    move_lib::PackageMap,
-    toml::{self as move_toml, MoveToml},
-};
+use package_manager::toml::{self as move_toml, MoveToml};
 use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use std::io::Write;
 use uploader::writer::Storage;
@@ -151,12 +147,15 @@ async fn run() -> Result<()> {
             let contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
+            let package_map = io::get_program_registry()?;
+
             // Logic
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
 
             deploy_contract::generate_contract(
                 &schema,
                 contract_dir.as_path(),
+                &package_map,
             )?;
         }
         Commands::DeployContract {
@@ -179,9 +178,12 @@ async fn run() -> Result<()> {
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
 
             if !skip_generation {
+                let package_map = io::get_program_registry()?;
+
                 deploy_contract::generate_contract(
                     &schema,
                     contract_dir.as_path(),
+                    &package_map,
                 )?;
             }
 
@@ -300,8 +302,7 @@ async fn run() -> Result<()> {
         Commands::CheckDependencies { name, project_dir } => {
             // Input
             let toml_path = io::get_toml_path(name.as_str(), &project_dir);
-
-            let (temp_dir, registry_path) = io::get_pakage_registry_paths();
+            let package_map = io::get_program_registry()?;
 
             // Logic
             let toml_string: String =
@@ -309,23 +310,6 @@ async fn run() -> Result<()> {
 
             let mut move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
-
-            let url = "https://github.com/Origin-Byte/program-registry";
-
-            let repo = match Repository::clone(url, temp_dir.path()) {
-                Ok(repo) => repo,
-                Err(e) => return Err(anyhow!("failed to clone: {}", e)),
-            };
-
-            if !repo.is_empty()? {
-                println!("Fetched Program Registry successfully");
-            } else {
-                return Err(anyhow!(
-                    "Something went wrong while accessing the Program Registry"
-                ));
-            }
-
-            let package_map = PackageMap::read_json(&registry_path)?;
 
             move_toml.update_toml(&package_map);
 
@@ -335,7 +319,6 @@ async fn run() -> Result<()> {
 
             // Output
             let mut file = File::create(toml_path)?;
-            file.write_all(toml_string.as_bytes())?;
             file.write_all(toml_string.as_bytes())?;
         }
     }
