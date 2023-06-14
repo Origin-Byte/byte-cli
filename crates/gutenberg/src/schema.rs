@@ -4,21 +4,16 @@
 //! by the caller.
 use crate::err::GutenError;
 use crate::models::{collection::CollectionData, nft::NftData};
-
 use serde::{Deserialize, Serialize};
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize, Builder)]
-#[builder(derive(Debug, Serialize, Deserialize))]
-#[builder(setter(into))]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
     package_name: Option<String>,
-    #[builder(field(public))]
     collection: CollectionData,
-    #[builder(field(public))]
     nft: NftData,
 }
 

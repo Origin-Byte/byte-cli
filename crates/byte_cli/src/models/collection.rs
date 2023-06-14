@@ -7,21 +7,20 @@ use super::{
 use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input, Select};
-use gutenberg::{
-    models::{
-        collection::{
-            CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
-            Supply,
-        },
-        Address,
+use gutenberg::models::{
+    collection::{
+        CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
+        Supply,
     },
-    schema::SchemaBuilder,
+    Address,
 };
 
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 
 impl FromPrompt for MintCap {
-    fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a> = ();
+
+    fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -53,7 +52,9 @@ impl FromPrompt for MintCap {
 }
 
 impl FromPrompt for CollectionData {
-    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a> = ();
+
+    fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -127,16 +128,19 @@ impl FromPrompt for CollectionData {
             creators.insert(address);
         }
 
+        let creators: Vec<Address> = creators.into_iter().collect();
+        let royalty_policy = RoyaltyPolicy::from_prompt(creators.as_slice())?;
+
         Ok(CollectionData::new(
             name.to_lowercase(),
             Some(description),
             Some(symbol.to_uppercase()),
             url,
-            creators.into_iter().collect(),
+            creators,
             // Use tracked supply as default as it is most compatible
             Supply::tracked(),
-            MintCap::from_prompt(schema)?,
-            Some(RoyaltyPolicy::from_prompt(schema)?),
+            MintCap::from_prompt(())?,
+            Some(royalty_policy),
             // TODO: Tags
             None,
             RequestPolicies::default(),

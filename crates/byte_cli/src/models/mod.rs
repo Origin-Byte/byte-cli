@@ -1,5 +1,4 @@
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
-use gutenberg::schema::SchemaBuilder;
 
 use crate::{
     consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
@@ -13,7 +12,9 @@ pub mod royalties;
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
-    fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
+    type Param<'a>;
+
+    fn from_prompt(param: Self::Param<'_>) -> Result<Self, anyhow::Error>
     where
         Self: Sized;
 }

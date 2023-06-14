@@ -139,9 +139,10 @@ impl Serialize for Address {
     }
 }
 
+#[cfg(test)]
 mod test {
-    use crate::err::GutenError;
     use super::Address;
+    use crate::err::GutenError;
 
     #[test]
     fn input_addresses() -> Result<(), GutenError> {
