@@ -11,7 +11,7 @@ use tokio::task::JoinHandle;
 use crate::uploader::{Asset, ParallelUploader, Prepare, UploadedAsset};
 
 // Maximum number of times to retry each individual upload.
-const MAX_RETRY: u8 = 3;
+const MAX_RETRY: u8 = 1;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AWSConfig {

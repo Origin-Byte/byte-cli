@@ -111,7 +111,7 @@ impl Uploader for NftStorageSetup {
         assets: &mut Vec<Asset>,
         // TODO: Write state to metadata objects
         _nft_data: Arc<GlobalMetadata>,
-    ) -> Result<()> {
+    ) -> Result<Vec<String>> {
         // TODO: Write state to metadata objects
         println!("We are in the upload phase");
         let mut batches: Vec<Vec<&Asset>> = Vec::new();
@@ -181,6 +181,7 @@ impl Uploader for NftStorageSetup {
             }
         }
 
-        Ok(())
+        // TODO: This vector should be collecting the errors...
+        Ok(vec![])
     }
 }

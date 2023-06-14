@@ -4871,6 +4871,18 @@ dependencies = [
 
 [[package]]
 name = "indicatif"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d207dc617c7a380ab07ff572a6e52fa202a2a8f355860ac9c38e23f8196be1b"
+dependencies = [
+ "console",
+ "lazy_static 1.4.0",
+ "number_prefix",
+ "regex",
+]
+
+[[package]]
+name = "indicatif"
 version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cef509aa9bc73864d6756f0d34d35504af3cf0844373afe9b8669a5b8005a729"
@@ -11881,6 +11893,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap",
+ "indicatif 0.16.2",
  "ini",
  "pretty_assertions",
  "reqwest",
@@ -12729,7 +12742,7 @@ dependencies = [
  "include_dir_macros",
  "indenter",
  "indexmap",
- "indicatif",
+ "indicatif 0.17.3",
  "inferno",
  "inout",
  "inquire",

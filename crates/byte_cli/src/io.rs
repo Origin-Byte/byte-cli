@@ -201,3 +201,24 @@ fn get_file_path(
 
     filepath
 }
+
+pub fn write_json(
+    vec: Vec<String>,
+    output_file: &Path,
+) -> Result<(), anyhow::Error> {
+    // Create the parent directories if they don't exist
+    fs::create_dir_all(output_file.parent().unwrap())?;
+
+    let file = File::create(output_file).map_err(|err| {
+        anyhow!(
+            r#"Could not create file "{}": {err}"#,
+            output_file.display()
+        )
+    })?;
+
+    let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
+    let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
+    vec.serialize(ser).map_err(|err| {
+        anyhow!(r#"Could not write file "{}": {err}"#, output_file.display())
+    })
+}

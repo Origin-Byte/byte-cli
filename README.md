@@ -28,3 +28,7 @@ The CLI has the following commands:
 `cargo run --bin byte_cli generate-contract <PROJECT_FOLDER>`
 
 `cargo run --bin byte_cli check-dependencies`
+
+`cargo run --bin byte_cli deploy-assets tony`
+
+`cargo run --bin byte_cli new-simple pinata_test 1000 100`

@@ -1,9 +1,12 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::{
+    collections::BTreeMap,
     fs::File,
+    io,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{atomic::AtomicBool, Arc},
 };
 use tokio::task::{JoinHandle, JoinSet};
 
@@ -117,6 +120,7 @@ impl Asset {
     }
 }
 
+#[derive(Debug)]
 pub struct UploadedAsset {
     /// Id of the asset
     pub index: u32,
@@ -141,7 +145,7 @@ pub trait Uploader: Prepare {
         &self,
         assets: &mut Vec<Asset>,
         nft_data: Arc<GlobalMetadata>,
-    ) -> Result<()>;
+    ) -> Result<Vec<String>>;
 }
 
 #[async_trait]
@@ -164,17 +168,50 @@ impl<T: ParallelUploader> Uploader for T {
         &self,
         assets: &mut Vec<Asset>,
         metadata: Arc<GlobalMetadata>,
-    ) -> Result<()> {
+    ) -> Result<Vec<String>> {
         let mut set = JoinSet::new();
+        let mut error_logs = vec![];
+        // let mut terminate_flag = Arc::new(AtomicBool::new(false));
+
+        // Create a new progress bar
+        let progress_bar = ProgressBar::new(assets.len() as u64);
+        progress_bar.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+                .progress_chars("#>-"),
+        );
 
         for asset in assets.drain(..) {
             set.spawn(self.upload_asset(asset, metadata.clone()));
         }
 
+        // // Start a task to wait for keyboard input
+        // let keyboard_input_task = tokio::spawn(async {
+        //     let mut input = String::new();
+        //     io::stdin().
+
+        //     .lock().read_line(&mut input).unwrap();
+
+        //     // Handle the keyboard input as needed
+        //     if input.trim() == "q" {
+        //         terminate_flag = true;
+        //     }
+        // });
+
         while let Some(res) = set.join_next().await {
-            res.unwrap().unwrap().unwrap();
+            // Advance the progress bar
+            progress_bar.inc(1);
+            match res.unwrap().unwrap() {
+                Ok(_) => {}
+                Err(error) => {
+                    error_logs.push(format!("{:?}", error));
+                }
+            }
         }
 
-        Ok(())
+        // Finish the progress bar
+        progress_bar.finish();
+
+        Ok(error_logs)
     }
 }
