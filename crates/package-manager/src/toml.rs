@@ -367,6 +367,6 @@ pub fn get_version_from_object_id(
 /// This function is here because Toml serialiser seems to be
 /// failing to add a vertical space between the tables `package` and `dependencies`
 pub fn add_vertical_spacing(input: &str) -> String {
-    let re = Regex::new(r"(?m)^(version.*)").unwrap();
+    let re = Regex::new(r"(?m)^(published-at.*)").unwrap();
     re.replace_all(input, "$1\n").to_string()
 }
