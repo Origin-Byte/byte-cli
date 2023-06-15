@@ -4,7 +4,6 @@ use sui_json_rpc_types::Coin;
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
-use sui_sdk::{SuiClient, SuiClientBuilder};
 use sui_types::base_types::{ObjectRef, SuiAddress};
 
 use crate::err::RustSdkError;

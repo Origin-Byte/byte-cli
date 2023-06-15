@@ -5,6 +5,7 @@ use rust_sdk::metadata::GlobalMetadata;
 use s3::{bucket::Bucket, creds::Credentials, region::Region};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
@@ -80,7 +81,8 @@ impl AWSSetup {
         url: String,
         asset: Asset,
         metadata: Arc<GlobalMetadata>,
-    ) -> Result<UploadedAsset> {
+        terminate_flag: Arc<AtomicBool>,
+    ) -> Result<Option<UploadedAsset>> {
         let content = fs::read(&asset.path)?;
 
         let path = Path::new(&directory).join(&asset.name);
@@ -90,6 +92,15 @@ impl AWSSetup {
         let mut retry = MAX_RETRY;
 
         loop {
+            // Note: Here for testing
+            // tokio::time::sleep(Duration::from_millis(10 * asset.index as u64))
+            //     .await;
+
+            if terminate_flag.load(Ordering::SeqCst) {
+                // Terminate the loop if terminate_flag is true
+                return Ok(None);
+            }
+
             match bucket
                 .put_object_with_content_type(
                     path_str,
@@ -125,7 +136,7 @@ impl AWSSetup {
         let mut nft_data = metadata.0.get_mut(&asset.index).unwrap();
         nft_data.url = Some(uri.clone());
 
-        Ok(UploadedAsset::new(asset.index, uri.to_string()))
+        Ok(Some(UploadedAsset::new(asset.index, uri.to_string())))
     }
 }
 
@@ -142,13 +153,22 @@ impl ParallelUploader for AWSSetup {
         &self,
         asset: Asset,
         metadata: Arc<GlobalMetadata>,
-    ) -> JoinHandle<Result<UploadedAsset>> {
+        terminate_flag: Arc<AtomicBool>,
+    ) -> JoinHandle<Result<Option<UploadedAsset>>> {
         let bucket = self.bucket.clone();
         let directory = self.directory.clone();
         let url = self.url.clone();
 
         tokio::spawn(async move {
-            AWSSetup::write(bucket, directory, url, asset, metadata).await
+            AWSSetup::write(
+                bucket,
+                directory,
+                url,
+                asset,
+                metadata,
+                terminate_flag,
+            )
+            .await
         })
     }
 }

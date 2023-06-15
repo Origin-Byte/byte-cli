@@ -4,14 +4,20 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     fs::File,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
-use tokio::task::{JoinHandle, JoinSet};
+use tokio::{
+    io::{self, AsyncReadExt, BufReader},
+    task::{JoinHandle, JoinSet},
+};
 
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-
 use rust_sdk::metadata::{GlobalMetadata, Metadata};
+use serde::{Deserialize, Serialize};
 
 /// Maximum number of concurrent tasks (this is important for tasks that handle files
 /// and network connections).
@@ -153,7 +159,8 @@ pub trait ParallelUploader: Uploader + Send + Sync {
         asset: Asset,
         // nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
-    ) -> JoinHandle<Result<UploadedAsset>>;
+        terminate_flag: Arc<AtomicBool>,
+    ) -> JoinHandle<Result<Option<UploadedAsset>>>;
 }
 
 /// Default implementation of the trait ['Uploader'](Uploader) for all ['ParallelUploader'](ParallelUploader).
@@ -169,7 +176,7 @@ impl<T: ParallelUploader> Uploader for T {
     ) -> Result<Vec<String>> {
         let mut set = JoinSet::new();
         let mut error_logs = vec![];
-        // let mut terminate_flag = Arc::new(AtomicBool::new(false));
+        let terminate_flag = Arc::new(AtomicBool::new(false));
 
         // Create a new progress bar
         let progress_bar = ProgressBar::new(assets.len() as u64);
@@ -179,36 +186,70 @@ impl<T: ParallelUploader> Uploader for T {
                 .progress_chars("#>-"),
         );
 
+        progress_bar.inc(0);
+
+        let flag = terminate_flag.clone();
+
+        // Start a task to wait for keyboard input
+        let keyboard_handle = tokio::spawn(async move {
+            let mut stdin = BufReader::new(io::stdin());
+            let mut buffer = [0u8; 1];
+
+            while !flag.load(Ordering::SeqCst) {
+                let bytes_read = stdin.read_exact(&mut buffer).await;
+
+                match bytes_read {
+                    Ok(_) => {
+                        // User entered 'q' or 'Q', exit the loop gracefully
+                        if buffer[0] == b'q' || buffer[0] == b'Q' {
+                            // Switch the value to true
+                            flag.store(true, Ordering::SeqCst);
+
+                            // Need to wait a second before prompting this message to the user
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                            println!("Exiting upload process. This might take a minute..");
+                            break;
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("Error reading input: {}", err);
+                        // Handle or report the error as needed
+                        break;
+                    }
+                }
+            }
+        });
+
         for asset in assets.drain(..) {
-            set.spawn(self.upload_asset(asset, metadata.clone()));
+            if terminate_flag.load(Ordering::SeqCst) {
+                break; // Terminate the loop if terminate_flag is true
+            }
+
+            set.spawn(self.upload_asset(
+                asset,
+                metadata.clone(),
+                terminate_flag.clone(),
+            ));
         }
 
-        // // Start a task to wait for keyboard input
-        // let keyboard_input_task = tokio::spawn(async {
-        //     let mut input = String::new();
-        //     io::stdin().
-
-        //     .lock().read_line(&mut input).unwrap();
-
-        //     // Handle the keyboard input as needed
-        //     if input.trim() == "q" {
-        //         terminate_flag = true;
-        //     }
-        // });
-
         while let Some(res) = set.join_next().await {
-            // Advance the progress bar
-            progress_bar.inc(1);
             match res.unwrap().unwrap() {
-                Ok(_) => {}
+                Ok(result) => match result {
+                    Some(_) => progress_bar.inc(1),
+                    None => error_logs.push(String::from("Skipped upload")),
+                },
                 Err(error) => {
                     error_logs.push(format!("{:?}", error));
                 }
             }
         }
 
+        // Set the terminate_flag to true after all processes have completed
+        terminate_flag.store(true, Ordering::SeqCst);
+        keyboard_handle.abort();
+
         // Finish the progress bar
-        progress_bar.finish();
+        progress_bar.finish_at_current_pos();
 
         Ok(error_logs)
     }

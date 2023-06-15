@@ -67,11 +67,8 @@ pub async fn split(
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
 
-    let signature = context.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
+    let signature =
+        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
 
     signatures.push(signature);
 
@@ -115,11 +112,8 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
     // Sign transaction.
     let mut signatures: Vec<Signature> = vec![];
 
-    let signature = context.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
+    let signature =
+        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
 
     signatures.push(signature);
 

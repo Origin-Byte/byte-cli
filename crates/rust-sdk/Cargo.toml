@@ -19,7 +19,7 @@ move-package = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f08
 sui-move = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2", features = ["build"] }
 
 thiserror = "1.0"
-tokio = { version = "1.20", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.28", features = ["macros", "rt-multi-thread"] }
 anyhow = "1.0"
 console = "0.15"
 dirs = "4.0"
