@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fmt, marker::PhantomData, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+    marker::PhantomData,
+    str::FromStr,
+};
 
 use anyhow::Result;
 use dashmap::DashMap;
@@ -41,11 +46,25 @@ impl GlobalMetadata {
 
         hash_map
     }
+
+    pub fn from_map(map: StorableMetadata) -> Self {
+        GlobalMetadata(map.0.into_iter().collect())
+    }
 }
 
 impl StorableMetadata {
     pub fn from_map(hash_map: BTreeMap<u32, Metadata>) -> Self {
         Self(hash_map)
+    }
+
+    pub fn get_to_upload(&self) -> BTreeSet<u32> {
+        self.0
+            .iter()
+            .filter_map(|(idx, meta)| match meta.url {
+                Some(_) => None,
+                None => Some(*idx),
+            })
+            .collect()
     }
 }
 

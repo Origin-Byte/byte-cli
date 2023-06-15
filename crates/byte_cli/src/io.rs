@@ -27,6 +27,7 @@ impl LocalRead for MoveToml {}
 impl LocalRead for PackageMap {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
+impl LocalRead for StorableMetadata {}
 impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}

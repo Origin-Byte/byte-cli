@@ -15,7 +15,9 @@ use std::{
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
-use crate::uploader::{Asset, ParallelUploader, Prepare, UploadedAsset};
+use crate::uploader::{
+    Asset, ParallelUploader, Prepare, UploadEffects, UploadedAsset,
+};
 
 // For more check: https://docs.pinata.cloud/pinata-api/pinning
 const UPLOAD_ENDPOINT: &str = "/pinning/pinFileToIPFS";
@@ -118,7 +120,7 @@ impl PinataSetup {
         // mut nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
         terminate_flag: Arc<AtomicBool>,
-    ) -> Result<Option<UploadedAsset>> {
+    ) -> Result<UploadEffects> {
         // TODO: Each uplaod is creating their own CID, however, this
         // should be shared accross the collection..
         let content = fs::read(&asset.path)?;
@@ -138,7 +140,7 @@ impl PinataSetup {
 
         if terminate_flag.load(Ordering::SeqCst) {
             // Terminate the loop if terminate_flag is true
-            return Ok(None);
+            return Ok(UploadEffects::Failure(asset.index));
         }
 
         let response = setup
@@ -161,7 +163,10 @@ impl PinataSetup {
             let mut nft_data = metadata.0.get_mut(&asset.index).unwrap();
             nft_data.url = Some(uri.clone());
 
-            Ok(Some(UploadedAsset::new(asset.index, uri.to_string())))
+            Ok(UploadEffects::Success(UploadedAsset::new(
+                asset.index,
+                uri.to_string(),
+            )))
         } else {
             let body = response.json::<serde_json::Value>().await?;
 
@@ -204,7 +209,7 @@ impl ParallelUploader for PinataSetup {
         metadata: Arc<GlobalMetadata>,
         terminate_flag: Arc<AtomicBool>,
         // nft_data: RefMut<u32, Metadata, RandomState>,
-    ) -> JoinHandle<Result<Option<UploadedAsset>>> {
+    ) -> JoinHandle<Result<UploadEffects>> {
         let setup = self.0.clone();
 
         tokio::spawn(async move {

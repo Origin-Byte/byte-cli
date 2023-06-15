@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     fs::File,
+    io::Write,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -22,6 +23,11 @@ use serde::{Deserialize, Serialize};
 /// Maximum number of concurrent tasks (this is important for tasks that handle files
 /// and network connections).
 pub const PARALLEL_LIMIT: usize = 45;
+
+pub enum UploadEffects {
+    Success(UploadedAsset),
+    Failure(u32),
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Item {
@@ -48,18 +54,6 @@ pub async fn upload_data(
 
     Ok(())
 }
-
-// pub async fn write_state(state_path: PathBuf, url: String) -> Result<()> {
-//     println!("Writing state in {:?}", state_path);
-//     let mut state = try_read_state(&state_path)?;
-//     println!("The state is {:?}", state);
-
-//     state.url = Some(url);
-
-//     write_state_file(&state, state_path.as_path()).await?;
-
-//     Ok(())
-// }
 
 pub fn try_read_state(path_buf: &PathBuf) -> Result<Metadata> {
     let f = File::open(path_buf);
@@ -160,7 +154,7 @@ pub trait ParallelUploader: Uploader + Send + Sync {
         // nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
         terminate_flag: Arc<AtomicBool>,
-    ) -> JoinHandle<Result<Option<UploadedAsset>>>;
+    ) -> JoinHandle<Result<UploadEffects>>;
 }
 
 /// Default implementation of the trait ['Uploader'](Uploader) for all ['ParallelUploader'](ParallelUploader).
@@ -206,7 +200,8 @@ impl<T: ParallelUploader> Uploader for T {
                             flag.store(true, Ordering::SeqCst);
 
                             // Need to wait a second before prompting this message to the user
-                            tokio::time::sleep(Duration::from_secs(1)).await;
+                            tokio::time::sleep(Duration::from_millis(1000))
+                                .await;
                             println!("Exiting upload process. This might take a minute..");
                             break;
                         }
@@ -235,8 +230,9 @@ impl<T: ParallelUploader> Uploader for T {
         while let Some(res) = set.join_next().await {
             match res.unwrap().unwrap() {
                 Ok(result) => match result {
-                    Some(_) => progress_bar.inc(1),
-                    None => error_logs.push(String::from("Skipped upload")),
+                    UploadEffects::Success(_) => progress_bar.inc(1),
+                    UploadEffects::Failure(index) => error_logs
+                        .push(format!("Skipped upload of image #{}", index)),
                 },
                 Err(error) => {
                     error_logs.push(format!("{:?}", error));
