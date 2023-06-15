@@ -18,13 +18,15 @@ impl MintPolicies {
         type_name: &str,
         collection_data: &CollectionData,
     ) -> String {
+        let requires_collection = collection_data.requires_collection();
+
         let mut mint_fns = String::new();
 
         let mut base_params = vec!["name".to_string()];
         base_params.extend(self.params().into_iter());
         base_params.push("mint_cap".to_string());
 
-        if collection_data.supply().requires_collection() {
+        if requires_collection {
             base_params.push("collection".to_string());
         }
 
@@ -36,7 +38,7 @@ impl MintPolicies {
         base_param_types
             .push(format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>"));
 
-        if collection_data.supply().requires_collection() {
+        if requires_collection {
             base_param_types.push(format!(
                 "&mut nft_protocol::collection::Collection<{type_name}>"
             ));
@@ -151,11 +153,15 @@ impl MintPolicies {
             false,
             Some(type_name.to_string()),
             || {
-                let supply = collection_data.supply();
-                let requires_collection = supply.requires_collection();
-
                 let collection_increment_str = requires_collection
-                    .then(|| supply.write_move_increment())
+                    .then(|| {
+                        #[cfg(feature = "full")]
+                        let supply_str = collection_data.supply().write_move_increment();
+                        #[cfg(not(feature = "full"))]
+                        let supply_str = "";
+
+                        supply_str
+                    })
                     .unwrap_or_default();
 
                 format!(

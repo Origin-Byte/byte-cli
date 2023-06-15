@@ -8,6 +8,7 @@ mod minting;
 mod orderbook;
 mod request;
 
+#[cfg(feature = "full")]
 pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
 pub use request::RequestPolicies;
@@ -44,8 +45,6 @@ pub struct NftData {
 pub struct NftData {
     /// Type name of the NFT
     type_name: String,
-    /// Mint capabilities issued for NFT
-    mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
     /// Launchpad or Airdrop.
     //
@@ -87,13 +86,11 @@ impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
-        mint_cap: MintCap,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
     ) -> Self {
         NftData {
             type_name,
-            mint_cap,
             mint_policies,
             request_policies,
         }
@@ -144,12 +141,22 @@ impl NftData {
         let type_name = self.type_name();
 
         let collection_init = collection_data.write_move_init(self);
-        let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
         let transfer_fns = self.write_move_transfer_fns();
+
+        // Write MintCap instantiation
+        //
+        // If using non-full version of Gutenberg, a MintCap with supply
+        // limited to 100 will always be instantiated
+        #[cfg(feature = "full")]
+        let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
+        #[cfg(not(feature = "full"))]
+        let mint_cap_init = mint_cap::write_move_init(&witness, type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));
-        misc_init.push_str(&self.write_move_policies(self));
+        misc_init.push_str(
+            &self.write_move_policies(collection_data.has_royalties()),
+        );
         #[cfg(feature = "full")]
         misc_init.push_str(&self.orderbook.write_move_init(type_name));
 
@@ -207,9 +214,8 @@ impl NftData {
         collection_data: &CollectionData,
     ) -> String {
         let witness = collection_data.witness_name();
-        let supply = collection_data.supply();
 
-        let requires_collection = supply.requires_collection();
+        let requires_collection = collection_data.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
@@ -264,19 +270,21 @@ impl NftData {
     }}")
     }
 
-    fn write_move_policies(&self, nft_data: &NftData) -> String {
-        let type_name = nft_data.type_name();
+    fn write_move_policies(&self, has_royalties: bool) -> String {
+        let type_name = self.type_name();
 
         let mut policies_str = String::new();
 
         if self.request_policies.has_transfer() {
+            let royalty_strategy_str = has_royalties.then_some("
+        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);").unwrap_or_default();
+
             policies_str.push_str(&format!(
                 "
 
         let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<{type_name}>(
             &publisher, ctx,
-        );
-        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        );{royalty_strategy_str}
         nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);"
             ));
         }

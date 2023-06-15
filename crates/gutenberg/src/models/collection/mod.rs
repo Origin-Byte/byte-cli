@@ -14,6 +14,7 @@ pub use self::{
 use super::{nft::NftData, Address};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "full")]
 /// Contains the metadata fields of the collection
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -29,11 +30,35 @@ pub struct CollectionData {
     #[serde(default)]
     /// The addresses of creators
     creators: Vec<Address>,
+    /// Collection tags
+    tags: Option<Tags>,
+    /// Collection-level supply
     supply: Supply,
+    /// Collection royalties
     royalties: Option<RoyaltyPolicy>,
+}
+
+#[cfg(not(feature = "full"))]
+/// Contains the metadata fields of the collection
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionData {
+    /// The name of the collection
+    name: String,
+    /// The description of the collection
+    description: Option<String>,
+    /// The symbol/ticker of the collection
+    symbol: Option<String>,
+    /// The URL of the collection website
+    url: Option<String>,
+    #[serde(default)]
+    /// The addresses of creators
+    creators: Vec<Address>,
+    /// Collection tags
     tags: Option<Tags>,
 }
 
+#[cfg(feature = "full")]
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -58,6 +83,38 @@ impl CollectionData {
         }
     }
 
+    pub fn supply(&self) -> &Supply {
+        &self.supply
+    }
+
+    pub fn royalties(&self) -> &Option<RoyaltyPolicy> {
+        &self.royalties
+    }
+}
+
+#[cfg(not(feature = "full"))]
+impl CollectionData {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        symbol: Option<String>,
+        url: Option<String>,
+        creators: Vec<Address>,
+        tags: Option<Tags>,
+    ) -> CollectionData {
+        CollectionData {
+            name,
+            description,
+            symbol,
+            url,
+            creators,
+            tags,
+        }
+    }
+}
+
+impl CollectionData {
     pub fn name(&self) -> String {
         // Since `CollectionData` can be deserialized from an untrusted source
         // it's fields must be escaped when preparing for display.
@@ -112,12 +169,28 @@ impl CollectionData {
         &self.creators
     }
 
-    pub fn supply(&self) -> &Supply {
-        &self.supply
-    }
-
     pub fn tags(&self) -> &Option<Tags> {
         &self.tags
+    }
+
+    /// Whether collection has royalty policy defined
+    pub fn has_royalties(&self) -> bool {
+        #[cfg(feature = "full")]
+        let has_royalties = self.royalties().is_some();
+        #[cfg(not(feature = "full"))]
+        let has_royalties = false;
+
+        has_royalties
+    }
+
+    /// Whether `&mut Collection` needs to be passed into mint methods
+    pub fn requires_collection(&self) -> bool {
+        #[cfg(feature = "full")]
+        let requires_collection = self.supply().requires_collection();
+        #[cfg(not(feature = "full"))]
+        let requires_collection = false;
+
+        requires_collection
     }
 
     pub fn write_move_init(&self, nft_data: &NftData) -> String {
@@ -140,7 +213,9 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
+        #[cfg(feature = "full")]
         domains_str.push_str(&self.supply().write_move_domain());
+        #[cfg(feature = "full")]
         domains_str.push_str(
             self.royalties
                 .as_ref()
@@ -186,7 +261,7 @@ impl CollectionData {
         })
     }
 
-    pub fn write_move_collection_url(&self) -> Option<String> {
+    fn write_move_collection_url(&self) -> Option<String> {
         self.url().as_ref().map(|url| {
             format!(
                 "
@@ -200,7 +275,7 @@ impl CollectionData {
         })
     }
 
-    pub fn write_move_collection_symbol(&self) -> Option<String> {
+    fn write_move_collection_symbol(&self) -> Option<String> {
         self.symbol().as_ref().map(|symbol| {
             format!(
                 "
