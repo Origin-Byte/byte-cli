@@ -48,12 +48,7 @@ async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::NewSimple {
-            name,
-            supply,
-            royalty_bps,
-            project_dir,
-        } => {
+        Commands::ConfigSimple { name, project_dir } => {
             // Input
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
@@ -61,9 +56,7 @@ async fn run() -> Result<()> {
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
-            // Logic
-            let (schema, project) =
-                new_simple::init_schema(&name, supply, royalty_bps).await?;
+            let (schema, project) = config_simple::init_schema(&name).await?;
 
             // Output
             schema.write_json(&schema_path)?;

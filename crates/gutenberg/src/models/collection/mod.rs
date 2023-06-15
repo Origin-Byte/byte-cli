@@ -2,16 +2,19 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+#[cfg(feature = "full")]
 mod royalties;
+#[cfg(feature = "full")]
 mod supply;
 mod tags;
 
-pub use self::{
-    royalties::{RoyaltyPolicy, Share},
-    supply::Supply,
-    tags::Tags,
-};
 use super::{nft::NftData, Address};
+#[cfg(feature = "full")]
+pub use royalties::{RoyaltyPolicy, Share};
+#[cfg(feature = "full")]
+pub use supply::Supply;
+pub use tags::{Tag, Tags};
+
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]

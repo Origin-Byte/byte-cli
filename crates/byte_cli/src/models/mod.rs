@@ -8,6 +8,7 @@ use crate::{
 pub mod collection;
 pub mod nft;
 pub mod project;
+#[cfg(feature = "full")]
 pub mod royalties;
 
 /// Trait for constructing Gutenberg objects from prompt

@@ -11,15 +11,14 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    NewSimple {
+    /// Creates simple configuration file to be used while generating contract
+    ConfigSimple {
         name: String,
-        supply: usize,
-        royalty_bps: usize,
         project_dir: Option<String>,
     },
 
-    /// Creates or adds confiiguration to JSON config file to be read by
-    /// Gutenberg for the purpose of building the Move module
+    /// Creates or adds configuration to JSON config file to be read while
+    /// generating contract
     ConfigCollection {
         name: String,
         project_dir: Option<String>,
@@ -27,9 +26,9 @@ pub enum Commands {
         complete: bool,
     },
 
-    /// Creates or adds configuration to JSON config file to be read the asset
-    /// deployer for the purpose of deploying assets, usually to an off-chain
-    /// storage service
+    /// Creates or adds configuration to JSON config file to be read by the
+    /// asset deployer for the purpose of deploying assets, usually to an
+    /// off-chain storage service
     ConfigUpload {
         name: String,
         project_dir: Option<String>,

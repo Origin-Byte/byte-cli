@@ -9,8 +9,14 @@ mod orderbook;
 mod request;
 
 #[cfg(feature = "full")]
+pub use burn::Burn;
+#[cfg(feature = "full")]
+pub use dynamic::Dynamic;
+#[cfg(feature = "full")]
 pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
+#[cfg(feature = "full")]
+pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 
 use super::collection::{CollectionData, Tags};
@@ -25,9 +31,9 @@ pub struct NftData {
     /// Type name of the NFT
     type_name: String,
     /// Burn policy for NFT
-    burn: burn::Burn,
+    burn: Burn,
     /// Dynamic policies for NFT
-    dynamic: dynamic::Dynamic,
+    dynamic: Dynamic,
     /// Mint capabilities issued for NFT
     mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
@@ -62,8 +68,8 @@ impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
-        burn: burn::Burn,
-        dynamic: bool,
+        burn: Burn,
+        dynamic: Dynamic,
         mint_cap: MintCap,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
@@ -72,7 +78,7 @@ impl NftData {
         NftData {
             type_name,
             burn,
-            dynamic: dynamic::Dynamic::new(dynamic),
+            dynamic,
             mint_cap,
             mint_policies,
             request_policies,
