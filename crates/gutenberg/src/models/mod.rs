@@ -218,7 +218,6 @@ mod test {
                 .to_string()
         )
         .is_err());
-        // assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
 
         Ok(())
     }
@@ -230,7 +229,6 @@ mod test {
                 .to_string()
         )
         .is_err());
-        // assert!(Address::new("This is not an hexadecimal".to_string()).is_err());
 
         Ok(())
     }

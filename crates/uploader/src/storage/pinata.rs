@@ -6,14 +6,13 @@ use reqwest::{
     multipart::{Form, Part},
     Client, StatusCode,
 };
+use rust_sdk::metadata::GlobalMetadata;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::fs;
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
-use crate::uploader::{
-    write_state, Asset, ParallelUploader, Prepare, UploadedAsset,
-};
+use crate::uploader::{Asset, ParallelUploader, Prepare, UploadedAsset};
 
 // For more check: https://docs.pinata.cloud/pinata-api/pinning
 const UPLOAD_ENDPOINT: &str = "/pinning/pinFileToIPFS";
@@ -110,10 +109,11 @@ impl PinataSetup {
         }
     }
 
-    async fn write(
+    async fn write<'a>(
         setup: &Setup,
         asset: Asset,
-        state: PathBuf,
+        // mut nft_data: RefMut<'a, u32, Metadata, RandomState>,
+        metadata: Arc<GlobalMetadata>,
     ) -> Result<UploadedAsset> {
         // TODO: Each uplaod is creating their own CID, however, this
         // should be shared accross the collection..
@@ -145,9 +145,11 @@ impl PinataSetup {
             let uri = url::Url::parse(&setup.retrieval_gateway)?
                 .join(&format!("/ipfs/{}/{}", ipfs_hash, asset.name))?;
 
-            write_state(state, asset.id.clone(), uri.to_string()).await?;
+            // Access the url field on the Metadata struct
+            let mut nft_data = metadata.0.get_mut(&asset.index).unwrap();
+            nft_data.url = Some(uri.clone());
 
-            Ok(UploadedAsset::new(asset.id.clone(), uri.to_string()))
+            Ok(UploadedAsset::new(asset.index, uri.to_string()))
         } else {
             let body = response.json::<serde_json::Value>().await?;
 
@@ -187,11 +189,13 @@ impl ParallelUploader for PinataSetup {
     fn upload_asset(
         &self,
         asset: Asset,
-        state: PathBuf,
+        metadata: Arc<GlobalMetadata>,
+        // nft_data: RefMut<u32, Metadata, RandomState>,
     ) -> JoinHandle<Result<UploadedAsset>> {
         let setup = self.0.clone();
-        tokio::spawn(
-            async move { PinataSetup::write(&setup, asset, state).await },
-        )
+
+        tokio::spawn(async move {
+            PinataSetup::write(&setup, asset, metadata).await
+        })
     }
 }

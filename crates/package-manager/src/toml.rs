@@ -110,6 +110,101 @@ impl MoveToml {
                 self.dependencies.insert(dep_name, dep);
             });
     }
+
+    pub fn get_toml(
+        name: &str,
+        package_map: &PackageMap,
+        dep_names: &Vec<String>,
+        ext_dep_names: &Vec<String>,
+        version: &Version,
+    ) -> Result<Self> {
+        let empty_addr = Address::new(String::from("0x0"))?;
+
+        let mut dependencies =
+            get_dependencies(package_map, dep_names, &version);
+
+        // Inserts Sui and Originmate
+        ext_dep_names.iter().for_each(|dep_name| {
+            dependencies.insert(
+                dep_name.clone(),
+                get_ext_dep_from_protocol(
+                    dep_name.clone(),
+                    package_map,
+                    version,
+                ),
+            );
+        });
+
+        let toml = MoveToml {
+            package: Package {
+                name: name.to_string(),
+                version: Version::from_string("1.0.0")?,
+                published_at: Some(empty_addr.clone()),
+            },
+            dependencies,
+            addresses: HashMap::from([(String::from(name), empty_addr)]),
+        };
+
+        Ok(toml)
+    }
+
+    pub fn get_toml_latest(
+        name: &str,
+        package_map: &PackageMap,
+        dep_names: &Vec<String>,
+        ext_dep_names: &Vec<String>,
+    ) -> Result<Self> {
+        // Oath of honor --> Monolitic release (for now)
+        let version = get_latest_protocol_version(
+            &String::from("NftProtocol"),
+            package_map,
+        );
+
+        MoveToml::get_toml(name, package_map, dep_names, ext_dep_names, version)
+    }
+}
+
+pub fn get_dependencies(
+    package_map: &PackageMap,
+    dep_names: &Vec<String>,
+    version: &Version,
+) -> HashMap<String, Dependency> {
+    let deps = dep_names
+        .iter()
+        .map(|dep_name| {
+            (
+                dep_name.clone(),
+                get_dependency(dep_name, package_map, version)
+                    .contract_ref
+                    .path
+                    .clone(),
+            )
+        })
+        .collect::<HashMap<String, Dependency>>();
+
+    deps
+}
+
+// i.e. Sui or Originmate
+fn get_ext_dep_from_protocol(
+    ext_dep: String,
+    package_map: &PackageMap,
+    version: &Version,
+) -> Dependency {
+    let protocol_versions =
+        package_map.0.get(&String::from("NftProtocol")).expect(
+            format!("Could not find Package Name {} in PackageMap", &ext_dep)
+                .as_str(),
+        );
+
+    protocol_versions
+        .get(version)
+        .unwrap()
+        .dependencies
+        .get(&ext_dep)
+        .expect(format!("Unable to fetch {} dependency", ext_dep).as_str())
+        .path
+        .clone()
 }
 
 pub fn get_contract_from_rev<'a>(
@@ -209,6 +304,47 @@ pub fn get_updated_dependency<'a>(
     let latest = versions.get(latest_version).unwrap();
 
     (dep.package.version != latest.package.version).then_some(latest)
+}
+
+fn get_latest_protocol_version<'a>(
+    dep_name: &String,
+    package_map: &'a PackageMap,
+) -> &'a Version {
+    // Fetch available versions by package name
+    let versions = package_map.0.get(dep_name).expect(
+        format!("Could not find Package Name {} in PackageMap", dep_name)
+            .as_str(),
+    );
+
+    versions
+        .keys()
+        .max()
+        // This error should not occur
+        .expect(
+            format!(
+                "Unexpected error: Unable to retrieve latest version of {}",
+                dep_name
+            )
+            .as_str(),
+        )
+}
+
+pub fn get_dependency<'a>(
+    dep_name: &String,
+    package_map: &'a PackageMap,
+    version: &Version,
+) -> &'a MoveLib {
+    // Fetch available versions by package name
+    let versions = package_map.0.get(dep_name).expect(
+        format!("Could not find Package Name {} in PackageMap", dep_name)
+            .as_str(),
+    );
+
+    let dependency = versions
+        .get(version)
+        .expect(format!("Unable to fetch {} v{}", dep_name, version).as_str());
+
+    dependency
 }
 
 pub fn get_version_from_object_id(

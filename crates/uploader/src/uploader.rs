@@ -1,15 +1,17 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     fs::File,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use tokio::task::{JoinHandle, JoinSet};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use rust_sdk::mint::NftData as NftState;
+use rust_sdk::metadata::{GlobalMetadata, Metadata};
 
 /// Maximum number of concurrent tasks (this is important for tasks that handle files
 /// and network connections).
@@ -33,33 +35,27 @@ pub struct StorageItems(pub IndexMap<String, Item>);
 
 pub async fn upload_data(
     assets: &mut Vec<Asset>,
-    state: PathBuf,
-    lazy: bool,
+    metadata: Arc<GlobalMetadata>,
     uploader: &dyn Uploader,
 ) -> Result<()> {
-    uploader.upload(assets, state, lazy).await?;
+    uploader.upload(assets, metadata).await?;
 
     Ok(())
 }
 
-pub async fn write_state(
-    mut state_path: PathBuf,
-    mut file_name: String,
-    url: String,
-) -> Result<()> {
-    file_name.push_str(".json");
-    state_path.push(file_name);
+// pub async fn write_state(state_path: PathBuf, url: String) -> Result<()> {
+//     println!("Writing state in {:?}", state_path);
+//     let mut state = try_read_state(&state_path)?;
+//     println!("The state is {:?}", state);
 
-    let mut state = try_read_state(&state_path)?;
+//     state.url = Some(url);
 
-    state.url = Some(url);
+//     write_state_file(&state, state_path.as_path()).await?;
 
-    write_state_file(&state, state_path.as_path()).await?;
+//     Ok(())
+// }
 
-    Ok(())
-}
-
-pub fn try_read_state(path_buf: &PathBuf) -> Result<NftState> {
+pub fn try_read_state(path_buf: &PathBuf) -> Result<Metadata> {
     let f = File::open(path_buf);
 
     let data = match f {
@@ -74,7 +70,7 @@ pub fn try_read_state(path_buf: &PathBuf) -> Result<NftState> {
 }
 
 pub async fn write_state_file(
-    state: &NftState,
+    state: &Metadata,
     output_file: &Path,
 ) -> Result<(), anyhow::Error> {
     let file = File::create(output_file).map_err(|err| {
@@ -97,7 +93,7 @@ pub async fn write_state_file(
 #[derive(Debug)]
 pub struct Asset {
     /// Id of the asset
-    pub id: String,
+    pub index: u32,
     /// Id of the asset
     pub name: String,
     /// File path of the asset
@@ -108,13 +104,13 @@ pub struct Asset {
 
 impl Asset {
     pub fn new(
-        id: String,
+        index: u32,
         name: String,
         path: PathBuf,
         content_type: String,
     ) -> Self {
         Asset {
-            id,
+            index,
             name,
             path,
             content_type,
@@ -122,16 +118,17 @@ impl Asset {
     }
 }
 
+#[derive(Debug)]
 pub struct UploadedAsset {
     /// Id of the asset
-    pub id: String,
+    pub index: u32,
     /// Link of the asset
     pub link: String,
 }
 
 impl UploadedAsset {
-    pub fn new(id: String, link: String) -> Self {
-        UploadedAsset { id, link }
+    pub fn new(index: u32, link: String) -> Self {
+        UploadedAsset { index, link }
     }
 }
 
@@ -145,19 +142,17 @@ pub trait Uploader: Prepare {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        state_path: PathBuf,
-        lazy: bool,
-    ) -> Result<()>;
+        nft_data: Arc<GlobalMetadata>,
+    ) -> Result<Vec<String>>;
 }
 
 #[async_trait]
 pub trait ParallelUploader: Uploader + Send + Sync {
-    fn upload_asset(
+    fn upload_asset<'a>(
         &self,
-        // set: &mut JoinSet<()>,
-        // tx: Sender<UploadedAsset>,
         asset: Asset,
-        state: PathBuf,
+        // nft_data: RefMut<'a, u32, Metadata, RandomState>,
+        metadata: Arc<GlobalMetadata>,
     ) -> JoinHandle<Result<UploadedAsset>>;
 }
 
@@ -170,22 +165,51 @@ impl<T: ParallelUploader> Uploader for T {
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
-        state: PathBuf,
-        _lazy: bool,
-    ) -> Result<()> {
+        metadata: Arc<GlobalMetadata>,
+    ) -> Result<Vec<String>> {
         let mut set = JoinSet::new();
+        let mut error_logs = vec![];
+        // let mut terminate_flag = Arc::new(AtomicBool::new(false));
 
-        // TODO: Cache strategy - need to add fault tolerance and recovery strategy
-        // TODO: Fail immediately as soon as one thread fails
+        // Create a new progress bar
+        let progress_bar = ProgressBar::new(assets.len() as u64);
+        progress_bar.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+                .progress_chars("#>-"),
+        );
 
         for asset in assets.drain(..) {
-            set.spawn(self.upload_asset(asset, state.clone()));
+            set.spawn(self.upload_asset(asset, metadata.clone()));
         }
+
+        // // Start a task to wait for keyboard input
+        // let keyboard_input_task = tokio::spawn(async {
+        //     let mut input = String::new();
+        //     io::stdin().
+
+        //     .lock().read_line(&mut input).unwrap();
+
+        //     // Handle the keyboard input as needed
+        //     if input.trim() == "q" {
+        //         terminate_flag = true;
+        //     }
+        // });
 
         while let Some(res) = set.join_next().await {
-            res.unwrap().unwrap().unwrap();
+            // Advance the progress bar
+            progress_bar.inc(1);
+            match res.unwrap().unwrap() {
+                Ok(_) => {}
+                Err(error) => {
+                    error_logs.push(format!("{:?}", error));
+                }
+            }
         }
 
-        Ok(())
+        // Finish the progress bar
+        progress_bar.finish();
+
+        Ok(error_logs)
     }
 }
