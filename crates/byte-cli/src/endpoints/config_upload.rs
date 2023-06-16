@@ -1,9 +1,7 @@
-use crate::prelude::*;
-
+use crate::cli::get_dialoguer_theme;
 use anyhow::anyhow;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Password, Select};
-
 use uploader::{
     storage::{aws, pinata},
     writer::Storage,

@@ -42,7 +42,7 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
-    /// Deploys NFT contract to Sui Blockchain
+    /// Generates contract for later deployment
     GenerateContract {
         name: String,
         version: Option<String>,

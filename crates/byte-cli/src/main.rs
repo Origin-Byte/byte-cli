@@ -4,10 +4,10 @@ pub mod endpoints;
 pub mod err;
 pub mod io;
 pub mod models;
-pub mod prelude;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use cli::{Cli, Commands};
 use console::style;
 use dialoguer::Confirm;
 use io::LocalWrite;
@@ -22,7 +22,6 @@ use std::{
 };
 use sui_sdk::types::base_types::ObjectID;
 
-use crate::prelude::*;
 use byte_cli::io::LocalRead;
 use byte_cli::SchemaBuilder;
 use endpoints::*;
@@ -152,7 +151,7 @@ async fn run() -> Result<()> {
                 io::get_contract_path(name.as_str(), &project_dir);
 
             // Logic
-            let theme = get_dialoguer_theme();
+            let theme = cli::get_dialoguer_theme();
 
             let agreed = Confirm::with_theme(&theme)
                 .with_prompt(format!(

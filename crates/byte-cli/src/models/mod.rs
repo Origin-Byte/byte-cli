@@ -2,7 +2,7 @@ use dialoguer::{theme::ColorfulTheme, MultiSelect};
 
 use crate::{
     consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
-    prelude::CliError,
+    err::CliError,
 };
 
 pub mod collection;
