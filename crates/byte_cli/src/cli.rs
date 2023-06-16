@@ -83,20 +83,29 @@ pub enum Commands {
         /// Gas budget for minting an NFT
         #[clap(default_value_t = 18_000_000_000)]
         gas_budget: usize,
-        #[clap(long, action)]
-        warehouse_id: Option<String>,
+        main_gas_id: String,
+        minor_gas_id: String,
     },
+
+    ListCoins {},
+
     SplitCoin {
-        /// Gas budget
-        amount: u64,
+        #[clap(short, long, action)]
+        coin_id: String,
         count: u64,
-        #[clap(default_value_t = 50_000_000)]
+        #[clap(short, long, action)]
+        amount: Option<u64>,
+        #[clap(default_value_t = 1_000)]
         gas_budget: usize,
+        #[clap(short, long, action)]
+        gas_id: Option<String>,
     },
     CombineCoins {
         /// Gas budget
         #[clap(default_value_t = 50_000_000)]
         gas_budget: usize,
+        #[clap(long, action)]
+        gas_id: String,
     },
     CheckDependencies {
         name: String,

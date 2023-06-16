@@ -1,10 +1,11 @@
-use crate::{
-    err::{self, RustSdkError},
-    utils::get_context,
-};
+use crate::{err::RustSdkError, utils::get_context};
 use anyhow::{anyhow, Result};
 use shared_crypto::intent::Intent;
-use std::str::FromStr;
+use std::fmt::Write;
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 use sui_json_rpc_types::{Coin, Page, SuiTransactionBlockEffects};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
@@ -18,6 +19,7 @@ use sui_sdk::{
 use sui_types::{
     base_types::ObjectRef,
     coin,
+    gas_coin::MIST_PER_SUI,
     messages::{CallArg, ObjectArg, ProgrammableTransaction},
     TypeTag, SUI_FRAMEWORK_OBJECT_ID,
 };
@@ -26,17 +28,46 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 
+pub struct CoinList(Vec<(ObjectID, u64, f64)>);
+
+impl Display for CoinList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut writer = String::new();
+
+        writeln!(
+            writer,
+            " {0: ^66} | {1: ^15} | {2: ^13} |",
+            "Object ID", "Coin Value (MIST)", "Coin Value (SUI)"
+        )?;
+        writeln!(
+            writer,
+            "------------------------------------------------------------------------------------------------------------"
+        )?;
+        for coin in &self.0 {
+            writeln!(
+                writer,
+                " {0: ^66} | {1: ^17} | {2: ^16} |",
+                coin.0, coin.1, coin.2
+            )?;
+        }
+
+        write!(f, "{}", writer.trim_end_matches('\n'))
+    }
+}
+
 pub async fn split(
+    coin_id: ObjectID,
     amount: Option<u64>,
     count: u64,
     gas_budget: u64,
+    gas_id: Option<ObjectID>,
 ) -> Result<(), RustSdkError> {
     let context = get_context().await.unwrap();
     let client = context.get_client().await?;
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
 
-    let coin = select_coin(&client, sender).await?;
+    let coin = select_coin(&client, sender, coin_id).await?;
 
     if count == 0 {
         return Err(RustSdkError::AnyhowError(anyhow!(
@@ -59,7 +90,7 @@ pub async fn split(
             sender,
             coin.coin_object_id,
             split_amounts,
-            None,
+            gas_id,
             gas_budget,
         )
         .await?;
@@ -86,14 +117,17 @@ pub async fn split(
     Ok(())
 }
 
-pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
+pub async fn combine(
+    gas_budget: u64,
+    gas_id: ObjectID,
+) -> Result<(), RustSdkError> {
     let context = get_context().await.unwrap();
     let client = context.get_client().await?;
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
 
     let (main_coin, gas_coin, coins_to_merge) =
-        get_main_coin_separated(&client, sender).await?;
+        separate_gas_and_max_coin(&client, sender, gas_id).await?;
 
     let pt =
         merge_coins(sender, &main_coin, &coins_to_merge, gas_budget).await?;
@@ -134,6 +168,22 @@ pub async fn combine(gas_budget: u64) -> Result<(), RustSdkError> {
 pub async fn select_coin(
     client: &SuiClient,
     signer: SuiAddress,
+    coin_id: ObjectID,
+) -> Result<Coin, RustSdkError> {
+    let mut coins = get_coins(client, signer).await?;
+
+    let index = coins
+        .iter()
+        .position(|c| c.coin_object_id == coin_id)
+        .unwrap();
+    let coin_obj = coins.remove(index);
+
+    Ok(coin_obj)
+}
+
+pub async fn select_biggest_coin(
+    client: &SuiClient,
+    signer: SuiAddress,
 ) -> Result<Coin, RustSdkError> {
     let mut coins = get_coins(client, signer).await?;
 
@@ -145,37 +195,34 @@ pub async fn select_coin(
     Ok(coin_obj)
 }
 
-pub async fn get_main_coin_separated(
+pub async fn separate_gas_and_max_coin(
     client: &SuiClient,
     signer: SuiAddress,
+    gas_id: ObjectID,
 ) -> Result<(Coin, Coin, Vec<Coin>), RustSdkError> {
     let mut coins = get_coins(client, signer).await?;
-
-    let gas_id = ObjectID::from_str("0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940")
-        .map_err(|err| err::object_id(err, "0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940"))?;
 
     let gas_index = coins
         .iter()
         .position(|c| c.coin_object_id == gas_id)
         .unwrap();
 
-    let gas_obj = coins.remove(gas_index);
+    let gas_coin = coins.remove(gas_index);
 
     let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
-    let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
-    let coin_obj = coins.remove(index);
+    let max_index =
+        coins.iter().position(|c| c.balance == max_balance).unwrap();
+    let max_coin = coins.remove(max_index);
 
-    Ok((coin_obj, gas_obj, coins))
+    Ok((max_coin, gas_coin, coins))
 }
 
-pub async fn get_coin_separated(
+pub async fn separate_gas_coin(
     client: &SuiClient,
     signer: SuiAddress,
+    gas_id: ObjectID,
 ) -> Result<(Coin, Vec<Coin>), RustSdkError> {
     let mut coins = get_coins(client, signer).await?;
-
-    let gas_id = ObjectID::from_str("0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940")
-        .map_err(|err| err::object_id(err, "0x9c65a3fc6a4d66f64f883f64faf6335f9a55cbb145eaf0522cd92d6b2d0e6940"))?;
 
     let gas_index = coins
         .iter()
@@ -185,6 +232,27 @@ pub async fn get_coin_separated(
     let gas_obj = coins.remove(gas_index);
 
     Ok((gas_obj, coins))
+}
+
+pub async fn list_coins() -> Result<CoinList> {
+    let context = get_context().await.unwrap();
+    let client = context.get_client().await?;
+    let sender = context.config.active_address.unwrap();
+
+    let coins = get_coins(&client, sender).await?;
+
+    let list = coins
+        .iter()
+        .map(|coin| {
+            (
+                coin.coin_object_id,
+                coin.balance,
+                coin.balance as f64 / MIST_PER_SUI as f64,
+            )
+        })
+        .collect();
+
+    Ok(CoinList(list))
 }
 
 pub async fn get_coins(

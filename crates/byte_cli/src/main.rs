@@ -6,15 +6,18 @@ pub mod io;
 pub mod models;
 pub mod prelude;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
 use dialoguer::Confirm;
+use std::fmt::Write as FmtWrite;
 use std::io::Write;
+use std::str::FromStr;
 use std::{
     fs::{self, File},
     path::PathBuf,
 };
+use sui_sdk::types::base_types::ObjectID;
 
 use crate::prelude::*;
 use byte_cli::io::{LocalRead, LocalWrite};
@@ -260,7 +263,8 @@ async fn run() -> Result<()> {
             name,
             project_dir,
             gas_budget,
-            warehouse_id: _,
+            main_gas_id,
+            minor_gas_id,
         } => {
             // Input
             let _schema_path =
@@ -282,27 +286,69 @@ async fn run() -> Result<()> {
 
             // let mut state = CollectionState::try_read_config(&state_path)?;
 
+            let main_gas_id = ObjectID::from_str(main_gas_id.as_str())
+                .map_err(|err| {
+                    anyhow!(r#"Unable to parse main-gas-id object: {err}"#)
+                })?;
+            let minor_gas_id = ObjectID::from_str(minor_gas_id.as_str())
+                .map_err(|err| {
+                    anyhow!(r#"Unable to parse minor-gas-id object: {err}"#)
+                })?;
+
             mint_nfts::parallel_mint_nfts(
-                // &schema,
+                name,
                 gas_budget,
-                // metadata_path,
-                // warehouse_id,
                 state,
+                main_gas_id,
+                minor_gas_id,
             )
             .await?;
 
             // Output
             // io::write_collection_state(&state, &state_path)?;
         }
+        Commands::ListCoins {} => {
+            let coin_list = coin::list_coins().await?;
+
+            println!("{}", coin_list);
+        }
         Commands::SplitCoin {
+            coin_id,
             gas_budget,
             amount,
             count,
+            gas_id,
         } => {
-            coin::split(Some(amount), count, gas_budget as u64).await?;
+            let gas_id = match gas_id {
+                Some(gas_id) => Some(
+                    ObjectID::from_str(gas_id.as_str()).map_err(|err| {
+                        anyhow!(r#"Unable to parse gas-id object: {err}"#)
+                    })?,
+                ),
+                None => None,
+            };
+
+            let coin_id =
+                ObjectID::from_str(coin_id.as_str()).map_err(|err| {
+                    anyhow!(r#"Unable to parse coin-id object: {err}"#)
+                })?;
+
+            coin::split(coin_id, amount, count, gas_budget as u64, gas_id)
+                .await?;
+
+            let coin_list = coin::list_coins().await?;
+            println!("{}", coin_list);
         }
-        Commands::CombineCoins { gas_budget } => {
-            coin::combine(gas_budget as u64).await?;
+        Commands::CombineCoins { gas_budget, gas_id } => {
+            let gas_id =
+                ObjectID::from_str(gas_id.as_str()).map_err(|err| {
+                    anyhow!(r#"Unable to parse gas-id object: {err}"#)
+                })?;
+
+            coin::combine(gas_budget as u64, gas_id).await?;
+
+            let coin_list = coin::list_coins().await?;
+            println!("{}", coin_list);
         }
         Commands::CheckDependencies { name, project_dir } => {
             // Input

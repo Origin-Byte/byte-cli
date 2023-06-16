@@ -4,6 +4,7 @@ use rust_sdk::coin;
 use rust_sdk::collection_state::CollectionState;
 use std::sync::Arc;
 use std::{thread, time};
+use sui_sdk::types::base_types::ObjectID;
 use tokio::task::JoinSet;
 
 use rust_sdk::{
@@ -109,8 +110,11 @@ pub async fn mint_nfts(
 }
 
 pub async fn parallel_mint_nfts(
+    project_name: String,
     gas_budget: usize,
     state: CollectionState,
+    main_gas_id: ObjectID,
+    minor_gas_id: ObjectID,
 ) -> Result<CollectionState> {
     let contract_id = Arc::new(state.contract.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
@@ -118,9 +122,8 @@ pub async fn parallel_mint_nfts(
     let wallet_ctx = Arc::new(get_context().await.unwrap());
     let client = Arc::new(wallet_ctx.get_client().await?);
     let active_address = wallet_ctx.config.active_address.unwrap();
-
-    let module_name = Arc::new(String::from("xmachina"));
     let gas_budget_ref = Arc::new(gas_budget as u64);
+    let project_name = Arc::new(project_name);
 
     let mut set = JoinSet::new();
 
@@ -129,12 +132,16 @@ pub async fn parallel_mint_nfts(
         style("WIP").cyan().bold()
     );
 
+    // TODO: Generalize
     let split = 100;
+    let split_budget = 500000000_u64;
+    let combine_budget = 500000000_u64;
 
-    coin::split(None, split, 500000000_u64).await?;
+    coin::split(main_gas_id, None, split, split_budget, Some(minor_gas_id))
+        .await?;
 
     let (_, mut coins_to_merge) =
-        coin::get_coin_separated(&client, active_address).await?;
+        coin::separate_gas_coin(&client, active_address, minor_gas_id).await?;
 
     assert!(coins_to_merge.len() == split as usize);
 
@@ -149,7 +156,7 @@ pub async fn parallel_mint_nfts(
             mint::handle_parallel_mint_nft(
                 wallet_ctx.clone(),
                 contract_id.clone(),
-                module_name.clone(),
+                project_name.clone(),
                 gas_budget_ref.clone(),
                 Arc::new(gas_coin_ref),
                 active_address,
@@ -181,7 +188,7 @@ pub async fn parallel_mint_nfts(
     let ten_millis = time::Duration::from_millis(1_000);
     thread::sleep(ten_millis);
 
-    coin::combine(500000000_u64).await?;
+    coin::combine(combine_budget, minor_gas_id).await?;
 
     println!(
         "{} Minting 100,000 NFTs on-chain",
