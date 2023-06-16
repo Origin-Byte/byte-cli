@@ -3,7 +3,6 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 #[cfg(feature = "full")]
-#[macro_use]
 mod full {
     pub mod royalties;
     pub mod supply;

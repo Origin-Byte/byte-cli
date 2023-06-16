@@ -1,5 +1,4 @@
 #[cfg(feature = "full")]
-#[macro_use]
 mod full {
     pub mod burn;
     pub mod dynamic;
