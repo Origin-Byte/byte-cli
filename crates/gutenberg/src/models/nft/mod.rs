@@ -1,23 +1,22 @@
 #[cfg(feature = "full")]
-mod full {
-    pub mod burn;
-    pub mod dynamic;
-    pub mod orderbook;
-
-    pub use burn::Burn;
-    pub use dynamic::Dynamic;
-    pub use mint_cap::MintCap;
-    pub use orderbook::Orderbook;
-}
-
+mod burn;
 #[cfg(feature = "full")]
-pub use full::*;
-
+mod dynamic;
 mod mint_cap;
 mod minting;
+#[cfg(feature = "full")]
+mod orderbook;
 mod request;
 
+#[cfg(feature = "full")]
+pub use burn::Burn;
+#[cfg(feature = "full")]
+pub use dynamic::Dynamic;
+#[cfg(feature = "full")]
+pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
+#[cfg(feature = "full")]
+pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 
 use super::collection::{CollectionData, Tags};
