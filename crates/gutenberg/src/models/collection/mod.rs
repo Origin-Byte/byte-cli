@@ -203,11 +203,6 @@ impl CollectionData {
         let type_name = nft_data.type_name();
 
         let mut domains_str = String::new();
-        domains_str.push_str(
-            &self
-                .mint_cap
-                .write_move_init(&self.witness_name(), type_name),
-        );
 
         if let Some(code) = &self.write_move_creators() {
             domains_str.push_str(code);
