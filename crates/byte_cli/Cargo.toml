@@ -3,11 +3,16 @@ name = "byte_cli"
 version = "0.2.0"
 edition = "2021"
 
+[features]
+# Include full `gutenberg` generation functionality
+full = ["gutenberg/full"]
+
 [dependencies]
 gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }
+
 sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 
