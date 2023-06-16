@@ -21,11 +21,6 @@ module joysticks::joysticks {
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICKS, Joystick>(
-            &witness, collection_id, 600, ctx
-        );
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
-
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
 
@@ -73,7 +68,28 @@ module joysticks::joysticks {
         let tags: vector<std::string::String> = std::vector::empty();
         std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
 
+        sui::transfer::public_share_object(collection);
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICKS, Joystick>(
+            &witness, collection_id, 600, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
+
         let publisher = sui::package::claim(witness, ctx);
+
+        let display = sui::display::new<Joystick>(&publisher, ctx);
+        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
+        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
+        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
+        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
+
+        let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+
+        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
+        sui::display::update_version(&mut display);
+
+        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
         let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<Joystick>(
             &publisher, ctx,
@@ -97,18 +113,6 @@ module joysticks::joysticks {
             delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
         );
         liquidity_layer_v1::orderbook::share(orderbook);
-
-        sui::transfer::public_share_object(collection);
-
-        let display = sui::display::new<Joystick>(&publisher, ctx);
-        sui::display::add(&mut display, std::string::utf8(b"name"), std::string::utf8(b"{name}"));
-        sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
-        sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
-        sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
-        sui::display::update_version(&mut display);
-
-        sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
 

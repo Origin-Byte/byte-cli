@@ -6,50 +6,10 @@ use super::{
 };
 use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
-use dialoguer::{Confirm, Input, Select};
-use gutenberg::models::{
-    collection::{
-        CollectionData, MintCap, Orderbook, RequestPolicies, RoyaltyPolicy,
-        Supply,
-    },
-    Address,
-};
-
-const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
-
-impl FromPrompt for MintCap {
-    type Param<'a> = ();
-
-    fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized,
-    {
-        let theme = get_dialoguer_theme();
-
-        let supply_index = Select::with_theme(&theme)
-            .with_prompt(
-                "Which supply policy do you want your Collection to have?",
-            )
-            .items(&SUPPLY_OPTIONS)
-            .interact()
-            .unwrap();
-
-        let limit = match SUPPLY_OPTIONS[supply_index] {
-            "Limited" => Some(
-                Input::with_theme(&theme)
-                    .with_prompt("What is the supply limit of the Collection?")
-                    .validate_with(positive_integer_validator)
-                    .interact()
-                    .unwrap()
-                    .parse::<u64>()
-                    .unwrap(),
-            ),
-            _ => None,
-        };
-
-        Ok(MintCap::new(limit))
-    }
-}
+use dialoguer::{Confirm, Input};
+#[cfg(feature = "full")]
+use gutenberg::models::collection::{RoyaltyPolicy, Supply};
+use gutenberg::models::{collection::CollectionData, Address};
 
 impl FromPrompt for CollectionData {
     type Param<'a> = ();
@@ -129,22 +89,35 @@ impl FromPrompt for CollectionData {
         }
 
         let creators: Vec<Address> = creators.into_iter().collect();
-        let royalty_policy = RoyaltyPolicy::from_prompt(creators.as_slice())?;
 
-        Ok(CollectionData::new(
+        #[cfg(feature = "full")]
+        let collection_data = {
+            let royalties = RoyaltyPolicy::from_prompt(creators.as_slice())?;
+
+            CollectionData::new(
+                name.to_lowercase(),
+                Some(description),
+                Some(symbol.to_uppercase()),
+                url,
+                creators,
+                // Use tracked supply as default as it is most compatible
+                Supply::tracked(),
+                Some(royalties),
+                // TODO: Tags
+                None,
+            )
+        };
+        #[cfg(not(feature = "full"))]
+        let collection_data = CollectionData::new(
             name.to_lowercase(),
             Some(description),
             Some(symbol.to_uppercase()),
             url,
             creators,
-            // Use tracked supply as default as it is most compatible
-            Supply::tracked(),
-            MintCap::from_prompt(())?,
-            Some(royalty_policy),
             // TODO: Tags
             None,
-            RequestPolicies::default(),
-            Orderbook::Protected,
-        ))
+        );
+
+        Ok(collection_data)
     }
 }
