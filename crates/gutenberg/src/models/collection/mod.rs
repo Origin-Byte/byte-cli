@@ -3,16 +3,18 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 #[cfg(feature = "full")]
-mod royalties;
-#[cfg(feature = "full")]
-mod supply;
+mod full {
+    pub mod royalties;
+    pub mod supply;
+
+    pub use royalties::{RoyaltyPolicy, Share};
+    pub use supply::Supply;
+}
 mod tags;
 
 use super::{nft::NftData, Address};
 #[cfg(feature = "full")]
-pub use royalties::{RoyaltyPolicy, Share};
-#[cfg(feature = "full")]
-pub use supply::Supply;
+pub use full::*;
 pub use tags::{Tag, Tags};
 
 use serde::{Deserialize, Serialize};

@@ -3,12 +3,12 @@ use convert_case::{Case, Casing};
 #[cfg(feature = "full")]
 use gutenberg::models::{
     collection::Supply,
-    nft::{Burn, Dynamic, MintCap},
+    nft::{Burn, Dynamic, MintCap, Orderbook},
 };
 use gutenberg::{
     models::{
         collection::CollectionData,
-        nft::{MintPolicies, NftData, Orderbook, RequestPolicies},
+        nft::{MintPolicies, NftData, RequestPolicies},
     },
     Schema,
 };
