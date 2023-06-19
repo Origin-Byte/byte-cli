@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context};
 use console::style;
 use gutenberg::Schema;
 use package_manager::{
@@ -24,7 +24,7 @@ use crate::models::project::{
     AdminObjects, CollectionObjects, MintCap, Project,
 };
 
-pub fn parse_config(config_file: &Path) -> Result<Schema> {
+pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
             r#"Could not find configuration file "{}": {err}
@@ -37,7 +37,7 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
 }
 
-pub fn parse_state(config_file: &Path) -> Result<Project> {
+pub fn parse_state(config_file: &Path) -> Result<Project, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
             r#"Could not find state file "{}": {err}
@@ -51,68 +51,77 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 }
 
 pub fn generate_contract(
-    schema: &Schema,
-    contract_dir: &Path,
+    schema: Schema,
+    output_dir: &Path,
     main_registry: &PackageRegistry,
     test_registry: &PackageRegistry,
     version: Option<String>,
-) -> Result<()> {
+) -> Result<(), anyhow::Error> {
     println!("{} Generating contract", style("WIP").cyan().bold());
 
-    let sources_dir = &contract_dir.join("sources");
-    let _ = fs::remove_dir_all(sources_dir);
-    fs::create_dir_all(sources_dir).map_err(|err| {
-        anyhow!(
-            r#"Could not create directory "{}": {err}"#,
-            sources_dir.display()
+    let package_name = schema.package_name();
+    let contract_dir = gutenberg::generate_contract_dir(&schema, output_dir);
+
+    // Write Move-main.toml
+    let flavours_path = contract_dir.join("flavours/");
+    fs::create_dir_all(&flavours_path).with_context(|| {
+        format!(
+            r#"Could not create "{path}""#,
+            path = flavours_path.display()
         )
     })?;
 
-    // Write Move.toml
-    // Create the directory if it doesn't exist
-    fs::create_dir_all(contract_dir.join("flavours/"))?;
+    let main_toml_path = contract_dir.join("flavours/Move-main.toml");
+    let mut mail_toml_file =
+        File::create(&main_toml_path).with_context(|| {
+            format!(
+                r#"Could not create "{path}""#,
+                path = main_toml_path.display()
+            )
+        })?;
 
-    let main_toml_path = &contract_dir.join("flavours/Move-main.toml");
-    let mut mail_toml_file = File::create(main_toml_path).map_err(|err| {
-        anyhow!(
-            r#"Could not create Move.toml "{}": {err}"#,
-            main_toml_path.display()
+    mail_toml_file
+        .write_all(
+            write_toml_string(&package_name, &version, main_registry)?
+                .as_bytes(),
         )
-    })?;
+        .with_context(|| {
+            format!(
+                r#"Could not write to {path}"#,
+                path = main_toml_path.display()
+            )
+        })?;
 
     // Write Move-test.toml
-    let test_toml_path = &contract_dir.join("flavours/Move-test.toml");
-    let mut test_toml_file = File::create(test_toml_path).map_err(|err| {
-        anyhow!(
-            r#"Could not create Move-test.toml "{}": {err}"#,
-            test_toml_path.display()
+    let test_toml_path = contract_dir.join("flavours/Move-test.toml");
+    let mut test_toml_file =
+        File::create(&test_toml_path).with_context(|| {
+            format!(
+                r#"Could not create "{path}""#,
+                path = main_toml_path.display()
+            )
+        })?;
+
+    test_toml_file
+        .write_all(
+            write_toml_string(&package_name, &version, test_registry)?
+                .as_bytes(),
         )
-    })?;
-
-    let module_name = schema.package_name();
-
-    let main_toml_string =
-        write_toml_string(module_name.as_str(), &version, main_registry)?;
-
-    let test_toml_string =
-        write_toml_string(module_name.as_str(), &version, test_registry)?;
-
-    // Output
-    mail_toml_file.write_all(main_toml_string.as_bytes())?;
-    test_toml_file.write_all(test_toml_string.as_bytes())?;
+        .with_context(|| {
+            format!(
+                r#"Could not write to {path}"#,
+                path = main_toml_path.display()
+            )
+        })?;
 
     // Copy Main Move.toml
     fs::copy(main_toml_path, contract_dir.join("Move.toml"))?;
 
-    // Write Move contract
-    let move_path = &sources_dir.join(format!("{module_name}.move"));
-    let mut move_file = File::create(move_path).map_err(|err| {
-        anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
-    })?;
-
-    write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
-        anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
-    })?;
+    // TODO: Implement license check
+    let is_demo = false;
+    gutenberg::generate_contract(schema, is_demo)
+        .into_iter()
+        .for_each(|file| file.write_to_file(&contract_dir).unwrap());
 
     println!("{} Generating contract", style("DONE").green().bold());
 
@@ -122,7 +131,7 @@ pub fn generate_contract(
 pub async fn publish_contract(
     gas_budget: usize,
     contract_dir: &Path,
-) -> Result<SuiTransactionBlockResponse> {
+) -> Result<SuiTransactionBlockResponse, anyhow::Error> {
     let wallet_ctx = rust_sdk::utils::get_context().await?;
 
     let gas_coin =
@@ -143,7 +152,7 @@ pub fn write_toml_string(
     module_name: &str,
     version: &Option<String>,
     registry: &PackageRegistry,
-) -> Result<String> {
+) -> Result<String, anyhow::Error> {
     let mut move_toml = match version {
         Some(version) => MoveToml::get_toml(
             module_name,
@@ -179,7 +188,7 @@ pub fn write_toml_string(
 pub async fn process_effects(
     state: &mut Project,
     response: SuiTransactionBlockResponse,
-) -> Result<()> {
+) -> Result<(), anyhow::Error> {
     let context = get_context().await.unwrap();
     let client = context.get_client().await?;
 

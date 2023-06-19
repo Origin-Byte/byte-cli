@@ -27,29 +27,13 @@ fn main() {
 }
 
 fn generate_contract(is_demo: bool, config_path: &Path, output_dir: &Path) {
-    let mut schema = assert_schema(config_path);
-    if is_demo {
-        schema.enforce_demo();
-    }
+    let schema = assert_schema(config_path);
+    let contract_dir = gutenberg::generate_contract_dir(&schema, output_dir);
 
-    // Create main contract directory
-    let package_name = schema.package_name();
-    let contract_dir = output_dir.join(&package_name);
-    let sources_dir = contract_dir.join("sources");
-
-    // Create directories
-    std::fs::create_dir_all(&sources_dir).unwrap();
-
-    // Create `Move.toml`
-    let mut move_file = File::create(contract_dir.join("Move.toml")).unwrap();
-    write!(&mut move_file, "{}", schema.write_move_toml())
-        .expect("Could not write `Move.toml`");
-
-    let module_name = schema.nft().module_name();
-    let mut module_file =
-        File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
-    write!(&mut module_file, "{}", schema.write_move())
-        .expect("Could not write Move module");
+    gutenberg::generate_move_toml(&schema).write_to_file(&contract_dir);
+    gutenberg::generate_contract(&schema, is_demo)
+        .into_iter()
+        .for_each(|file| file.write_to_file(&contract_dir).unwrap())
 }
 
 /// Asserts that the config file has correct schema

@@ -2,8 +2,10 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use std::path::PathBuf;
+
 use crate::models::{collection::CollectionData, nft::NftData};
-use crate::normalize_type;
+use crate::{normalize_type, ContractFile};
 use serde::{Deserialize, Serialize};
 
 /// Struct that acts as an intermediate data structure representing the yaml
@@ -94,7 +96,7 @@ impl Schema {
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
     /// the caller.
-    pub fn write_move(&self) -> String {
+    pub fn write_move(&self) -> ContractFile {
         let witness_name = self.nft().witness_name();
         let module_name = self.nft().module_name();
         let package_name = self.package_name();
@@ -102,7 +104,7 @@ impl Schema {
         let definitions = self.write_move_defs();
         let tests = self.write_tests();
 
-        format!(
+        let content = format!(
             "module {package_name}::{module_name} {{
     /// One time witness is only instantiated in the init method
     struct {witness_name} has drop {{}}
@@ -113,13 +115,23 @@ impl Schema {
     struct Witness has drop {{}}{definitions}{tests}
 }}
 "
-        )
+        );
+
+        ContractFile {
+            path: PathBuf::from("sources").join(format!("{module_name}.move")),
+            content,
+        }
     }
 
-    pub fn write_move_toml(&self) -> String {
-        format!(
+    pub fn write_move_toml(&self) -> ContractFile {
+        let content = format!(
             include_str!("../templates/Move.toml"),
             package_name = self.package_name(),
-        )
+        );
+
+        ContractFile {
+            path: PathBuf::from("Move.toml"),
+            content,
+        }
     }
 }

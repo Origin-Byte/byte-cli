@@ -129,9 +129,8 @@ async fn run() -> Result<()> {
 
             // Logic
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
-
             deploy_contract::generate_contract(
-                &schema,
+                schema,
                 contract_dir.as_path(),
                 &main_registry,
                 &test_registry,
