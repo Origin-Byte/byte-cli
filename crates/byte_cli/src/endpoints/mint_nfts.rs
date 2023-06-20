@@ -1,9 +1,10 @@
 use crate::io::LocalRead;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::Schema;
 use rust_sdk::coin;
-use rust_sdk::metadata::StorableMetadata;
+use rust_sdk::metadata::{Metadata, StorableMetadata};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::{thread, time};
@@ -36,10 +37,8 @@ pub async fn mint_nfts(
     let gas_budget_ref = gas_budget as u64;
 
     println!("{} Collecting NFT metadata", style("WIP").cyan().bold());
-    let mut nft_data = StorableMetadata::read_json(&metadata_path)?;
+    let nft_data = StorableMetadata::read_json(&metadata_path)?;
     println!("{} Collecting NFT metadata", style("DONE").green().bold());
-
-    println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
 
     let warehouse = match warehouse_id {
         Some(warehouse) => warehouse,
@@ -68,11 +67,47 @@ pub async fn mint_nfts(
 
     let batch_size = 100;
 
-    while !nft_data.0.is_empty() {
-        let key_index = *nft_data.0.keys().nth(batch_size).unwrap_or(&u32::MAX);
+    let (mut keys, mut meta): (Vec<u32>, Vec<Metadata>) =
+        nft_data.0.into_iter().unzip();
 
-        let batch = nft_data.0.split_off(&key_index);
+    let mut i = 0;
+    let mut batches = vec![];
+    let mut stack = vec![];
+    let last_key = *keys.get(keys.len() - 1).unwrap();
 
+    println!("{} Preparing Metadata", style("WIP").cyan().bold());
+    for key in keys.drain(..) {
+        stack.push((key, meta.pop().unwrap()));
+        i += 1;
+
+        if i == batch_size || key == last_key {
+            // Flush the batch
+            let mut new_batch = vec![];
+
+            stack.drain(..).for_each(|(k, v)| new_batch.push((k, v)));
+
+            println!("Batch has size of {}", new_batch.len());
+
+            // Inverst order from 100 -> 1 to 1 --> 100
+            new_batch.reverse();
+
+            batches.push(new_batch);
+
+            // Reset circuit
+            i = 0;
+        }
+    }
+
+    if meta.len() != 0 {
+        return Err(anyhow!("An error has occurred while processing metadata"));
+    }
+    if keys.len() != 0 {
+        return Err(anyhow!("An error has occurred while processing metadata"));
+    }
+    println!("{} Preparing Metadata", style("DONE").green().bold());
+
+    println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
+    for batch in batches.drain(..) {
         mint::mint_nfts_in_batch(
             batch,
             &wallet_ctx,
@@ -192,4 +227,38 @@ pub async fn parallel_mint_nfts(
     );
 
     Ok(state)
+}
+
+fn remove_batch(
+    map: &mut BTreeMap<u32, Metadata>,
+    start_index: u32,
+    batch_size: u32,
+) -> Option<BTreeMap<u32, Metadata>> {
+    let mut batch = BTreeMap::new();
+    let end_index = start_index + batch_size;
+
+    println!("{} -> {}", start_index, end_index);
+
+    // for i in 1..=100 {
+    for i in start_index..=end_index {
+        println!("{}", i);
+        let datum = map.remove(&i);
+
+        match datum {
+            Some(datum) => {
+                // println!("Included: {}", i);
+                batch.insert(i, datum);
+            }
+            None => {
+                // println!("Not included: {}", i);
+                break;
+            }
+        }
+    }
+
+    if !batch.is_empty() {
+        return Some(batch);
+    } else {
+        None
+    }
 }

@@ -85,6 +85,8 @@ pub enum Commands {
     },
     MintNfts {
         name: String,
+        // #[clap(long, action)]
+        // amount: Option<u64>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for minting an NFT

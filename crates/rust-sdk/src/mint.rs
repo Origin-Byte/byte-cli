@@ -9,6 +9,7 @@ use move_core_types::identifier::Identifier;
 use shared_crypto::intent::Intent;
 use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 use std::{thread, time};
+use sui_json_rpc_types::SuiExecutionStatus::Failure;
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockEffects};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
@@ -29,6 +30,22 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 use tokio::task::JoinHandle;
+
+struct MintEffects {
+    minted_nfts: Vec<String>,
+    error_logs: Vec<MintError>,
+}
+
+struct MintError {
+    from_nft: u32,
+    to_nft: u32,
+    error: String,
+}
+
+pub enum MintEffect {
+    Success(Vec<String>),
+    Error(MintError),
+}
 
 pub async fn create_warehouse(
     collection_type: MoveType,
@@ -103,7 +120,7 @@ pub async fn handle_mint_nft(
 }
 
 pub async fn mint_nfts_in_batch(
-    mut data: BTreeMap<u32, Metadata>,
+    mut data: Vec<(u32, Metadata)>,
     wallet_ctx: &WalletContext,
     package_id: String,
     module_name: String,
@@ -111,7 +128,7 @@ pub async fn mint_nfts_in_batch(
     sender: SuiAddress,
     warehouse: String,
     mint_cap: String,
-) -> Result<Vec<ObjectID>, RustSdkError> {
+) -> Result<MintEffect, RustSdkError> {
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
     let warehouse_id = ObjectID::from_str(warehouse.as_str())
@@ -133,9 +150,7 @@ pub async fn mint_nfts_in_batch(
         .unwrap();
 
     // Iterate over the entries and consume them
-    while let Some((index, nft_data)) = data.pop_first() {
-        println!("Key: {}, Value: {:?}", index, nft_data);
-
+    while let Some((index, nft_data)) = data.pop() {
         let mut args = nft_data.into_args()?;
         objs.iter().for_each(|obj| {
             let obj_data = obj.data.as_ref().unwrap();
@@ -150,7 +165,7 @@ pub async fn mint_nfts_in_batch(
         builder.move_call(
             package_id,
             Identifier::new(module_name.as_str()).unwrap(),
-            Identifier::new("airdrop_nft").unwrap(),
+            Identifier::new("mint_nft_to_warehouse").unwrap(),
             vec![],
             args,
         )?;
@@ -165,13 +180,10 @@ pub async fn mint_nfts_in_batch(
         .map(|(_val, object)| (object.object_id, object.version, object.digest))
         .collect();
 
-    let data = TransactionData::new_programmable(
-        sender,
-        coins, // Gas Objects
-        builder.finish(),
-        gas_budget, // Gas Budget
-        1_000,      // Gas Price
-    );
+    let pt = builder.finish();
+
+    let data =
+        TransactionData::new_programmable(sender, coins, pt, gas_budget, 1_000);
 
     // Sign transaction.
     let signatures: Vec<Signature> = vec![wallet_ctx
@@ -180,6 +192,7 @@ pub async fn mint_nfts_in_batch(
         .sign_secure(&sender, &data, Intent::sui_transaction())?];
 
     // Execute the transaction.
+    println!("Executing transaction...");
     let response = wallet_ctx
         .execute_transaction_block(
             Transaction::from_data(data, Intent::sui_transaction(), signatures)
@@ -188,20 +201,28 @@ pub async fn mint_nfts_in_batch(
         .await?;
 
     let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+    println!("Effects: {:?}", effects);
 
-    let nft_ids = effects.created;
-    let mut i = 0;
+    match effects.status {
+        Success => {
+            let nft_ids = effects.created;
+            let mut i = 0;
 
-    let nfts = nft_ids
-        .iter()
-        .map(|obj_ref| {
-            println!("NFT minted: {:?}", obj_ref.reference.object_id);
-            i += 1;
-            obj_ref.reference.object_id
-        })
-        .collect::<Vec<ObjectID>>();
+            let nfts = nft_ids
+                .iter()
+                .map(|obj_ref| {
+                    println!("NFT minted: {:?}", obj_ref.reference.object_id);
+                    i += 1;
+                    obj_ref.reference.object_id.to_string()
+                })
+                .collect::<Vec<String>>();
 
-    Ok(nfts)
+            return Ok(MintEffect::Success(nfts));
+        }
+        Failure { error } => {
+            return Ok(MintEffect::Error(error));
+        }
+    }
 }
 
 pub async fn mint_nft_concurrent(

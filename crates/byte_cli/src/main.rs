@@ -236,9 +236,6 @@ async fn run() -> Result<()> {
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let _metadata_path =
-                io::get_assets_path(name.as_str(), &project_dir);
-
             // Input
             let toml_path = io::get_toml_path(name.as_str(), &project_dir);
 
@@ -290,8 +287,8 @@ async fn run() -> Result<()> {
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let metadata_path =
-                io::get_assets_path(name.as_str(), &project_dir);
+            let (_, post_upload) =
+                io::get_upload_metadata(name.as_str(), &project_dir);
 
             // Logic
             // TODO: Replace this logic with the our IO Trait
@@ -308,7 +305,7 @@ async fn run() -> Result<()> {
                 gas_budget,
                 warehouse_id,
                 mint_cap_id,
-                metadata_path,
+                post_upload,
                 state,
             )
             .await?;
@@ -330,9 +327,6 @@ async fn run() -> Result<()> {
 
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
-
-            let _metadata_path =
-                io::get_assets_path(name.as_str(), &project_dir);
 
             // Logic
             // let schema = deploy_contract::parse_config(file_path.as_path())?;
