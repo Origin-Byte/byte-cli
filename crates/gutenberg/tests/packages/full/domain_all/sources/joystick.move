@@ -1,4 +1,4 @@
-module domainall::joystick {
+module domain_all::joystick {
     /// One time witness is only instantiated in the init method
     struct JOYSTICK has drop {}
 

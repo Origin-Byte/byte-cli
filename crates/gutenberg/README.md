@@ -48,11 +48,4 @@ Unit tests can be invoked by running `cargo test`.
 
 Integration tests that check whether contracts are being correctly generated, can be invoked by running `./tests/scenarios.sh` from the `gutenberg` directory.
 
-If there was an update made to contract generation, you can regenerate the tests by calling `gutenberg generate-tests` but ensure to compile `gutenberg` with feature flags `cli` and `full`.
-
-```
-Usage: gutenberg generate-tests
-
-Options:
-  -h, --help  Print help
-```
+If there was an update made to contract generation, you can regenerate the tests by calling `./tests/generate-tests.sh`.

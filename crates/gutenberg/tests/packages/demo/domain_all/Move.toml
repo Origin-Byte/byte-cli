@@ -1,5 +1,5 @@
 [package]
-name = "domainall"
+name = "domain_all"
 version = "0.0.0"
 
 [dependencies.Launchpad]
@@ -18,4 +18,4 @@ subdir = "contracts/liquidity_layer_v1"
 rev = "v1.2.0-mainnet"
 
 [addresses]
-domainall = "0x0"
+domain_all = "0x0"

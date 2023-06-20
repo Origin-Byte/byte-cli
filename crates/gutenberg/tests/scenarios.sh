@@ -9,7 +9,7 @@ for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
 
     rm -rf $tmp_dir/*
-    ../../target/debug/gutenberg generate $file $tmp_dir
+    ../../target/debug/gutenberg $file $tmp_dir
 
     filename=$(basename -- "$file")
     filename="${filename%.*}"
@@ -17,7 +17,7 @@ for file in ./tests/scenarios/*.json; do
 
     if [ $? -eq 1 ]; then
         echo "Scenario $file did not generate matching demo contract"
-        echo "Run 'cargo run --bin gutenberg --features="cli" -- generate-tests' to update tests"
+        echo "Run './tests/generate-tests.sh' to update tests"
         echo "FAIL"
         rm -rf $tmp_dir
         exit 1
@@ -42,7 +42,7 @@ for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
 
     rm -rf $tmp_dir/*
-    ../../target/debug/gutenberg generate $file $tmp_dir
+    ../../target/debug/gutenberg $file $tmp_dir
 
     filename=$(basename -- "$file")
     filename="${filename%.*}"
@@ -50,7 +50,7 @@ for file in ./tests/scenarios/*.json; do
 
     if [ $? -eq 1 ]; then
         echo "Scenario $file did not generate matching full contract"
-        echo "Run 'cargo run --bin gutenberg --features="cli full" -- generate-tests' to update tests"
+        echo "Run './tests/generate-tests.sh' to update tests"
         echo "FAIL"
         rm -rf $tmp_dir
         exit 1

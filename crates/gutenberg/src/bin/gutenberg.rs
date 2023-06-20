@@ -1,40 +1,25 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct Cli {
-    #[clap(subcommand)]
-    pub command: Commands,
-}
-
-#[derive(Subcommand)]
-pub enum Commands {
-    Generate {
-        input_config_path: String,
-        output_dir: String,
-    },
-
-    GenerateTests,
+    input_config_path: String,
+    output_dir: String,
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let Cli {
+        input_config_path,
+        output_dir,
+    } = Cli::parse();
 
-    match cli.command {
-        Commands::Generate {
-            input_config_path,
-            output_dir,
-        } => {
-            let config_path_parsed = Path::new(&input_config_path);
-            let output_dir_parsed = Path::new(&output_dir);
-            generate_contract(&config_path_parsed, &output_dir_parsed);
-        }
-        Commands::GenerateTests => generate_tests(),
-    }
+    let config_path_parsed = Path::new(&input_config_path);
+    let output_dir_parsed = Path::new(&output_dir);
+    generate_contract(&config_path_parsed, &output_dir_parsed);
 }
 
 fn generate_contract(config_path: &Path, output_dir: &Path) {
@@ -60,29 +45,6 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
     schema
         .write_move(module_file)
         .expect("Could not write Move module");
-}
-
-fn generate_tests() {
-    let scenarios_path = Path::new("./tests/scenarios");
-
-    let mut modules_path = PathBuf::from("./tests/packages");
-    #[cfg(feature = "full")]
-    modules_path.push("full");
-    #[cfg(not(feature = "full"))]
-    modules_path.push("demo");
-
-    let files = std::fs::read_dir(scenarios_path)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let path = entry.path();
-            path.is_file().then_some(entry)
-        });
-
-    for entry in files {
-        let config_path = entry.path();
-        generate_contract(&config_path, modules_path.as_path());
-    }
 }
 
 /// Asserts that the config file has correct schema

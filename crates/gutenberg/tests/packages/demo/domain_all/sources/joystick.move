@@ -1,6 +1,6 @@
-module joysticks::joysticks {
+module domain_all::joystick {
     /// One time witness is only instantiated in the init method
-    struct JOYSTICKS has drop {}
+    struct JOYSTICK has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
@@ -15,7 +15,7 @@ module joysticks::joysticks {
         attributes: nft_protocol::attributes::Attributes,
     }
 
-    fun init(witness: JOYSTICKS, ctx: &mut sui::tx_context::TxContext) {
+    fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
@@ -45,13 +45,45 @@ module joysticks::joysticks {
             nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
         );
 
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::supply::new(
+                delegated_witness, 600, false,
+            )
+        );
+
+        let royalty_map = sui::vec_map::empty();
+        sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
+        sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
+
+        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::royalty::from_shares(royalty_map, ctx),
+            700,
+            ctx,
+        );
+
         let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, nft_protocol::tags::art());
+        std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
+        std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
+        std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
+        std::vector::push_back(&mut tags, nft_protocol::tags::music());
+        std::vector::push_back(&mut tags, nft_protocol::tags::video());
+        std::vector::push_back(&mut tags, nft_protocol::tags::ticket());
+        std::vector::push_back(&mut tags, nft_protocol::tags::license());
+        std::vector::push_back(&mut tags, std::string::utf8(b"Custom"));
         std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+        std::vector::push_back(&mut tags, std::string::utf8(b"Utility"));
 
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICKS, Joystick>(
-            &witness, collection_id, 100, ctx
+        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
+            &witness, collection_id, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
@@ -64,22 +96,26 @@ module joysticks::joysticks {
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
 
         let tags: vector<std::string::String> = std::vector::empty();
+        std::vector::push_back(&mut tags, nft_protocol::tags::art());
+        std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
+        std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
+        std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
+        std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
+        std::vector::push_back(&mut tags, nft_protocol::tags::music());
+        std::vector::push_back(&mut tags, nft_protocol::tags::video());
+        std::vector::push_back(&mut tags, nft_protocol::tags::ticket());
+        std::vector::push_back(&mut tags, nft_protocol::tags::license());
+        std::vector::push_back(&mut tags, std::string::utf8(b"Custom"));
         std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
+        std::vector::push_back(&mut tags, std::string::utf8(b"Utility"));
 
         sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
         sui::display::update_version(&mut display);
 
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
-        let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<Joystick>(
-            &publisher, ctx,
-        );
-        nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
-
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-
-        sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
-        sui::transfer::public_share_object(transfer_policy);
     }
 
     public entry fun mint_nft_to_warehouse(
@@ -89,6 +125,7 @@ module joysticks::joysticks {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
+        collection: &mut nft_protocol::collection::Collection<Joystick>,
         warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -99,6 +136,7 @@ module joysticks::joysticks {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -112,6 +150,7 @@ module joysticks::joysticks {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
+        collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -122,6 +161,7 @@ module joysticks::joysticks {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -135,6 +175,7 @@ module joysticks::joysticks {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
+        collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -145,6 +186,7 @@ module joysticks::joysticks {
             attribute_keys,
             attribute_values,
             mint_cap,
+            collection,
             ctx,
         );
 
@@ -160,6 +202,7 @@ module joysticks::joysticks {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
+        collection: &mut nft_protocol::collection::Collection<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
@@ -178,6 +221,12 @@ module joysticks::joysticks {
             &nft,
         );
 
+        let supply = nft_protocol::supply::borrow_domain_mut(
+            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
+        );
+
+        nft_protocol::supply::increment(delegated_witness, supply, 1);
+
         nft_protocol::mint_cap::increment_supply(mint_cap, 1);
 
         nft
@@ -190,7 +239,7 @@ module joysticks::joysticks {
     fun it_inits_collection() {
         let scenario = sui::test_scenario::begin(CREATOR);
 
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
         assert!(sui::test_scenario::has_most_recent_shared<nft_protocol::collection::Collection<Joystick>>(), 0);
@@ -208,13 +257,17 @@ module joysticks::joysticks {
     #[test]
     fun it_mints_nft() {
         let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
         let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
             &scenario,
             CREATOR,
+        );
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<Joystick>>(
+            &scenario,
         );
 
         let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
@@ -226,12 +279,14 @@ module joysticks::joysticks {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
+            &mut collection,
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_shared(collection);
         sui::test_scenario::end(scenario);
     }
 }
