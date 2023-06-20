@@ -6,7 +6,6 @@ use console::style;
 use dotenv::dotenv;
 use glob::glob;
 use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
-use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

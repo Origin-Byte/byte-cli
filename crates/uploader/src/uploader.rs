@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     fs::File,
-    io::Write,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},

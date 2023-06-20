@@ -13,6 +13,7 @@ use serde::{
 };
 use serde_json::json;
 use sui_sdk::json::SuiJsonValue;
+use sui_types::messages::CallArg;
 use url::Url;
 
 #[derive(Debug)]
@@ -69,19 +70,19 @@ impl StorableMetadata {
 }
 
 impl Metadata {
-    pub fn to_map(&self) -> Result<Vec<SuiJsonValue>> {
-        let mut params: Vec<SuiJsonValue> = Vec::new();
+    pub fn into_args(self) -> Result<Vec<CallArg>> {
+        let mut params: Vec<CallArg> = Vec::new();
 
         if let Some(value) = &self.name {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(value) = &self.url {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(value) = &self.description {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(map) = &self.attributes {
@@ -90,11 +91,8 @@ impl Metadata {
                 .map(|att| (att.trait_type.clone(), att.value.clone()))
                 .unzip();
 
-            let keys_arr = json!(keys);
-            let values_arr = json!(values);
-
-            params.push(SuiJsonValue::new(keys_arr)?);
-            params.push(SuiJsonValue::new(values_arr)?);
+            params.push(CallArg::Pure(bcs::to_bytes(&keys).unwrap()));
+            params.push(CallArg::Pure(bcs::to_bytes(&values).unwrap()));
         }
 
         Ok(params)

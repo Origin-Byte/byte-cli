@@ -1892,6 +1892,7 @@ dependencies = [
  "serde_yaml 0.9.21",
  "sui-sdk",
  "tempfile",
+ "terminal-link",
  "thiserror",
  "tokio",
  "toml",
@@ -8808,6 +8809,7 @@ name = "rust-sdk"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bcs",
  "console",
  "dashmap",
  "dirs 4.0.0",
@@ -8825,7 +8827,6 @@ dependencies = [
  "sui-sdk",
  "sui-source-validation",
  "sui-types",
- "terminal-link",
  "thiserror",
  "tokio",
  "url",

@@ -1,4 +1,4 @@
-use byte_cli::models::project::Project;
+use crate::models::project::Project;
 use convert_case::{Case, Casing};
 #[cfg(feature = "full")]
 use gutenberg::models::{

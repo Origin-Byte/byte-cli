@@ -18,13 +18,13 @@ move-core-types = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2" }
 sui-move = { git = "https://github.com/MystenLabs/sui", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2", features = ["build"] }
 
+bcs = "0.1"
 thiserror = "1.0"
 tokio = { version = "1.28", features = ["macros", "rt-multi-thread"] }
 anyhow = "1.0"
 console = "0.15"
 dirs = "4.0"
 signature = "1.6"
-terminal-link = "0.1"
 dashmap = "5.0"
 url = {version = "2.4", features = ["serde"]}
 

@@ -18,6 +18,12 @@ pub struct MoveToml {
 }
 
 impl MoveToml {
+    pub fn sanitize_output(&mut self) {
+        self.dependencies
+            .iter_mut()
+            .for_each(|(_, dep)| dep.sanitize_subdir());
+    }
+
     pub fn get_dependency_ids<'a>(
         &'a self,
         package_map: &'a PackageMap,
@@ -161,6 +167,19 @@ impl MoveToml {
         );
 
         MoveToml::get_toml(name, package_map, dep_names, ext_dep_names, version)
+    }
+
+    pub fn get_dependency<'a>(
+        self: &'a Self,
+        dep_name: &'a str,
+    ) -> &'a Dependency {
+        // Fetch available versions by package name
+        let dependency = self.dependencies.get(dep_name).expect(
+            format!("Could not find Dependency Name {} in Move.toml", dep_name)
+                .as_str(),
+        );
+
+        dependency
     }
 }
 

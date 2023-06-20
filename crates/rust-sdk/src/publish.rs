@@ -4,13 +4,13 @@ use std::env;
 use std::path::Path;
 use std::sync::mpsc::Sender;
 use sui_sdk::wallet_context::WalletContext;
-use terminal_link::Link;
-use tokio::task::JoinSet;
 
 use shared_crypto::intent::Intent;
 use std::sync::mpsc::channel;
-use sui_json_rpc_types::SuiTransactionBlockEffects;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
+use sui_json_rpc_types::{
+    SuiTransactionBlockEffects, SuiTransactionBlockResponse,
+};
 use sui_keys::keystore::AccountKeystore;
 use sui_move_build::BuildConfig;
 use sui_sdk::{types::messages::Transaction, SuiClient};
@@ -24,13 +24,9 @@ use sui_types::{
 use move_package::BuildConfig as MoveBuildConfig;
 use sui_move::build::resolve_lock_file_path;
 
-use crate::consts::PRICE_PUBLISH;
+use crate::consts::{PRICE_PUBLISH, RECIPIENT_ADDRESS};
 use crate::utils::get_context;
-use crate::{
-    collection_state::{CollectionState, ObjectType as OBObjectType},
-    consts::VOLCANO_EMOJI,
-    err::RustSdkError,
-};
+use crate::{collection_state::ObjectType as OBObjectType, err::RustSdkError};
 use std::str::FromStr;
 
 pub async fn publish_contract(
@@ -38,7 +34,7 @@ pub async fn publish_contract(
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
-) -> Result<CollectionState, RustSdkError> {
+) -> Result<SuiTransactionBlockResponse, RustSdkError> {
     let build_config = MoveBuildConfig::default();
 
     let context = get_context().await.unwrap();
@@ -110,82 +106,7 @@ pub async fn publish_contract(
         style("Done").cyan().bold()
     );
 
-    println!(
-        "{} {}",
-        VOLCANO_EMOJI,
-        style("Contract has been successfuly deployed on-chain.")
-            .green()
-            .bold()
-    );
-    let mut set = JoinSet::new();
-
-    // Creating a channel to send message with package ID
-    let (sender, receiver) = channel();
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    let objects_created = effects.created;
-
-    objects_created
-        .iter()
-        .map(|object| {
-            // TODO: Remove this clone
-            let object_ = object.clone();
-            let client_ = client.clone();
-            let sender_ = sender.clone();
-            set.spawn(async move {
-                print_object(&client_, &object_, sender_).await;
-            });
-        })
-        .for_each(drop);
-
-    let mut i = 1;
-    while let Some(res) = set.join_next().await {
-        res.unwrap();
-        i += 1;
-    }
-
-    println!("A total of {} object have been created.", i);
-
-    let mut j = 0;
-
-    let mut collection_state = CollectionState::default();
-    // It's three as we are interest in the MintCap, Collection and Package
-    // We need to make sure we agree on the number of objects that are recorded
-    while j < 3 {
-        let object_type = receiver.recv().unwrap();
-        match object_type {
-            OBObjectType::Package(_object_id) => {
-                collection_state.contract = Some(object_type);
-                j += 1;
-            }
-            OBObjectType::MintCap(_object_id) => {
-                collection_state.mint_cap = Some(object_type);
-                j += 1;
-            }
-            OBObjectType::Collection(_object_id) => {
-                collection_state.collection = Some(object_type);
-                j += 1;
-            }
-            _ => {}
-        }
-    }
-
-    let explorer_link = format!(
-        "https://explorer.sui.io/object/{}?network=testnet",
-        collection_state.contract.as_ref().unwrap()
-    );
-
-    let link = Link::new("Sui Explorer", explorer_link.as_str());
-
-    println!(
-        "You can now find your collection package on the {}",
-        style(link).blue().bold().underlined(),
-    );
-
-    Ok(collection_state)
+    Ok(response)
 }
 
 pub async fn publish_contract_and_pay(
@@ -193,11 +114,10 @@ pub async fn publish_contract_and_pay(
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
-) -> Result<CollectionState, RustSdkError> {
+) -> Result<SuiTransactionBlockResponse, RustSdkError> {
     let build_config = MoveBuildConfig::default();
 
     let context = get_context().await.unwrap();
-    let client = context.get_client().await?;
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
 
@@ -229,9 +149,7 @@ pub async fn publish_contract_and_pay(
 
     builder.transfer_arg(sender, upgrade_cap);
 
-    let ob_addr = SuiAddress::from_str(
-        "0xf9935ad63df83d84c5c071a65f241548ac7c452af2912218c6d2b3faefba5dc2",
-    )?;
+    let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS)?;
 
     builder.pay_sui(
         vec![ob_addr],       // recipients
@@ -274,82 +192,7 @@ pub async fn publish_contract_and_pay(
         style("Done").cyan().bold()
     );
 
-    println!(
-        "{} {}",
-        VOLCANO_EMOJI,
-        style("Contract has been successfuly deployed on-chain.")
-            .green()
-            .bold()
-    );
-    let mut set = JoinSet::new();
-
-    // Creating a channel to send message with package ID
-    let (sender, receiver) = channel();
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    let objects_created = effects.created;
-
-    objects_created
-        .iter()
-        .map(|object| {
-            // TODO: Remove this clone
-            let object_ = object.clone();
-            let client_ = client.clone();
-            let sender_ = sender.clone();
-            set.spawn(async move {
-                print_object(&client_, &object_, sender_).await;
-            });
-        })
-        .for_each(drop);
-
-    let mut i = 1;
-    while let Some(res) = set.join_next().await {
-        res.unwrap();
-        i += 1;
-    }
-
-    println!("A total of {} object have been created.", i);
-
-    let mut j = 0;
-
-    let mut collection_state = CollectionState::default();
-    // It's three as we are interest in the MintCap, Collection and Package
-    // We need to make sure we agree on the number of objects that are recorded
-    while j < 3 {
-        let object_type = receiver.recv().unwrap();
-        match object_type {
-            OBObjectType::Package(_object_id) => {
-                collection_state.contract = Some(object_type);
-                j += 1;
-            }
-            OBObjectType::MintCap(_object_id) => {
-                collection_state.mint_cap = Some(object_type);
-                j += 1;
-            }
-            OBObjectType::Collection(_object_id) => {
-                collection_state.collection = Some(object_type);
-                j += 1;
-            }
-            _ => {}
-        }
-    }
-
-    let explorer_link = format!(
-        "https://explorer.sui.io/object/{}?network=testnet",
-        collection_state.contract.as_ref().unwrap()
-    );
-
-    let link = Link::new("Sui Explorer", explorer_link.as_str());
-
-    println!(
-        "You can now find your collection package on the {}",
-        style(link).blue().bold().underlined(),
-    );
-
-    Ok(collection_state)
+    Ok(response)
 }
 
 fn get_dependencies(
@@ -384,7 +227,7 @@ fn get_dependencies(
     Ok(deps)
 }
 
-async fn print_object(
+pub async fn print_object(
     client: &SuiClient,
     object: &OwnedObjectRef,
     tx: Sender<OBObjectType>,

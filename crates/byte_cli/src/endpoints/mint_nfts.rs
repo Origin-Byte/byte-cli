@@ -1,7 +1,10 @@
+use crate::io::LocalRead;
 use anyhow::Result;
 use console::style;
+use gutenberg::Schema;
 use rust_sdk::coin;
-use rust_sdk::collection_state::CollectionState;
+use rust_sdk::metadata::StorableMetadata;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::{thread, time};
 use sui_sdk::types::base_types::ObjectID;
@@ -12,82 +15,75 @@ use rust_sdk::{
     utils::{get_active_address, get_context},
 };
 
+use crate::models::project::Project;
+
 pub async fn mint_nfts(
-    // schema: &Schema,
+    schema: &Schema,
     gas_budget: usize,
-    // metadata_path: PathBuf,
-    // mut warehouse_id: Option<String>,
-    state: CollectionState,
-) -> Result<CollectionState> {
-    let contract_id = Arc::new(state.contract.as_ref().unwrap().to_string());
+    warehouse_id: Option<String>,
+    mint_cap_id: Option<String>,
+    metadata_path: PathBuf,
+    state: Project,
+) -> Result<Project> {
+    let contract_id = state.package_id.as_ref().unwrap().to_string();
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
-    let wallet_ctx = Arc::new(get_context().await.unwrap());
+    let wallet_ctx = get_context().await.unwrap();
     let active_address =
         get_active_address(&wallet_ctx.config.keystore).unwrap();
 
-    let module_name = Arc::new(String::from("xmachina"));
-    // let module_name = Arc::new(schema.package_name());
-    let gas_budget_ref = Arc::new(gas_budget as u64);
+    let module_name = schema.package_name();
+    let gas_budget_ref = gas_budget as u64;
 
     println!("{} Collecting NFT metadata", style("WIP").cyan().bold());
-    // let mut nft_data_vec: Vec<NftData> = vec![];
-    // for entry in WalkDir::new(metadata_path) {
-    //     let path = entry.as_ref().unwrap().path();
-
-    //     if path.is_file() {
-    //         let file = File::open(path)
-    //             .map_err(|_| anyhow!("Couldn't open"))
-    //             .unwrap();
-
-    //         let nft_data = serde_json::from_reader::<File, NftData>(file)
-    //             .map_err(|_| anyhow!("Couldn't"))
-    //             .unwrap();
-
-    //         nft_data_vec.push(nft_data);
-    //     }
-    // }
+    let mut nft_data = StorableMetadata::read_json(&metadata_path)?;
     println!("{} Collecting NFT metadata", style("DONE").green().bold());
 
-    let mut set = JoinSet::new();
     println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
-    // for nft_data in nft_data_vec.drain(..) {
-    //     let ten_millis = time::Duration::from_millis(1000);
-    //     thread::sleep(ten_millis);
 
-    //     set.spawn(
-    //         mint::handle_mint_nft(
-    //             client.clone(),
-    //             keystore.clone(),
-    //             // nft_data,
-    //             contract_id.clone(),
-    //             // warehouse_id_ref.clone(),
-    //             module_name.clone(),
-    //             gas_budget_ref.clone(),
-    //             active_address,
-    //             // mint_cap_arc.clone(),
-    //         )
-    //         .await,
-    //     );
-    // }
-    for _i in 0..10 {
-        set.spawn(
-            mint::handle_mint_nft(
-                wallet_ctx.clone(),
-                contract_id.clone(),
-                module_name.clone(),
-                gas_budget_ref.clone(),
-                active_address,
-            )
-            .await,
-        );
+    let warehouse = match warehouse_id {
+        Some(warehouse) => warehouse,
+        None => state
+            .collection_objects
+            .as_ref()
+            .unwrap()
+            .warehouses
+            .first()
+            .unwrap()
+            .to_string(),
+    };
 
-        let ten_millis = time::Duration::from_millis(2000);
-        thread::sleep(ten_millis);
-    }
+    let mint_cap = match mint_cap_id {
+        Some(mint_cap) => mint_cap,
+        None => state
+            .admin_objects
+            .as_ref()
+            .unwrap()
+            .mint_caps
+            .first()
+            .unwrap()
+            .id
+            .to_string(),
+    };
 
-    while let Some(res) = set.join_next().await {
-        res.unwrap().unwrap().unwrap();
+    let batch_size = 100;
+
+    while !nft_data.0.is_empty() {
+        let key_index = *nft_data.0.keys().nth(batch_size).unwrap_or(&u32::MAX);
+
+        let batch = nft_data.0.split_off(&key_index);
+
+        mint::mint_nfts_in_batch(
+            batch,
+            &wallet_ctx,
+            contract_id.clone(),
+            module_name.clone(),
+            gas_budget as u64,
+            active_address,
+            warehouse.clone(),
+            mint_cap.clone(),
+        )
+        .await?;
     }
 
     println!("{} Minting NFTs on-chain", style("DONE").green().bold());
@@ -112,11 +108,11 @@ pub async fn mint_nfts(
 pub async fn parallel_mint_nfts(
     project_name: String,
     gas_budget: usize,
-    state: CollectionState,
+    state: Project,
     main_gas_id: ObjectID,
     minor_gas_id: ObjectID,
-) -> Result<CollectionState> {
-    let contract_id = Arc::new(state.contract.as_ref().unwrap().to_string());
+) -> Result<Project> {
+    let contract_id = Arc::new(state.package_id.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let wallet_ctx = Arc::new(get_context().await.unwrap());
