@@ -2,6 +2,7 @@
 mod burn;
 #[cfg(feature = "full")]
 mod dynamic;
+#[cfg(feature = "full")]
 mod mint_cap;
 mod minting;
 #[cfg(feature = "full")]
@@ -31,16 +32,21 @@ pub struct NftData {
     /// Type name of the NFT
     type_name: String,
     /// Burn policy for NFT
+    #[serde(default)]
     burn: Burn,
     /// Dynamic policies for NFT
+    #[serde(default)]
     dynamic: Dynamic,
     /// Mint capabilities issued for NFT
     mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
     /// Launchpad or Airdrop.
+    #[serde(default)]
     mint_policies: MintPolicies,
+    /// Additional request policies to be initialized for the NFT
     #[serde(default)]
     request_policies: RequestPolicies,
+    /// Orderbook to be initialized for the NFT
     #[serde(default)]
     orderbook: orderbook::Orderbook,
 }
@@ -142,6 +148,17 @@ impl NftData {
         )
     }
 
+    #[cfg(not(feature = "full"))]
+    /// Write MintCap instantiation with supply always limited to 100
+    fn write_mint_cap_init(witness: &str, type_name: &str) -> String {
+        format!("
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
+            &witness, collection_id, 100, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
+    }
+
     pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
         let witness = collection_data.witness_name();
         let type_name = self.type_name();
@@ -156,7 +173,7 @@ impl NftData {
         #[cfg(feature = "full")]
         let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
         #[cfg(not(feature = "full"))]
-        let mint_cap_init = mint_cap::write_move_init(&witness, type_name);
+        let mint_cap_init = NftData::write_move_init(&witness, type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));

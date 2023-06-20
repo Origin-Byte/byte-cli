@@ -8,6 +8,15 @@ pub struct MintPolicies {
     airdrop: bool,
 }
 
+impl Default for MintPolicies {
+    fn default() -> Self {
+        Self {
+            launchpad: true,
+            airdrop: true,
+        }
+    }
+}
+
 impl MintPolicies {
     pub fn new(launchpad: bool, airdrop: bool) -> Self {
         Self { launchpad, airdrop }

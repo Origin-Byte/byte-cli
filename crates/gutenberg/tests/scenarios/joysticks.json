@@ -32,9 +32,7 @@
     "typeName": "Joystick",
     "burn": "permissionless",
     "dynamic": true,
-    "mintCap": {
-      "supply": 600
-    },
+    "mintCap": 600,
     "mintPolicies": {
       "launchpad": true,
       "airdrop": true
