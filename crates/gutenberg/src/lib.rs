@@ -18,6 +18,6 @@ pub fn normalize_type(type_name: &str) -> String {
 }
 
 /// De-unicodes and removes all unknown characters
-fn deunicode(unicode: &str) -> String {
+pub fn deunicode(unicode: &str) -> String {
     deunicode::deunicode_with_tofu(unicode, "")
 }

@@ -9,6 +9,7 @@ mod supply;
 mod tags;
 
 use super::{nft::NftData, Address};
+use crate::deunicode;
 #[cfg(feature = "full")]
 pub use royalties::{RoyaltyPolicy, Share};
 #[cfg(feature = "full")]
@@ -23,7 +24,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    name: String,
+    name: Option<String>,
     /// The description of the collection
     description: Option<String>,
     /// The symbol/ticker of the collection
@@ -47,7 +48,7 @@ pub struct CollectionData {
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    name: String,
+    name: Option<String>,
     /// The description of the collection
     description: Option<String>,
     /// The symbol/ticker of the collection
@@ -65,7 +66,7 @@ pub struct CollectionData {
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        name: String,
+        name: Option<String>,
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,
@@ -118,10 +119,10 @@ impl CollectionData {
 }
 
 impl CollectionData {
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> Option<String> {
         // Since `CollectionData` can be deserialized from an untrusted source
         // it's fields must be escaped when preparing for display.
-        deunicode(&self.name)
+        self.name.as_ref().map(|name| deunicode(name))
     }
 
     pub fn description(&self) -> Option<String> {
@@ -224,8 +225,9 @@ impl CollectionData {
     }
 
     fn write_move_collection_display_info(&self) -> Option<String> {
-        let name = self.name();
-        self.description().as_ref().map(|description| {
+        self.name().map(|name| {
+            let description = self.description().unwrap_or_default();
+
             format!(
                 "
 
@@ -308,9 +310,4 @@ impl CollectionData {
 
         code
     }
-}
-
-/// De-unicodes and removes all unknown characters
-fn deunicode(unicode: &str) -> String {
-    deunicode::deunicode_with_tofu(unicode, "")
 }
