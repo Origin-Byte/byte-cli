@@ -24,9 +24,20 @@ for file in ./tests/scenarios/*.json; do
     fi
 
     # Run Sui tests
-    sui move test --path $tmp_dir/$filename
+    #
+    # Output is silenced unless an error occurs
+    output=$(sui move test --path $tmp_dir/$filename 2>/dev/null)
 
-    if [ $? -eq 1 ]; then
+    # `sui move test` always returns zero code
+    #
+    # If tests will fail, it will print to stderr
+    # If they wont fail, it will print everything to stderr
+    #
+    # Cant grep on `sui move test` as this will break the pipe
+    #
+    # ¯\_(ツ)_/¯
+    if [[ ! -z $(echo $output | grep -F "error") ]]; then
+        echo "$output"
         echo "Scenario $file did not pass Sui tests"
         echo "FAIL"
         rm -rf $tmp_dir
@@ -57,9 +68,10 @@ for file in ./tests/scenarios/*.json; do
     fi
 
     # Run Sui tests
-    sui move test --path $tmp_dir/$filename
+    output=$(sui move test --path $tmp_dir/$filename 2>/dev/null)
 
-    if [ $? -eq 1 ]; then
+    if [[ ! -z $(echo $output | grep -F "error") ]]; then
+        echo "$output"
         echo "Scenario $file did not pass Sui tests"
         echo "FAIL"
         rm -rf $tmp_dir
