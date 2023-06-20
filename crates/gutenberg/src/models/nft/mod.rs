@@ -21,6 +21,7 @@ pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 
 use super::collection::{CollectionData, Tags};
+use crate::normalize_type;
 use serde::{Deserialize, Serialize};
 
 // TODO: Merge `cfg(feature = "full")` and `cfg(not(feature = "full"))` definitions, requires manually
@@ -111,8 +112,22 @@ impl NftData {
 
 impl NftData {
     /// Returns NFT type name
-    pub fn type_name(&self) -> &str {
-        &self.type_name
+    pub fn type_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        normalize_type(&self.type_name)
+    }
+
+    pub fn module_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.type_name().to_lowercase()
+    }
+
+    pub fn witness_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.type_name().to_uppercase()
     }
 
     /// Returns whether NFT requires withdraw policy to be created
@@ -160,7 +175,7 @@ impl NftData {
     }
 
     pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
-        let witness = collection_data.witness_name();
+        let witness_name = self.witness_name();
         let type_name = self.type_name();
 
         let collection_init = collection_data.write_move_init(self);
@@ -171,9 +186,10 @@ impl NftData {
         // If using non-full version of Gutenberg, a MintCap with supply
         // limited to 100 will always be instantiated
         #[cfg(feature = "full")]
-        let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
+        let mint_cap_init =
+            self.mint_cap.write_move_init(&witness_name, &type_name);
         #[cfg(not(feature = "full"))]
-        let mint_cap_init = NftData::write_move_init(&witness, type_name);
+        let mint_cap_init = NftData::write_move_init(&witness_name, &type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));
@@ -181,12 +197,12 @@ impl NftData {
             &self.write_move_policies(collection_data.has_royalties()),
         );
         #[cfg(feature = "full")]
-        misc_init.push_str(&self.orderbook.write_move_init(type_name));
+        misc_init.push_str(&self.orderbook.write_move_init(&type_name));
 
         format!(
             "
 
-    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
+    fun init(witness: {witness_name}, ctx: &mut sui::tx_context::TxContext) {{
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{mint_cap_init}
 
         let publisher = sui::package::claim(witness, ctx);{misc_init}
@@ -205,38 +221,41 @@ impl NftData {
         defs_str.push_str(
             &self
                 .mint_policies
-                .write_move_defs(type_name, collection_data),
+                .write_move_defs(&type_name, collection_data),
         );
         #[cfg(feature = "full")]
-        defs_str.push_str(&self.dynamic.write_move_defs(type_name));
+        defs_str.push_str(&self.dynamic.write_move_defs(&type_name));
         #[cfg(feature = "full")]
         defs_str
-            .push_str(&self.burn.write_move_defs(type_name, collection_data));
+            .push_str(&self.burn.write_move_defs(&type_name, collection_data));
         defs_str
     }
 
     pub fn write_move_tests(&self, collection_data: &CollectionData) -> String {
         let type_name = self.type_name();
+        let witness_name = self.witness_name();
 
         #[allow(unused_mut)]
         let mut tests_str = String::new();
-        tests_str.push_str(&self.write_mint_test(type_name, collection_data));
+        tests_str.push_str(&self.write_mint_test(collection_data));
         #[cfg(feature = "full")]
-        tests_str.push_str(
-            &self.dynamic.write_move_tests(type_name, collection_data),
-        );
+        tests_str.push_str(&self.dynamic.write_move_tests(
+            &type_name,
+            &witness_name,
+            collection_data,
+        ));
         #[cfg(feature = "full")]
-        tests_str
-            .push_str(&self.burn.write_move_tests(type_name, collection_data));
+        tests_str.push_str(&self.burn.write_move_tests(
+            &type_name,
+            &witness_name,
+            collection_data,
+        ));
         tests_str
     }
 
-    fn write_mint_test(
-        &self,
-        type_name: &str,
-        collection_data: &CollectionData,
-    ) -> String {
-        let witness = collection_data.witness_name();
+    fn write_mint_test(&self, collection_data: &CollectionData) -> String {
+        let type_name = self.type_name();
+        let witness_name = self.witness_name();
 
         let requires_collection = collection_data.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
@@ -265,7 +284,7 @@ impl NftData {
     #[test]
     fun it_mints_nft() {{
         let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 

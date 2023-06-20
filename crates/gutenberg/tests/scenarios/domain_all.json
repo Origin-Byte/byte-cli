@@ -1,5 +1,5 @@
 {
-  "packageName": "Joysticks",
+  "packageName": "DomainAll",
   "collection": {
     "name": "Joysticks",
     "description": "Joysticks is a dummy collection",
@@ -7,12 +7,25 @@
     "creators": [
       "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
     ],
+    "tags": [
+      "Art",
+      "ProfilePicture",
+      "Collectible",
+      "GameAsset",
+      "TokenisedAsset",
+      "Ticker",
+      "DomainName",
+      "Music",
+      "Video",
+      "Ticket",
+      "License",
+      "Custom",
+      "Gaming",
+      "Utility"
+    ],
     "supply": {
       "enforced": 600
     },
-    "tags": [
-      "Gaming"
-    ],
     "royalties": {
       "proportional": {
         "shares": [
@@ -31,16 +44,10 @@
   },
   "nft": {
     "typeName": "Joystick",
-    "burn": "permissionless",
-    "dynamic": true,
-    "mintCap": 600,
+    "mintCap": "unlimited",
     "mintPolicies": {
       "launchpad": true,
       "airdrop": true
-    },
-    "requestPolicies": {
-      "transfer": true
-    },
-    "orderbook": "protected"
+    }
   }
 }

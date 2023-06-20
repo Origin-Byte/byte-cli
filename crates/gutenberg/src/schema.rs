@@ -4,6 +4,7 @@
 //! by the caller.
 use crate::err::GutenError;
 use crate::models::{collection::CollectionData, nft::NftData};
+use crate::normalize_type;
 use serde::{Deserialize, Serialize};
 
 /// Struct that acts as an intermediate data structure representing the yaml
@@ -12,25 +13,28 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
-    package_name: Option<String>,
+    package_name: String,
     collection: CollectionData,
     nft: NftData,
 }
 
 impl Schema {
-    pub fn new(collection: CollectionData, nft: NftData) -> Schema {
+    pub fn new(
+        package_name: String,
+        collection: CollectionData,
+        nft: NftData,
+    ) -> Schema {
         Schema {
-            package_name: None,
+            package_name,
             collection,
             nft,
         }
     }
 
     pub fn package_name(&self) -> String {
-        match &self.package_name {
-            Some(package_name) => package_name.clone(),
-            None => self.collection().package_name(),
-        }
+        // Since `Schema.package_name` can be deserialized from an untrusted
+        // source it's fields must be escaped when preparing for display.
+        normalize_type(&self.package_name).to_lowercase()
     }
 
     pub fn collection(&self) -> &CollectionData {
@@ -46,9 +50,9 @@ impl Schema {
     }
 
     pub fn write_tests(&self) -> String {
-        let type_name = self.nft.type_name();
+        let type_name = self.nft().type_name();
+        let witness_name = self.nft().witness_name();
         let collection_data = self.collection();
-        let witness = collection_data.witness_name();
 
         let mut tests_str = format!(
             "
@@ -60,7 +64,7 @@ impl Schema {
     fun it_inits_collection() {{
         let scenario = sui::test_scenario::begin(CREATOR);
 
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
         assert!(sui::test_scenario::has_most_recent_shared<nft_protocol::collection::Collection<{type_name}>>(), 0);
@@ -88,16 +92,17 @@ impl Schema {
         &self,
         mut output: W,
     ) -> Result<(), GutenError> {
-        let witness = self.collection().witness_name();
+        let witness_name = self.nft().witness_name();
+        let module_name = self.nft().module_name();
         let package_name = self.package_name();
 
         let definitions = self.write_move_defs();
         let tests = self.write_tests();
 
         let res = format!(
-            "module {package_name}::{package_name} {{
+            "module {package_name}::{module_name} {{
     /// One time witness is only instantiated in the init method
-    struct {witness} has drop {{}}
+    struct {witness_name} has drop {{}}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it

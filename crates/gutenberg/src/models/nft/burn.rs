@@ -165,14 +165,14 @@ impl Burn {
 
     pub fn write_move_tests(
         &self,
-        nft_type_name: &str,
+        type_name: &str,
+        witness_name: &str,
         collection_data: &CollectionData,
     ) -> String {
         match self {
             Burn::None => String::new(),
             Burn::Permissioned => String::new(),
             Burn::Permissionless => {
-                let witness_type = collection_data.witness_name();
                 let supply = collection_data.supply();
 
                 let requires_collection = supply.requires_collection();
@@ -193,11 +193,11 @@ impl Burn {
     #[test]
     fun it_burns_own_nft() {{
         let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness_type} {{}}, sui::test_scenario::ctx(&mut scenario));
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{nft_type_name}>>(
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
             &scenario,
             CREATOR,
         );
@@ -207,13 +207,13 @@ impl Burn {
             CREATOR,
         );
 
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{nft_type_name}>>(
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
             &scenario
         );
 
         let withdraw_policy = sui::test_scenario::take_shared<
             ob_request::request::Policy<
-                ob_request::request::WithNft<{nft_type_name}, ob_request::withdraw_request::WITHDRAW_REQ>
+                ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>
             >
         >(&scenario);
 

@@ -132,30 +132,6 @@ impl CollectionData {
             .map(|description| deunicode(description))
     }
 
-    // Retains only alphanumeric characters
-    fn escaped_name(&self) -> String {
-        self.name()
-            .chars()
-            .filter_map(|char| match char {
-                '-' => Some('_'),
-                ' ' => Some('_'),
-                char => char.is_ascii_alphanumeric().then_some(char),
-            })
-            .collect()
-    }
-
-    pub fn package_name(&self) -> String {
-        // Since `CollectionData` can be deserialized from an untrusted source
-        // it's fields must be escaped when preparing for display.
-        self.escaped_name().to_lowercase()
-    }
-
-    pub fn witness_name(&self) -> String {
-        // Since `CollectionData` can be deserialized from an untrusted source
-        // it's fields must be escaped when preparing for display.
-        self.escaped_name().to_uppercase()
-    }
-
     pub fn url(&self) -> Option<String> {
         // Since `CollectionData` can be deserialized from an untrusted source
         // it's fields must be escaped when preparing for display.
@@ -198,9 +174,10 @@ impl CollectionData {
 
     pub fn write_move_init(&self, nft_data: &NftData) -> String {
         let type_name = nft_data.type_name();
+        let witness_name = nft_data.witness_name();
 
         let mut domains_str = String::new();
-        domains_str.push_str(&self.write_move_creators());
+        domains_str.push_str(&self.write_move_creators(&witness_name));
         domains_str.push_str(
             self.write_move_collection_display_info()
                 .unwrap_or_default()
@@ -293,15 +270,14 @@ impl CollectionData {
     }
 
     // TODO: Separate out into `creators` module
-    fn write_move_creators(&self) -> String {
+    fn write_move_creators(&self, witness_name: &str) -> String {
         let mut code = String::new();
 
         let creators_domain = if self.creators.is_empty() {
             format!(
                 "nft_protocol::creators::from_address<{witness_name}, Witness>(
                 &Witness {{}}, sui::tx_context::sender(ctx),
-            )",
-                witness_name = self.witness_name(),
+            )"
             )
         } else {
             code.push_str(

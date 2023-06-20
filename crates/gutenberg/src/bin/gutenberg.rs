@@ -41,7 +41,7 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
     let schema = assert_schema(config_path);
 
     // Create main contract directory
-    let package_name = schema.collection().package_name();
+    let package_name = schema.package_name();
     let contract_dir = output_dir.join(&package_name);
     let sources_dir = contract_dir.join("sources");
 
@@ -54,8 +54,9 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
         .write_move_toml(move_file)
         .expect("Could not write `Move.toml`");
 
+    let module_name = schema.nft().module_name();
     let module_file =
-        File::create(sources_dir.join(format!("{package_name}.move"))).unwrap();
+        File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
     schema
         .write_move(module_file)
         .expect("Could not write Move module");

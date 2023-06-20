@@ -95,6 +95,7 @@ impl Dynamic {
     pub fn write_move_tests(
         &self,
         type_name: &str,
+        witness_name: &str,
         collection_data: &CollectionData,
     ) -> String {
         let mut code = String::new();
@@ -103,7 +104,6 @@ impl Dynamic {
             return code;
         }
 
-        let witness = collection_data.witness_name();
         let supply = collection_data.supply();
 
         let requires_collection = supply.requires_collection();
@@ -132,7 +132,7 @@ impl Dynamic {
     #[test]
     fun it_sets_metadata() {{
         let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 

@@ -1,6 +1,6 @@
-module joysticks::joysticks {
+module joysticks::joystick {
     /// One time witness is only instantiated in the init method
-    struct JOYSTICKS has drop {}
+    struct JOYSTICK has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
@@ -15,7 +15,7 @@ module joysticks::joysticks {
         attributes: nft_protocol::attributes::Attributes,
     }
 
-    fun init(witness: JOYSTICKS, ctx: &mut sui::tx_context::TxContext) {
+    fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
 
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
@@ -70,7 +70,7 @@ module joysticks::joysticks {
 
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICKS, Joystick>(
+        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
             &witness, collection_id, 600, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
@@ -354,7 +354,7 @@ module joysticks::joysticks {
     fun it_inits_collection() {
         let scenario = sui::test_scenario::begin(CREATOR);
 
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
         assert!(sui::test_scenario::has_most_recent_shared<nft_protocol::collection::Collection<Joystick>>(), 0);
@@ -372,7 +372,7 @@ module joysticks::joysticks {
     #[test]
     fun it_mints_nft() {
         let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -408,7 +408,7 @@ module joysticks::joysticks {
     #[test]
     fun it_sets_metadata() {
         let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -466,7 +466,7 @@ module joysticks::joysticks {
     #[test]
     fun it_burns_own_nft() {
         let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICKS {}, sui::test_scenario::ctx(&mut scenario));
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
