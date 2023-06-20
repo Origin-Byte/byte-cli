@@ -33,7 +33,7 @@ impl MintCap {
             format!("
 
         let mint_cap = nft_protocol::mint_cap::new_unlimited<{witness}, {type_name}>(
-            witness, collection_id, ctx
+            &witness, collection_id, ctx
         );")
         };
 

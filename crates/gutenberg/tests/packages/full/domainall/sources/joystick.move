@@ -71,7 +71,6 @@ module domainall::joystick {
         std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
         std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
         std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
-        std::vector::push_back(&mut tags, nft_protocol::tags::ticker());
         std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
         std::vector::push_back(&mut tags, nft_protocol::tags::music());
         std::vector::push_back(&mut tags, nft_protocol::tags::video());
@@ -84,7 +83,7 @@ module domainall::joystick {
         sui::transfer::public_share_object(collection);
 
         let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
-            witness, collection_id, ctx
+            &witness, collection_id, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
@@ -102,7 +101,6 @@ module domainall::joystick {
         std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
         std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
         std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
-        std::vector::push_back(&mut tags, nft_protocol::tags::ticker());
         std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
         std::vector::push_back(&mut tags, nft_protocol::tags::music());
         std::vector::push_back(&mut tags, nft_protocol::tags::video());

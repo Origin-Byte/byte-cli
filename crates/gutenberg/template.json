@@ -36,7 +36,6 @@
             "Collectible",
             "GameAsset",
             "TokenisedAsset",
-            "Ticker",
             "DomainName",
             "Music",
             "Video",
