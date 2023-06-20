@@ -17,10 +17,16 @@ There is an example configuration file, `template.json` which is aligned to the 
 
 ## Gutenberg CLI usage
 
-To install the gutenberg CLI on your computer you can call:
+To install the full version of gutenberg CLI on your computer you can call:
 
 ```
-cargo install --features=cli --path .
+cargo install --features="cli full" --path .
+```
+
+To install the demo version you can drop the `full` feature:
+
+```
+cargo install --features="cli full" --path .
 ```
 
 ### Generate contract
@@ -36,7 +42,13 @@ Options:
   -h, --help  Print help
 ```
 
-### Generate tests
+### Tests
+
+Unit tests can be invoked by running `cargo test`.
+
+Integration tests that check whether contracts are being correctly generated, can be invoked by running `./tests/scenarios.sh` from the `gutenberg` directory.
+
+If there was an update made to contract generation, you can regenerate the tests by calling `gutenberg generate-tests` but ensure to compile `gutenberg` with feature flags `cli` and `full`.
 
 ```
 Usage: gutenberg generate-tests

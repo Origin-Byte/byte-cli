@@ -8,7 +8,7 @@ use crate::prelude::CliError;
 use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use gutenberg::schema::Schema;
+use gutenberg::Schema;
 
 use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
 use rust_sdk::{

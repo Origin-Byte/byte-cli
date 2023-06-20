@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -63,7 +63,12 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
 
 fn generate_tests() {
     let scenarios_path = Path::new("./tests/scenarios");
-    let modules_path = Path::new("./tests/packages");
+
+    let mut modules_path = PathBuf::from("./tests/packages");
+    #[cfg(feature = "full")]
+    modules_path.push("full");
+    #[cfg(not(feature = "full"))]
+    modules_path.push("demo");
 
     let files = std::fs::read_dir(scenarios_path)
         .unwrap()
@@ -75,7 +80,7 @@ fn generate_tests() {
 
     for entry in files {
         let config_path = entry.path();
-        generate_contract(&config_path, modules_path);
+        generate_contract(&config_path, modules_path.as_path());
     }
 }
 
