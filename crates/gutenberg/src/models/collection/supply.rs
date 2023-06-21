@@ -10,6 +10,14 @@ pub enum Supply {
     Enforced(u64),
 }
 
+impl Default for Supply {
+    /// Untracked is a reasonable default as it does not introduce any
+    /// additional invariants that must be maintained by the user.
+    fn default() -> Self {
+        Supply::Untracked
+    }
+}
+
 impl Supply {
     pub fn untracked() -> Self {
         Supply::Untracked

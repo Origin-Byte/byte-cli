@@ -65,7 +65,9 @@ pub struct NftData {
     // indicator of the integration problems that are solved by using
     // Gutenberg, therefore signifiying to the user the potential to save a ton
     // of time implementing integration boilerplate.
+    #[serde(default)]
     mint_policies: MintPolicies,
+    /// Additional request policies to be initialized for the NFT
     #[serde(default)]
     request_policies: RequestPolicies,
 }
@@ -178,7 +180,7 @@ impl NftData {
         let witness_name = self.witness_name();
         let type_name = self.type_name();
 
-        let collection_init = collection_data.write_move_init(self);
+        let collection_init = collection_data.write_move_init(&type_name);
         let transfer_fns = self.write_move_transfer_fns();
 
         // Write MintCap instantiation
@@ -237,7 +239,11 @@ impl NftData {
 
         #[allow(unused_mut)]
         let mut tests_str = String::new();
-        tests_str.push_str(&self.write_mint_test(collection_data));
+        tests_str.push_str(&self.mint_policies.write_mint_tests(
+            &type_name,
+            &witness_name,
+            collection_data,
+        ));
         #[cfg(feature = "full")]
         tests_str.push_str(&self.dynamic.write_move_tests(
             &type_name,
@@ -251,65 +257,6 @@ impl NftData {
             collection_data,
         ));
         tests_str
-    }
-
-    fn write_mint_test(&self, collection_data: &CollectionData) -> String {
-        let type_name = self.type_name();
-        let witness_name = self.witness_name();
-
-        let requires_collection = collection_data.requires_collection();
-        let collection_take_str = requires_collection.then(|| format!("
-
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
-            &scenario,
-        );")).unwrap_or_default();
-
-        let collection_param_str = requires_collection
-            .then_some(
-                "
-            &mut collection,",
-            )
-            .unwrap_or_default();
-
-        let collection_return_str = requires_collection
-            .then_some(
-                "
-        sui::test_scenario::return_shared(collection);",
-            )
-            .unwrap_or_default();
-
-        format!(
-            "
-
-    #[test]
-    fun it_mints_nft() {{
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
-
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
-            &scenario,
-            CREATOR,
-        );{collection_take_str}
-
-        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
-
-        mint_nft_to_warehouse(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,{collection_param_str}
-            &mut warehouse,
-            sui::test_scenario::ctx(&mut scenario)
-        );
-
-        sui::transfer::public_transfer(warehouse, CREATOR);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
-        sui::test_scenario::end(scenario);
-    }}")
     }
 
     fn write_move_policies(&self, has_royalties: bool) -> String {

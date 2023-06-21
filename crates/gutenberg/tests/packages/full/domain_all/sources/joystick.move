@@ -24,11 +24,11 @@ module domain_all::joystick {
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
 
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::creators::new(creators),
-        );
+            nft_protocol::collection::add_domain(
+                delegated_witness,
+                &mut collection,
+                nft_protocol::creators::new(creators),
+            );
 
         nft_protocol::collection::add_domain(
             delegated_witness,
@@ -255,7 +255,43 @@ module domain_all::joystick {
     }
 
     #[test]
-    fun it_mints_nft() {
+    fun it_mints_nft_airdrop() {
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<Joystick>>(
+            &scenario,
+        );
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+
+        mint_nft_to_kiosk(
+            std::string::utf8(b"TEST NAME"),
+            std::string::utf8(b"TEST DESCRIPTION"),
+            b"https://originbyte.io/",
+            vector[std::ascii::string(b"avg_return")],
+            vector[std::ascii::string(b"24%")],
+            &mut mint_cap,
+            &mut collection,
+            &mut kiosk,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::transfer::public_share_object(kiosk);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);
+        sui::test_scenario::return_shared(collection);
+        sui::test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_mints_nft_launchpad() {
         let scenario = sui::test_scenario::begin(CREATOR);
         init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
