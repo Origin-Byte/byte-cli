@@ -10,10 +10,7 @@ use std::sync::Arc;
 use sui_sdk::types::base_types::ObjectID;
 use terminal_link::Link;
 
-use rust_sdk::{
-    mint::{self},
-    utils::{get_active_address, get_context},
-};
+use rust_sdk::{mint, utils::get_context};
 
 use crate::models::project::{CollectionObjects, Project};
 
@@ -30,10 +27,6 @@ pub async fn create_warehouse(
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let wallet_ctx = Arc::new(get_context().await.unwrap());
-    let active_address =
-        get_active_address(&wallet_ctx.config.keystore).unwrap();
-
-    let gas_budget_ref = Arc::new(gas_budget as u64);
 
     println!("{} Creating warehouse", style("WIP").cyan().bold());
     let collection_type = MoveType::new(

@@ -1884,6 +1884,7 @@ dependencies = [
  "glob",
  "gutenberg",
  "hex",
+ "indicatif 0.16.2",
  "move-package",
  "package-manager",
  "rust-sdk",

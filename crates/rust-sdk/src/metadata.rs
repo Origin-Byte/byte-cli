@@ -77,11 +77,11 @@ impl Metadata {
             params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
-        if let Some(value) = &self.url {
+        if let Some(value) = &self.description {
             params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
-        if let Some(value) = &self.description {
+        if let Some(value) = &self.url {
             params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 

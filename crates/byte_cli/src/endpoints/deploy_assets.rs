@@ -41,7 +41,7 @@ pub async fn deploy_assets(
 
     let mut error_path = pre_upload_path.parent().unwrap().to_path_buf();
     let now = Local::now().format("%Y%m%d%H%M%S").to_string();
-    error_path.push(format!("logs/logs-{}.json", now));
+    error_path.push(format!("logs/upload-{}.json", now));
 
     let mut assets: Vec<Asset> = vec![];
 

@@ -1,12 +1,14 @@
+use std::str::FromStr;
+
 use anyhow::{anyhow, Result};
 use sui_config::{sui_config_dir, SUI_CLIENT_CONFIG};
 use sui_json_rpc_types::Coin;
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
-use sui_types::base_types::{ObjectRef, SuiAddress};
+use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
 
-use crate::err::RustSdkError;
+use crate::err::{self, RustSdkError};
 
 pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);
@@ -66,4 +68,11 @@ impl MoveType {
 
         code
     }
+}
+
+pub fn get_object_id(obj_id_str: &str) -> ObjectID {
+    let obj_id =
+        ObjectID::from_str(obj_id_str).expect("Could not parse object ID");
+
+    obj_id
 }

@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::models::effects::{MintEffects, Minted};
 use crate::models::project::Project;
 use crate::prelude::CliError;
 use crate::SchemaBuilder;
@@ -26,12 +27,16 @@ impl LocalRead for PackageMap {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}
+impl LocalRead for MintEffects {}
+impl LocalRead for Minted {}
 impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
 impl LocalWrite for SchemaBuilder {}
 impl LocalWrite for MoveToml {}
 impl LocalWrite for StorableMetadata {}
+impl LocalWrite for MintEffects {}
+impl LocalWrite for Minted {}
 
 impl LocalRead for SchemaBuilder {
     fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {

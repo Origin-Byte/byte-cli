@@ -1,18 +1,23 @@
-use crate::io::LocalRead;
+use crate::io::{LocalRead, LocalWrite};
+use crate::models::effects::{MintEffects, MintError, Minted};
 use anyhow::{anyhow, Result};
+use chrono::Local;
 use console::style;
 use gutenberg::Schema;
+use indicatif::{ProgressBar, ProgressStyle};
 use rust_sdk::coin;
 use rust_sdk::metadata::{Metadata, StorableMetadata};
+use rust_sdk::mint::MintEffect;
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{thread, time};
 use sui_sdk::types::base_types::ObjectID;
+use terminal_link::Link;
 use tokio::task::JoinSet;
 
 use rust_sdk::{
-    mint::{self},
+    mint,
     utils::{get_active_address, get_context},
 };
 
@@ -26,21 +31,21 @@ pub async fn mint_nfts(
     metadata_path: PathBuf,
     state: Project,
 ) -> Result<Project> {
-    let contract_id = state.package_id.as_ref().unwrap().to_string();
+    let contract_id = Arc::new(state.package_id.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
-    let wallet_ctx = get_context().await.unwrap();
+    let wallet_ctx = Arc::new(get_context().await.unwrap());
     let active_address =
         get_active_address(&wallet_ctx.config.keystore).unwrap();
 
-    let module_name = schema.package_name();
+    let module_name = Arc::new(schema.package_name());
     let gas_budget_ref = gas_budget as u64;
 
     println!("{} Collecting NFT metadata", style("WIP").cyan().bold());
     let nft_data = StorableMetadata::read_json(&metadata_path)?;
     println!("{} Collecting NFT metadata", style("DONE").green().bold());
 
-    let warehouse = match warehouse_id {
+    let warehouse = Arc::new(match warehouse_id {
         Some(warehouse) => warehouse,
         None => state
             .collection_objects
@@ -50,9 +55,9 @@ pub async fn mint_nfts(
             .first()
             .unwrap()
             .to_string(),
-    };
+    });
 
-    let mint_cap = match mint_cap_id {
+    let mint_cap = Arc::new(match mint_cap_id {
         Some(mint_cap) => mint_cap,
         None => state
             .admin_objects
@@ -63,12 +68,42 @@ pub async fn mint_nfts(
             .unwrap()
             .id
             .to_string(),
+    });
+
+    let mint_path = metadata_path.parent().unwrap().join("minted.json");
+    let mut minted: Minted = if Path::new(&mint_path).exists() {
+        Minted::read_json(&mint_path)?
+    } else {
+        Minted::new()
     };
 
+    // TODO: Make this a variable
     let batch_size = 100;
 
+    // Filter already minted
+    let to_mint: BTreeMap<u32, Metadata> = nft_data
+        .0
+        .into_iter()
+        // .iter_mut()
+        .filter(|(v, _k)| !minted.0.contains(v))
+        .collect();
+
     let (mut keys, mut meta): (Vec<u32>, Vec<Metadata>) =
-        nft_data.0.into_iter().unzip();
+        to_mint.into_iter().unzip();
+
+    let jobs_no = keys.len() as u64;
+    let mut failed_jobs = 0;
+
+    let progress_bar = ProgressBar::new(jobs_no);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+            .progress_chars("#>-"),
+    );
+
+    // println!("KEYS: {:?}", keys);
+    // progress_bar.inc(1);
+    // panic!();
 
     let mut i = 0;
     let mut batches = vec![];
@@ -86,11 +121,11 @@ pub async fn mint_nfts(
 
             stack.drain(..).for_each(|(k, v)| new_batch.push((k, v)));
 
-            println!("Batch has size of {}", new_batch.len());
-
-            // Inverst order from 100 -> 1 to 1 --> 100
+            // Inverse order. Batches are stored as
+            // batch 1: [100..1]
+            // batch 2: [200..101]
+            // ...
             new_batch.reverse();
-
             batches.push(new_batch);
 
             // Reset circuit
@@ -107,35 +142,86 @@ pub async fn mint_nfts(
     println!("{} Preparing Metadata", style("DONE").green().bold());
 
     println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
+    let mut effects = MintEffects::new();
+
     for batch in batches.drain(..) {
-        mint::mint_nfts_in_batch(
+        let from_nft = batch.last().unwrap().0;
+        let to_nft = batch.first().unwrap().0;
+
+        let effect = mint::mint_nfts_to_warehouse(
             batch,
-            &wallet_ctx,
+            wallet_ctx.clone(),
             contract_id.clone(),
             module_name.clone(),
             gas_budget as u64,
+            None, // Gas coin
             active_address,
             warehouse.clone(),
             mint_cap.clone(),
         )
         .await?;
+
+        progress_bar.inc(batch_size);
+
+        match effect {
+            MintEffect::Success(mut nft_ids) => {
+                effects.minted_nfts.append(&mut nft_ids);
+
+                minted.0.append(&mut (from_nft..=to_nft).collect())
+            }
+            MintEffect::Error(error) => {
+                failed_jobs += batch_size;
+
+                effects
+                    .error_logs
+                    .push(MintError::new(from_nft, to_nft, error));
+            }
+        }
     }
+
+    // Finish the progress bar
+    progress_bar.finish_at_current_pos();
 
     println!("{} Minting NFTs on-chain", style("DONE").green().bold());
 
-    // println!("Warehouse object ID: {}", warehouse_id_ref.clone());
+    // TODO: Update links depending on testnet
+    let explorer_link = format!(
+        "https://explorer.sui.io/object/{}?network=devnet",
+        warehouse
+    );
 
-    // let explorer_link = format!(
-    //     "https://explorer.sui.io/object/{}?network=devnet",
-    //     warehouse_id_ref.clone()
-    // );
+    let link = Link::new("Sui Explorer", explorer_link.as_str());
 
-    // let link = Link::new("Sui Explorer", explorer_link.as_str());
+    println!(
+        "You can now find your NFTs on the {}",
+        style(link).blue().bold().underlined(),
+    );
 
-    // println!(
-    //     "You can now find your NFTs on the {}",
-    //     style(link).blue().bold().underlined(),
-    // );
+    let mut log_path = metadata_path.parent().unwrap().to_path_buf();
+    let now = Local::now().format("%Y%m%d%H%M%S").to_string();
+    log_path.push(format!("logs/mint-{}.json", now));
+    effects.write_json(log_path.as_path())?;
+    minted.write_json(mint_path.as_path())?;
+
+    let uploaded = jobs_no - failed_jobs;
+
+    println!("Upload Summary");
+    println!("--------------------------");
+    println!(
+        "{} {} out of {}",
+        style("UPLOADED ").green().bold(),
+        uploaded,
+        jobs_no
+    );
+
+    if failed_jobs > 0 {
+        println!(
+            "{} {} out of {}",
+            style("FAILED ").red().bold(),
+            failed_jobs,
+            jobs_no
+        );
+    }
 
     Ok(state)
 }
@@ -227,38 +313,4 @@ pub async fn parallel_mint_nfts(
     );
 
     Ok(state)
-}
-
-fn remove_batch(
-    map: &mut BTreeMap<u32, Metadata>,
-    start_index: u32,
-    batch_size: u32,
-) -> Option<BTreeMap<u32, Metadata>> {
-    let mut batch = BTreeMap::new();
-    let end_index = start_index + batch_size;
-
-    println!("{} -> {}", start_index, end_index);
-
-    // for i in 1..=100 {
-    for i in start_index..=end_index {
-        println!("{}", i);
-        let datum = map.remove(&i);
-
-        match datum {
-            Some(datum) => {
-                // println!("Included: {}", i);
-                batch.insert(i, datum);
-            }
-            None => {
-                // println!("Not included: {}", i);
-                break;
-            }
-        }
-    }
-
-    if !batch.is_empty() {
-        return Some(batch);
-    } else {
-        None
-    }
 }
