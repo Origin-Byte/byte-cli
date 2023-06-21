@@ -167,16 +167,12 @@ impl Burn {
         &self,
         type_name: &str,
         witness_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
         match self {
             Burn::None => String::new(),
             Burn::Permissioned => String::new(),
             Burn::Permissionless => {
-                let supply = collection_data.supply();
-
-                let requires_collection = supply.requires_collection();
-
                 let collection_param_str = requires_collection
                     .then_some(
                         "

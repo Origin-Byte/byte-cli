@@ -1,9 +1,11 @@
 #!/bin/bash
 tmp_dir=$(mktemp -d)
 
-# Generate and compare demo contracts
-echo "Testing generated demo contracts..."
-cargo build --bin gutenberg --no-default-features --features="cli"
+# Generate and compare full contracts
+#
+# Test full contracts first since they're the ones most likely to fail
+echo "Testing generated full contracts..."
+cargo build --bin gutenberg --no-default-features --features="cli full"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
@@ -13,10 +15,10 @@ for file in ./tests/scenarios/*.json; do
 
     filename=$(basename -- "$file")
     filename="${filename%.*}"
-    diff -r ./tests/packages/demo/$filename $tmp_dir/$filename
+    diff -r ./tests/packages/full/$filename $tmp_dir/$filename
 
     if [ $? -eq 1 ]; then
-        echo "Scenario $file did not generate matching demo contract"
+        echo "Scenario $file did not generate matching full contract"
         echo "Run './tests/generate-tests.sh' to update tests"
         echo "FAIL"
         rm -rf $tmp_dir
@@ -45,9 +47,9 @@ for file in ./tests/scenarios/*.json; do
     fi
 done
 
-# Generate and compare full contracts
-echo "Testing generated full contracts..."
-cargo build --bin gutenberg --no-default-features --features="cli full"
+# Generate and compare demo contracts
+echo "Testing generated demo contracts..."
+cargo build --bin gutenberg --no-default-features --features="cli"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
@@ -57,10 +59,10 @@ for file in ./tests/scenarios/*.json; do
 
     filename=$(basename -- "$file")
     filename="${filename%.*}"
-    diff -r ./tests/packages/full/$filename $tmp_dir/$filename
+    diff -r ./tests/packages/demo/$filename $tmp_dir/$filename
 
     if [ $? -eq 1 ]; then
-        echo "Scenario $file did not generate matching full contract"
+        echo "Scenario $file did not generate matching demo contract"
         echo "Run './tests/generate-tests.sh' to update tests"
         echo "FAIL"
         rm -rf $tmp_dir
@@ -80,6 +82,5 @@ for file in ./tests/scenarios/*.json; do
 done
 
 rm -rf $tmp_dir
-
 
 echo "SUCCESS"

@@ -229,9 +229,8 @@ impl MintPolicies {
         &self,
         type_name: &str,
         witness_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
-        let requires_collection = collection_data.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(

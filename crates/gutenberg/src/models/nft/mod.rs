@@ -249,26 +249,41 @@ impl NftData {
     pub fn write_move_tests(&self, collection_data: &CollectionData) -> String {
         let type_name = self.type_name();
         let witness_name = self.witness_name();
+        let requires_collection = collection_data.requires_collection();
 
         #[allow(unused_mut)]
         let mut tests_str = String::new();
         tests_str.push_str(&self.mint_policies.write_mint_tests(
             &type_name,
             &witness_name,
-            collection_data,
+            requires_collection,
         ));
         #[cfg(feature = "full")]
         tests_str.push_str(&self.dynamic.write_move_tests(
             &type_name,
             &witness_name,
-            collection_data,
+            requires_collection,
         ));
         #[cfg(feature = "full")]
         tests_str.push_str(&self.burn.write_move_tests(
             &type_name,
             &witness_name,
-            collection_data,
+            requires_collection,
         ));
+        #[cfg(feature = "full")]
+        tests_str.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| {
+                    orderbook.write_move_tests(
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                        collection_data.has_royalties(),
+                    )
+                })
+                .unwrap_or_default(),
+        );
         tests_str
     }
 

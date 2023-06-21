@@ -2,8 +2,6 @@ use std::fmt::{self, Display};
 
 use serde::{Deserialize, Serialize};
 
-use crate::models::collection::CollectionData;
-
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(transparent)]
 pub struct Dynamic(bool);
@@ -96,7 +94,7 @@ impl Dynamic {
         &self,
         type_name: &str,
         witness_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
         let mut code = String::new();
 
@@ -104,9 +102,6 @@ impl Dynamic {
             return code;
         }
 
-        let supply = collection_data.supply();
-
-        let requires_collection = supply.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
