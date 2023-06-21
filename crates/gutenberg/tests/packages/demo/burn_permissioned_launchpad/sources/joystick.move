@@ -1,4 +1,4 @@
-module joysticks::joystick {
+module burn_permissioned_launchpad::joystick {
     /// One time witness is only instantiated in the init method
     struct JOYSTICK has drop {}
 
@@ -21,36 +21,6 @@ module joysticks::joystick {
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
-        let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::creators::new(creators),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::display_info::new(
-                std::string::utf8(b"Joysticks"),
-                std::string::utf8(b"Joysticks is a dummy collection"),
-            ),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io"),
-        );
-
         sui::transfer::public_share_object(collection);
 
         let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
@@ -65,11 +35,6 @@ module joysticks::joystick {
         sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
         sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-
-        let tags = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
         sui::display::update_version(&mut display);
 
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));

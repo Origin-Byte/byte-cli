@@ -4,29 +4,18 @@ use std::{
     str::FromStr,
 };
 
-use crate::{err::GutenError, models::collection::CollectionData};
+use crate::{err::GutenError, models::collection::Supply};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Burn {
-    None,
     Permissioned,
     Permissionless,
-}
-
-impl Default for Burn {
-    /// Not being able to burn NFTs is a sensible default as it does not introduce
-    /// any potential attack vectors against a creator's collection and burn
-    /// funcitons can be introduced via a contract upgrade.
-    fn default() -> Self {
-        Burn::None
-    }
 }
 
 impl Display for Burn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let string = match self {
-            Burn::None => "None",
             Burn::Permissioned => "Permissioned",
             Burn::Permissionless => "Permissionless",
         };
@@ -40,7 +29,6 @@ impl FromStr for Burn {
 
     fn from_str(level: &str) -> Result<Burn, Self::Err> {
         match level {
-            "None" => Ok(Burn::None),
             "Permissioned" => Ok(Burn::Permissioned),
             "Permissionless" => Ok(Burn::Permissionless),
             level => Err(GutenError::UnsupportedSettings(
@@ -51,10 +39,6 @@ impl FromStr for Burn {
 }
 
 impl Burn {
-    pub fn is_none(&self) -> bool {
-        matches!(self, Burn::None)
-    }
-
     pub fn is_permissioned(&self) -> bool {
         matches!(self, Burn::Permissioned)
     }
@@ -65,99 +49,130 @@ impl Burn {
 
     pub fn write_move_defs(
         &self,
-        nft_type_name: &str,
-        collection_data: &CollectionData,
+        type_name: &str,
+        requires_collection: bool,
+        requires_listing: bool,
+        requires_confirm: bool,
     ) -> String {
         let mut code = String::new();
 
-        if let Burn::None = self {
-            return code;
-        }
+        let mut_str = requires_collection.then_some("mut ").unwrap_or_default();
 
-        let supply = collection_data.supply();
-        let decrements = supply.requires_collection();
+        let collection_decrement_str = requires_collection
+            .then(|| Supply::write_move_decrement())
+            .unwrap_or_default();
 
-        let mut_str = decrements.then_some("mut ").unwrap_or_default();
+        let confirm_contract_str = requires_confirm
+            .then_some(
+                "
+        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {});"
+            )
+            .unwrap_or_default();
 
-        let collection_decrement_str = decrements
-            .then(|| supply.write_move_decrement())
+        let burn_nft_call = self
+            .is_permissioned()
+            .then_some("delegated_witness, ")
+            .unwrap_or_default();
+
+        let delegated_witness_init_str = self.is_permissionless()
+            .then(|| format!(
+            "
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});"
+            ))
+            .unwrap_or_default();
+
+        let delegated_witness_publisher_init_str = self.is_permissioned()
+            .then(|| format!(
+            "
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);"
+            ))
+            .unwrap_or_default();
+
+        let delegated_witness_param_str = self
+            .is_permissioned()
+            .then(|| {
+                format!(
+                    "
+        delegated_witness: ob_permissions::witness::Witness<{type_name}>,"
+                )
+            })
+            .unwrap_or_default();
+
+        let publisher_param_str = self
+            .is_permissioned()
+            .then_some(
+                "
+        publisher: &sui::package::Publisher,",
+            )
             .unwrap_or_default();
 
         code.push_str(&format!(
             "
 
-    public fun burn_nft(
-        delegated_witness: ob_permissions::witness::Witness<{nft_type_name}>,
-        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
-        nft: {nft_type_name},
-    ) {{
+    public fun burn_nft({delegated_witness_param_str}
+        collection: &{mut_str}nft_protocol::collection::Collection<{type_name}>,
+        nft: {type_name},
+    ) {{{delegated_witness_init_str}
         let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-        let {nft_type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
+        let {type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
         nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);{collection_decrement_str}
-    }}"
-        ));
-
-        code.push_str(&format!(
-            "
-
-    public entry fun burn_nft_in_listing(
-        publisher: &sui::package::Publisher,
-        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        let nft = ob_launchpad::listing::admin_redeem_nft(listing, inventory_id, ctx);
-        burn_nft(delegated_witness, collection, nft);
-    }}"
-        ));
-
-        code.push_str(&format!(
-            "
-
-    public entry fun burn_nft_in_listing_with_id(
-        publisher: &sui::package::Publisher,
-        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
-        listing: &mut ob_launchpad::listing::Listing,
-        inventory_id: sui::object::ID,
-        nft_id: sui::object::ID,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-
-        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
-        burn_nft(delegated_witness, collection, nft);
-    }}"
-        ));
-
-        if self == &Burn::Permissionless {
-            code.push_str(&format!(
-            "
-
-    public entry fun burn_own_nft(
-        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
-        nft: {nft_type_name},
-    ) {{
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
-        burn_nft(delegated_witness, collection, nft);
     }}
 
-    public entry fun burn_own_nft_in_kiosk(
-        collection: &{mut_str}nft_protocol::collection::Collection<{nft_type_name}>,
+    public entry fun burn_nft_in_kiosk({delegated_witness_param_str}
+        collection: &{mut_str}nft_protocol::collection::Collection<{type_name}>,
         kiosk: &mut sui::kiosk::Kiosk,
         nft_id: sui::object::ID,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<{nft_type_name}, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>>,
         ctx: &mut sui::tx_context::TxContext,
     ) {{
-        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
-        ob_request::withdraw_request::add_receipt(&mut withdraw_request, &Witness {{}});
+        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);{confirm_contract_str}
         ob_request::withdraw_request::confirm(withdraw_request, policy);
 
-        burn_own_nft(collection, nft);
+        burn_nft({burn_nft_call}collection, nft);
     }}"
         ));
+
+        if self.is_permissioned() {
+            code.push_str(&format!("
+
+    public entry fun burn_nft_in_kiosk_as_publisher(
+        publisher: &sui::package::Publisher,
+        collection: &{mut_str}nft_protocol::collection::Collection<{type_name}>,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {{
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        burn_nft_in_kiosk(delegated_witness, collection, kiosk, nft_id, policy, ctx);
+    }}"));
+        }
+
+        if requires_listing {
+            code.push_str(&format!(
+                "
+
+    public entry fun burn_nft_in_listing({publisher_param_str}
+        collection: &{mut_str}nft_protocol::collection::Collection<{type_name}>,
+        listing: &mut ob_launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {{{delegated_witness_publisher_init_str}
+        let nft = ob_launchpad::listing::admin_redeem_nft<{type_name}>(listing, inventory_id, ctx);
+        burn_nft({burn_nft_call}collection, nft);
+    }}
+
+    public entry fun burn_nft_in_listing_with_id({publisher_param_str}
+        collection: &{mut_str}nft_protocol::collection::Collection<{type_name}>,
+        listing: &mut ob_launchpad::listing::Listing,
+        inventory_id: sui::object::ID,
+        nft_id: sui::object::ID,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {{{delegated_witness_publisher_init_str}
+        let nft = ob_launchpad::listing::admin_redeem_nft_with_id(listing, inventory_id, nft_id, ctx);
+        burn_nft({burn_nft_call}collection, nft);
+    }}"
+            ));
         }
 
         code
@@ -169,80 +184,83 @@ impl Burn {
         witness_name: &str,
         requires_collection: bool,
     ) -> String {
-        match self {
-            Burn::None => String::new(),
-            Burn::Permissioned => String::new(),
-            Burn::Permissionless => {
-                let collection_param_str = requires_collection
-                    .then_some(
-                        "
-            &mut collection,",
-                    )
-                    .unwrap_or_default();
-
-                let collection_mut_str =
-                    requires_collection.then_some("mut ").unwrap_or_default();
-
-                format!(
+        let collection_param_str = requires_collection
+            .then_some(
                 "
+            &mut collection,",
+            )
+            .unwrap_or_default();
 
-    #[test]
-    fun it_burns_own_nft() {{
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
+        let collection_mut_str =
+            requires_collection.then_some("mut ").unwrap_or_default();
 
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+        let delegated_witness_init_param_str = self
+            .is_permissioned()
+            .then(|| {
+                format!(
+                    "
+                ob_permissions::witness::from_witness(Witness {{}}),"
+                )
+            })
+            .unwrap_or_default();
 
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
-            &scenario,
-            CREATOR,
-        );
+        format!("
 
-        let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
-            &scenario,
-            CREATOR,
-        );
+        #[test]
+        fun it_burns_nft() {{
+            let scenario = sui::test_scenario::begin(CREATOR);
+            init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
 
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
-            &scenario
-        );
+            sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let withdraw_policy = sui::test_scenario::take_shared<
-            ob_request::request::Policy<
-                ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>
-            >
-        >(&scenario);
+            let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
+                &scenario,
+                CREATOR,
+            );
 
-        let nft = mint(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,{collection_param_str}
-            sui::test_scenario::ctx(&mut scenario)
-        );
-        let nft_id = sui::object::id(&nft);
+            let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
+                &scenario,
+                CREATOR,
+            );
 
-        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
-        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
+            let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
+                &scenario
+            );
 
-        burn_own_nft_in_kiosk(
-            &{collection_mut_str}collection,
-            &mut kiosk,
-            nft_id,
-            &withdraw_policy,
-            sui::test_scenario::ctx(&mut scenario)
-        );
+            let withdraw_policy = sui::test_scenario::take_shared<
+                ob_request::request::Policy<
+                    ob_request::request::WithNft<{type_name}, ob_request::withdraw_request::WITHDRAW_REQ>
+                >
+            >(&scenario);
 
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::return_to_address(CREATOR, publisher);
-        sui::test_scenario::return_shared(collection);
-        sui::test_scenario::return_shared(withdraw_policy);
-        sui::transfer::public_share_object(kiosk);
-        sui::test_scenario::end(scenario);
-    }}")
-            }
-        }
+            let nft = mint(
+                std::string::utf8(b\"TEST NAME\"),
+                std::string::utf8(b\"TEST DESCRIPTION\"),
+                b\"https://originbyte.io/\",
+                vector[std::ascii::string(b\"avg_return\")],
+                vector[std::ascii::string(b\"24%\")],
+                &mut mint_cap,{collection_param_str}
+                sui::test_scenario::ctx(&mut scenario)
+            );
+            let nft_id = sui::object::id(&nft);
+
+            let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+            ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
+
+            burn_nft_in_kiosk({delegated_witness_init_param_str}
+                &{collection_mut_str}collection,
+                &mut kiosk,
+                nft_id,
+                &withdraw_policy,
+                sui::test_scenario::ctx(&mut scenario)
+            );
+
+            sui::test_scenario::return_to_address(CREATOR, mint_cap);
+            sui::test_scenario::return_to_address(CREATOR, publisher);
+            sui::test_scenario::return_shared(collection);
+            sui::test_scenario::return_shared(withdraw_policy);
+            sui::transfer::public_share_object(kiosk);
+            sui::test_scenario::end(scenario);
+        }}")
     }
 }

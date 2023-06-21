@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::collection::CollectionData;
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     #[serde(default)]
@@ -27,6 +25,14 @@ impl MintPolicies {
         Self { launchpad, airdrop }
     }
 
+    pub fn has_launchpad(&self) -> bool {
+        self.launchpad
+    }
+
+    pub fn has_airdrop(&self) -> bool {
+        self.airdrop
+    }
+
     fn params(&self) -> Vec<String> {
         vec!["description", "url", "attribute_keys", "attribute_values"]
             .into_iter()
@@ -49,10 +55,8 @@ impl MintPolicies {
     pub fn write_move_defs(
         &self,
         type_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
-        let requires_collection = collection_data.requires_collection();
-
         let mut mint_fns = String::new();
 
         let mut base_params = vec!["name".to_string()];
@@ -189,7 +193,7 @@ impl MintPolicies {
                 let collection_increment_str = requires_collection
                     .then(|| {
                         #[cfg(feature = "full")]
-                        let supply_str = collection_data.supply().write_move_increment();
+                        let supply_str = crate::models::collection::Supply::write_move_increment();
                         #[cfg(not(feature = "full"))]
                         let supply_str = "";
 

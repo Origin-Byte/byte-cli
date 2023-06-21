@@ -1,4 +1,4 @@
-module joysticks::joystick {
+module burn_permissioned_withdraw::joystick {
     /// One time witness is only instantiated in the init method
     struct JOYSTICK has drop {}
 
@@ -21,40 +21,10 @@ module joysticks::joystick {
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
-        let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::creators::new(creators),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::display_info::new(
-                std::string::utf8(b"Joysticks"),
-                std::string::utf8(b"Joysticks is a dummy collection"),
-            ),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io"),
-        );
-
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
-            &witness, collection_id, 100, ctx
+        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
+            &witness, collection_id, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
@@ -65,39 +35,18 @@ module joysticks::joystick {
         sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
         sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-
-        let tags = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
         sui::display::update_version(&mut display);
 
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
 
-        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
-    }
-
-    public entry fun mint_nft_to_warehouse(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_cap,
-            ctx,
+        let (withdraw_policy, withdraw_policy_cap) = ob_request::withdraw_request::init_policy<Joystick>(
+            &publisher, ctx,
         );
 
-        ob_launchpad::warehouse::deposit_nft(warehouse, nft);
+        sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
+
+        sui::transfer::public_transfer(withdraw_policy_cap, sui::tx_context::sender(ctx));
+        sui::transfer::public_share_object(withdraw_policy);
     }
 
     public entry fun mint_nft_to_kiosk(
@@ -178,6 +127,42 @@ module joysticks::joystick {
         nft
     }
 
+    public fun burn_nft(
+        delegated_witness: ob_permissions::witness::Witness<Joystick>,
+        collection: &nft_protocol::collection::Collection<Joystick>,
+        nft: Joystick,
+    ) {
+        let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
+        let Joystick { id, name: _, description: _, url: _, attributes: _ } = nft;
+        nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
+    }
+
+    public entry fun burn_nft_in_kiosk(
+        delegated_witness: ob_permissions::witness::Witness<Joystick>,
+        collection: &nft_protocol::collection::Collection<Joystick>,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let (nft, withdraw_request) = ob_kiosk::ob_kiosk::withdraw_nft_signed(kiosk, nft_id, ctx);
+        ob_request::withdraw_request::confirm(withdraw_request, policy);
+
+        burn_nft(delegated_witness, collection, nft);
+    }
+
+    public entry fun burn_nft_in_kiosk_as_publisher(
+        publisher: &sui::package::Publisher,
+        collection: &nft_protocol::collection::Collection<Joystick>,
+        kiosk: &mut sui::kiosk::Kiosk,
+        nft_id: sui::object::ID,
+        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::withdraw_request::WITHDRAW_REQ>>,
+        ctx: &mut sui::tx_context::TxContext,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        burn_nft_in_kiosk(delegated_witness, collection, kiosk, nft_id, policy, ctx);
+    }
+
     #[test_only]
     const CREATOR: address = @0xA1C04;
 
@@ -230,33 +215,61 @@ module joysticks::joystick {
         sui::test_scenario::end(scenario);
     }
 
-    #[test]
-    fun it_mints_nft_launchpad() {
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
+        #[test]
+        fun it_burns_nft() {
+            let scenario = sui::test_scenario::begin(CREATOR);
+            init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
 
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+            sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
-            &scenario,
-            CREATOR,
-        );
+            let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
+                &scenario,
+                CREATOR,
+            );
 
-        let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
+            let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
+                &scenario,
+                CREATOR,
+            );
 
-        mint_nft_to_warehouse(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
-            &mut mint_cap,
-            &mut warehouse,
-            sui::test_scenario::ctx(&mut scenario)
-        );
+            let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<Joystick>>(
+                &scenario
+            );
 
-        sui::transfer::public_transfer(warehouse, CREATOR);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::end(scenario);
-    }
+            let withdraw_policy = sui::test_scenario::take_shared<
+                ob_request::request::Policy<
+                    ob_request::request::WithNft<Joystick, ob_request::withdraw_request::WITHDRAW_REQ>
+                >
+            >(&scenario);
+
+            let nft = mint(
+                std::string::utf8(b"TEST NAME"),
+                std::string::utf8(b"TEST DESCRIPTION"),
+                b"https://originbyte.io/",
+                vector[std::ascii::string(b"avg_return")],
+                vector[std::ascii::string(b"24%")],
+                &mut mint_cap,
+                sui::test_scenario::ctx(&mut scenario)
+            );
+            let nft_id = sui::object::id(&nft);
+
+            let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+            ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
+
+            burn_nft_in_kiosk(
+                ob_permissions::witness::from_witness(Witness {}),
+                &collection,
+                &mut kiosk,
+                nft_id,
+                &withdraw_policy,
+                sui::test_scenario::ctx(&mut scenario)
+            );
+
+            sui::test_scenario::return_to_address(CREATOR, mint_cap);
+            sui::test_scenario::return_to_address(CREATOR, publisher);
+            sui::test_scenario::return_shared(collection);
+            sui::test_scenario::return_shared(withdraw_policy);
+            sui::transfer::public_share_object(kiosk);
+            sui::test_scenario::end(scenario);
+        }
 }

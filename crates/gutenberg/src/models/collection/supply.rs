@@ -56,7 +56,7 @@ impl Supply {
         )
     }
 
-    pub fn write_move_increment(&self) -> String {
+    pub fn write_move_increment() -> String {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(
@@ -66,7 +66,7 @@ impl Supply {
         nft_protocol::supply::increment(delegated_witness, supply, 1);".to_string()
     }
 
-    pub fn write_move_decrement(&self) -> String {
+    pub fn write_move_decrement() -> String {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(

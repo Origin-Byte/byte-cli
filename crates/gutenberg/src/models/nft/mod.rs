@@ -33,8 +33,7 @@ pub struct NftData {
     /// Type name of the NFT
     type_name: String,
     /// Burn policy for NFT
-    #[serde(default)]
-    burn: Burn,
+    burn: Option<Burn>,
     /// Dynamic policies for NFT
     #[serde(default)]
     dynamic: Dynamic,
@@ -76,7 +75,7 @@ impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
-        burn: Burn,
+        burn: Option<Burn>,
         dynamic: Dynamic,
         mint_cap: MintCap,
         mint_policies: MintPolicies,
@@ -92,6 +91,21 @@ impl NftData {
             request_policies,
             orderbook,
         }
+    }
+
+    /// Returns whether NFT requires transfer policy to be created
+    fn requires_transfer(&self) -> bool {
+        self.request_policies.has_transfer() || self.orderbook.is_some()
+    }
+
+    /// Returns whether NFT requires withdraw policy to be created
+    fn requires_withdraw(&self) -> bool {
+        self.request_policies.has_withdraw() || self.burn.is_some()
+    }
+
+    /// Returns whether NFT requires borrow policy to be created
+    fn requires_borrow(&self) -> bool {
+        self.request_policies.has_borrow() || self.dynamic.is_dynamic()
     }
 }
 
@@ -131,31 +145,6 @@ impl NftData {
         self.type_name().to_uppercase()
     }
 
-    /// Returns whether NFT requires transfer policy to be created
-    fn requires_transfer(&self) -> bool {
-        let requires_transfer = self.request_policies.has_transfer();
-        #[cfg(feature = "full")]
-        let requires_transfer = requires_transfer || self.orderbook.is_some();
-        requires_transfer
-    }
-
-    /// Returns whether NFT requires withdraw policy to be created
-    fn requires_withdraw(&self) -> bool {
-        let requires_withdraw = self.request_policies.has_withdraw();
-        #[cfg(feature = "full")]
-        let requires_withdraw =
-            requires_withdraw || self.burn.is_permissionless();
-        requires_withdraw
-    }
-
-    /// Returns whether NFT requires borrow policy to be created
-    fn requires_borrow(&self) -> bool {
-        let requires_borrow = self.request_policies.has_borrow();
-        #[cfg(feature = "full")]
-        let requires_borrow = requires_borrow || self.dynamic.is_dynamic();
-        requires_borrow
-    }
-
     fn write_move_struct(&self) -> String {
         let type_name = self.type_name();
 
@@ -188,7 +177,10 @@ impl NftData {
         let type_name = self.type_name();
 
         let collection_init = collection_data.write_move_init(&type_name);
+        #[cfg(feature = "full")]
         let transfer_fns = self.write_move_transfer_fns();
+        #[cfg(not(feature = "full"))]
+        let transfer_fns = String::new();
 
         // Write MintCap instantiation
         //
@@ -203,6 +195,7 @@ impl NftData {
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));
+        #[cfg(feature = "full")]
         misc_init.push_str(
             &self.write_move_policies(collection_data.has_royalties()),
         );
@@ -229,6 +222,7 @@ impl NftData {
 
     pub fn write_move_defs(&self, collection_data: &CollectionData) -> String {
         let type_name = self.type_name();
+        let requires_collection = collection_data.requires_collection();
 
         let mut defs_str = String::new();
         defs_str.push_str(&self.write_move_struct());
@@ -236,13 +230,24 @@ impl NftData {
         defs_str.push_str(
             &self
                 .mint_policies
-                .write_move_defs(&type_name, collection_data),
+                .write_move_defs(&type_name, requires_collection),
         );
         #[cfg(feature = "full")]
         defs_str.push_str(&self.dynamic.write_move_defs(&type_name));
         #[cfg(feature = "full")]
-        defs_str
-            .push_str(&self.burn.write_move_defs(&type_name, collection_data));
+        defs_str.push_str(
+            &self
+                .burn
+                .map(|burn| {
+                    burn.write_move_defs(
+                        &type_name,
+                        requires_collection,
+                        self.mint_policies.has_launchpad(),
+                        !self.request_policies.has_withdraw(),
+                    )
+                })
+                .unwrap_or_default(),
+        );
         defs_str
     }
 
@@ -265,11 +270,18 @@ impl NftData {
             requires_collection,
         ));
         #[cfg(feature = "full")]
-        tests_str.push_str(&self.burn.write_move_tests(
-            &type_name,
-            &witness_name,
-            requires_collection,
-        ));
+        tests_str.push_str(
+            &self
+                .burn
+                .map(|burn| {
+                    burn.write_move_tests(
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                    )
+                })
+                .unwrap_or_default(),
+        );
         #[cfg(feature = "full")]
         tests_str.push_str(
             &self
@@ -287,6 +299,7 @@ impl NftData {
         tests_str
     }
 
+    #[cfg(feature = "full")]
     fn write_move_policies(&self, has_royalties: bool) -> String {
         let type_name = self.type_name();
 
@@ -341,6 +354,7 @@ impl NftData {
         policies_str
     }
 
+    #[cfg(feature = "full")]
     fn write_move_transfer_fns(&self) -> String {
         let mut code = String::new();
 
