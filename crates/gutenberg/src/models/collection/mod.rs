@@ -202,13 +202,6 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        domains_str.push_str(
-            self.tags
-                .as_ref()
-                .map(|tags| tags.write_move_init())
-                .unwrap_or_default()
-                .as_str(),
-        );
 
         // Opt for `collection::create` over `collection::create_from_otw` in
         // order to statically assert `DelegatedWitness` gets created for the

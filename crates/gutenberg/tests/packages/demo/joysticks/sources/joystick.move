@@ -45,9 +45,6 @@ module joysticks::joystick {
             nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
         );
 
-        let tags: vector<std::string::String> = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
         sui::transfer::public_share_object(collection);
 
         let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
@@ -63,7 +60,7 @@ module joysticks::joystick {
         sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
 
-        let tags: vector<std::string::String> = std::vector::empty();
+        let tags = std::vector::empty();
         std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
 
         sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));

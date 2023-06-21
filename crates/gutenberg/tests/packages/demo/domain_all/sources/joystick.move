@@ -45,21 +45,6 @@ module domain_all::joystick {
             nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
         );
 
-        let tags: vector<std::string::String> = std::vector::empty();
-        std::vector::push_back(&mut tags, nft_protocol::tags::art());
-        std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
-        std::vector::push_back(&mut tags, nft_protocol::tags::collectible());
-        std::vector::push_back(&mut tags, nft_protocol::tags::game_asset());
-        std::vector::push_back(&mut tags, nft_protocol::tags::tokenised_asset());
-        std::vector::push_back(&mut tags, nft_protocol::tags::domain_name());
-        std::vector::push_back(&mut tags, nft_protocol::tags::music());
-        std::vector::push_back(&mut tags, nft_protocol::tags::video());
-        std::vector::push_back(&mut tags, nft_protocol::tags::ticket());
-        std::vector::push_back(&mut tags, nft_protocol::tags::license());
-        std::vector::push_back(&mut tags, std::string::utf8(b"Custom"));
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-        std::vector::push_back(&mut tags, std::string::utf8(b"Utility"));
-
         sui::transfer::public_share_object(collection);
 
         let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
@@ -75,7 +60,7 @@ module domain_all::joystick {
         sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
 
-        let tags: vector<std::string::String> = std::vector::empty();
+        let tags = std::vector::empty();
         std::vector::push_back(&mut tags, nft_protocol::tags::art());
         std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
         std::vector::push_back(&mut tags, nft_protocol::tags::collectible());

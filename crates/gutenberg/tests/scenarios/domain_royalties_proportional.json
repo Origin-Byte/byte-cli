@@ -1,5 +1,5 @@
 {
-  "packageName": "domain_royalties",
+  "packageName": "domain_royalties_proportional",
   "collection": {
     "royalties": {
       "proportional": {

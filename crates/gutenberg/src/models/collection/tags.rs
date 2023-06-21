@@ -150,7 +150,7 @@ impl Tags {
         let mut code = String::from(
             "
 
-        let tags: vector<std::string::String> = std::vector::empty();",
+        let tags = std::vector::empty();",
         );
 
         for tag in self.0.iter() {

@@ -1,0 +1,24 @@
+{
+  "packageName": "domain_tags",
+  "collection": {
+    "tags": [
+      "Art",
+      "ProfilePicture",
+      "Collectible",
+      "GameAsset",
+      "TokenisedAsset",
+      "DomainName",
+      "Music",
+      "Video",
+      "Ticket",
+      "License",
+      "Custom",
+      "Gaming",
+      "Utility"
+    ]
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}
