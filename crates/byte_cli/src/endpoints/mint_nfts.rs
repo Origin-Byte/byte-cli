@@ -78,7 +78,7 @@ pub async fn mint_nfts(
     };
 
     // TODO: Make this a variable
-    let batch_size = 100;
+    let batch_size = 250;
 
     // Filter already minted
     let to_mint: BTreeMap<u32, Metadata> = nft_data
@@ -100,10 +100,6 @@ pub async fn mint_nfts(
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
             .progress_chars("#>-"),
     );
-
-    // println!("KEYS: {:?}", keys);
-    // progress_bar.inc(1);
-    // panic!();
 
     let mut i = 0;
     let mut batches = vec![];

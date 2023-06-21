@@ -23,6 +23,7 @@ use sui_sdk::{
 use sui_types::{
     base_types::ObjectRef,
     messages::{CallArg, ObjectArg},
+    object::Owner,
     parse_sui_type_tag,
 };
 use sui_types::{
@@ -214,14 +215,23 @@ pub async fn mint_nfts_to_warehouse(
 
     match effects.status {
         SuiExecutionStatus::Success => {
-            let nft_ids = effects.created;
-            let mut i = 0;
+            let obj_ids = effects.created;
+            let warehouse_addr =
+                SuiAddress::from_str(warehouse.as_str()).unwrap();
 
-            let nfts = nft_ids
+            let nfts = obj_ids
                 .iter()
-                .map(|obj_ref| {
-                    i += 1;
-                    obj_ref.reference.object_id.to_string()
+                .filter_map(|obj_ref| {
+                    // Filters out dynamic fields
+                    if let Owner::ObjectOwner(owner) = obj_ref.owner {
+                        if owner == warehouse_addr {
+                            Some(obj_ref.reference.object_id.to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 })
                 .collect::<Vec<String>>();
 
