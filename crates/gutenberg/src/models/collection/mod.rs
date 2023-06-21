@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
@@ -289,11 +289,11 @@ impl CollectionData {
             code.push_str(&format!(
                 "
 
-            nft_protocol::collection::add_domain(
-                delegated_witness,
-                &mut collection,
-                nft_protocol::creators::new(creators),
-            );"
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::creators::new(creators),
+        );"
             ));
         };
 

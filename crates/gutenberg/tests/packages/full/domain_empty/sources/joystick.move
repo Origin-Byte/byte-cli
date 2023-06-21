@@ -1,4 +1,4 @@
-module domain_creators::joystick {
+module domain_empty::joystick {
     /// One time witness is only instantiated in the init method
     struct JOYSTICK has drop {}
 
@@ -20,15 +20,6 @@ module domain_creators::joystick {
 
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
-
-        let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::creators::new(creators),
-        );
 
         sui::transfer::public_share_object(collection);
 

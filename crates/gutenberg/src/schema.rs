@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 pub struct Schema {
     /// The named address that the module is published under
     package_name: String,
+    #[serde(default)]
     collection: CollectionData,
     nft: NftData,
 }

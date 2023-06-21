@@ -1,0 +1,24 @@
+{
+  "packageName": "domain_royalties",
+  "collection": {
+    "royalties": {
+      "proportional": {
+        "shares": [
+          {
+            "address": "0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5",
+            "shareBps": 9500
+          },
+          {
+            "address": "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f",
+            "shareBps": 500
+          }
+        ],
+        "collectionRoyaltyBps": 700
+      }
+    }
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}

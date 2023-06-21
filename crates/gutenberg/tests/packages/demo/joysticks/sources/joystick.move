@@ -24,11 +24,11 @@ module joysticks::joystick {
         let creators = sui::vec_set::empty();
         sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
 
-            nft_protocol::collection::add_domain(
-                delegated_witness,
-                &mut collection,
-                nft_protocol::creators::new(creators),
-            );
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::creators::new(creators),
+        );
 
         nft_protocol::collection::add_domain(
             delegated_witness,
