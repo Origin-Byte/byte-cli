@@ -4,7 +4,9 @@ use crate::models::collection::CollectionData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
+    #[serde(default)]
     launchpad: bool,
+    #[serde(default)]
     airdrop: bool,
 }
 

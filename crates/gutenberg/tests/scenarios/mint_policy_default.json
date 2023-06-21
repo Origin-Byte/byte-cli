@@ -1,0 +1,7 @@
+{
+  "packageName": "mint_policy_default",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}
