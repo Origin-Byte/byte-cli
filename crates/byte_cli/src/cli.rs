@@ -24,8 +24,6 @@ pub enum Commands {
         name: String,
         #[clap(short, long, action)]
         project_dir: Option<String>,
-        #[clap(short, long, action)]
-        complete: bool,
     },
 
     /// Creates or adds configuration to JSON config file to be read by the
@@ -37,16 +35,8 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
-    /// Combines `init-collection-config` and `init-upload-config in one single
-    /// flow, hence make the UX seamless for the majority of use cases
-    Config {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-    },
-
     /// Deploys assets to a storage service
-    DeployAssets {
+    UploadImages {
         name: String,
         #[clap(short, long, action)]
         project_dir: Option<String>,
@@ -69,14 +59,11 @@ pub enum Commands {
         /// Gas budget for running module initializers
         #[clap(default_value_t = 600_000_000)]
         gas_budget: usize,
-        #[clap(short, long, action)]
-        skip_generation: bool,
     },
 
     /// Mints NFTs by calling the deployed contract
     CreateWarehouse {
         name: String,
-        network: Option<String>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for minting an NFT
@@ -130,7 +117,7 @@ pub enum Commands {
         #[clap(short, long, action)]
         project_dir: Option<String>,
     },
-    // TODO: Add back feature
+    // TODO: Add back
     // ParallelMint {
     //     name: String,
     //     #[clap(short, long, action)]

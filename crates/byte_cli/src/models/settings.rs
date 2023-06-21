@@ -35,7 +35,6 @@ impl FromPrompt for Settings {
                 None
             };
 
-        // TODO: Design this part
         let requests = RequestPolicies::new(false, false, false); // TODO
 
         let orderbook = if features

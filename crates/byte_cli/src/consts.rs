@@ -32,4 +32,4 @@ pub const TX_SENDER_ADDRESS: &str = "tx_context::sender(ctx)";
 pub const MAX_SYMBOL_LENGTH: u64 = 5;
 pub const BPS_100_PERCENT: u64 = 10_000;
 
-pub const ROCKET_EMOJI: Emoji<'_, '_> = Emoji("🚀 ", "");
+pub const KIWI_EMOJI: Emoji<'_, '_> = Emoji("🥝 ", "");

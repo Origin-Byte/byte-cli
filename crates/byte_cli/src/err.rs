@@ -17,8 +17,6 @@ pub enum CliError {
     VarError(#[from] std::env::VarError),
     #[error(transparent)]
     AwsWriteError(#[from] aws_sdk_s3::types::SdkError<PutObjectError>),
-    // TODO: We should remove anyhow from production code but
-    // there seems to be a problem when maping from bytestream error to CliError
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
     #[error("There was an error with the path")]

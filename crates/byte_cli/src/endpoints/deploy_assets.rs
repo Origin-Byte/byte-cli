@@ -11,9 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use uploader::{
-    storage::{
-        aws::AWSSetup, nft_storage::NftStorageSetup, pinata::PinataSetup,
-    },
+    storage::{aws::AWSSetup, pinata::PinataSetup},
     uploader::{Asset, Uploader},
     writer::Storage,
 };
@@ -114,17 +112,17 @@ pub async fn deploy_assets(
             uploader
                 .upload(&mut assets, shared_metadata.clone())
                 .await?
-        }
-        Storage::NftStorage(config) => {
-            let setup = NftStorageSetup::new(config).await?;
-            let uploader = Box::new(setup) as Box<dyn Uploader>;
+        } // TODO: Add back
+          // Storage::NftStorage(config) => {
+          //     let setup = NftStorageSetup::new(config).await?;
+          //     let uploader = Box::new(setup) as Box<dyn Uploader>;
 
-            uploader.prepare(&assets).await?;
+          //     uploader.prepare(&assets).await?;
 
-            uploader
-                .upload(&mut assets, shared_metadata.clone())
-                .await?
-        }
+          //     uploader
+          //         .upload(&mut assets, shared_metadata.clone())
+          //         .await?
+          // }
     };
 
     let failed_jobs = error_logs.len();

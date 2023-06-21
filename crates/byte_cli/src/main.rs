@@ -36,11 +36,8 @@ async fn main() {
         Ok(()) => {
             println!(
                 "\n{}{}",
-                consts::ROCKET_EMOJI,
-                style("Process ran successfully.")
-                    .green()
-                    .bold()
-                    .on_bright()
+                consts::KIWI_EMOJI,
+                style("Process completed.").green().bold().on_bright()
             );
         }
         Err(err) => {
@@ -62,33 +59,33 @@ async fn run() -> Result<()> {
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
+            if Path::new(&project_path).exists() {}
+
             let (schema, project) = config_simple::init_schema(&name).await?;
 
             // Output
             schema.write_json(&schema_path)?;
             project.write_json(&project_path)?;
         }
-        Commands::ConfigCollection {
-            name,
-            project_dir,
-            complete,
-        } => {
+        Commands::ConfigCollection { name, project_dir } => {
             // Input
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
             // Logic
             let mut builder = SchemaBuilder::read_json(&schema_path)?;
+            let project;
 
-            builder =
-                config_collection::init_collection_config(builder, complete)?;
+            (builder, project) =
+                config_collection::init_collection_config(builder).await?;
 
             // Output
             builder.write_json(&schema_path)?;
+            project.write_json(&project_path)?;
         }
         Commands::ConfigUpload { name, project_dir } => {
-            // Input
-            // TODO: These config file is currently not setup
             let upload_path =
                 io::get_upload_filepath(name.as_str(), &project_dir);
 
@@ -98,26 +95,7 @@ async fn run() -> Result<()> {
             // Output
             uploader.write_json(&upload_path)?;
         }
-        Commands::Config { name, project_dir } => {
-            // Input
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
-
-            let upload_path =
-                io::get_upload_filepath(name.as_str(), &project_dir);
-
-            // Logic
-            let mut builder = SchemaBuilder::read_json(&schema_path)?;
-
-            builder =
-                config_collection::init_collection_config(builder, false)?;
-            let uploader = config_upload::init_upload_config()?;
-
-            // Output
-            builder.write_json(&schema_path)?;
-            uploader.write_json(&upload_path)?;
-        }
-        Commands::DeployAssets { name, project_dir } => {
+        Commands::UploadImages { name, project_dir } => {
             // Input
             let assets_path = io::get_assets_path(name.as_str(), &project_dir);
             let (pre_upload, post_upload) =
@@ -165,13 +143,9 @@ async fn run() -> Result<()> {
             name,
             project_dir,
             gas_budget,
-            skip_generation,
             version,
         } => {
             // Input
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
-
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
@@ -179,22 +153,6 @@ async fn run() -> Result<()> {
                 io::get_contract_path(name.as_str(), &project_dir);
 
             // Logic
-            let schema = deploy_contract::parse_config(schema_path.as_path())?;
-
-            // TODO: Make logic less faulty
-            if !skip_generation {
-                let (main_registry, test_registry) =
-                    io::get_program_registries()?;
-
-                deploy_contract::generate_contract(
-                    &schema,
-                    contract_dir.as_path(),
-                    &main_registry,
-                    &test_registry,
-                    version,
-                )?;
-            }
-
             let theme = get_dialoguer_theme();
 
             let agreed = Confirm::with_theme(&theme)
@@ -218,14 +176,11 @@ async fn run() -> Result<()> {
                 deploy_contract::process_effects(&mut state, response).await?;
 
                 // Output
-
-                // TODO: This project.json will not deserialize to this struct
                 state.write_json(&project_path)?;
             }
         }
         Commands::CreateWarehouse {
             name,
-            network,
             project_dir,
             gas_budget,
         } => {
@@ -239,20 +194,11 @@ async fn run() -> Result<()> {
             // Input
             let toml_path = io::get_toml_path(name.as_str(), &project_dir);
 
-            let network = if network.is_some() {
-                Network::from_str(network.unwrap().as_str())
-                    .map_err(|err| anyhow!("Invalid network: {:?}", err))?
-            } else {
-                Network::Mainnet
-            };
-
-            let registry = io::get_program_registry(&network)?;
-
             // Logic
             let toml_string: String =
                 fs::read_to_string(toml_path.clone())?.parse()?;
 
-            let mut move_toml: MoveToml =
+            let move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
 
             // Logic
@@ -265,8 +211,7 @@ async fn run() -> Result<()> {
             }
 
             create_warehouse::create_warehouse(
-                &schema, gas_budget, &move_toml, &registry, &mut state,
-                &network,
+                &schema, gas_budget, &move_toml, &mut state,
             )
             .await?;
 
@@ -311,7 +256,6 @@ async fn run() -> Result<()> {
             .await?;
 
             // Output
-            // TODO: This project.json will not deserialize to this struct
             state.write_json(&project_path)?;
         }
         Commands::ListCoins {} => {

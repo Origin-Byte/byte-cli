@@ -14,7 +14,6 @@ pub mod collection;
 pub mod launchpad;
 pub mod nft;
 
-// TODO: Custom deserialize that validates address
 #[derive(Debug, Default, PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct Address(String);
 

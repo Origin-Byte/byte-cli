@@ -176,10 +176,11 @@ pub async fn mint_nfts(
 
     println!("{} Minting NFTs on-chain", style("DONE").green().bold());
 
-    // TODO: Update links depending on testnet
+    let network = wallet_ctx.config.active_env.as_ref().unwrap();
+
     let explorer_link = format!(
-        "https://explorer.sui.io/object/{}?network=devnet",
-        warehouse
+        "https://explorer.sui.io/object/{}?network={}",
+        warehouse, network
     );
 
     let link = Link::new("Sui Explorer", explorer_link.as_str());

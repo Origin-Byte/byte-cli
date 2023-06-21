@@ -96,18 +96,17 @@ pub fn init_upload_config() -> Result<Storage, anyhow::Error> {
 
             Ok(Storage::Pinata(config))
         }
-        "NftStorage" => {
-            let auth_token = Input::with_theme(&theme)
-                .with_prompt("What is the authentication token?")
-                .interact()
-                .unwrap();
+        // TODO: Add back
+        // "NftStorage" => {
+        //     let auth_token = Input::with_theme(&theme)
+        //         .with_prompt("What is the authentication token?")
+        //         .interact()
+        //         .unwrap();
 
-            let config = nft_storage::NftStorageConfig::new(auth_token);
+        //     let config = nft_storage::NftStorageConfig::new(auth_token);
 
-            Ok(Storage::NftStorage(config))
-        }
-        // "Bundlr" => Ok(()),
-        // "SHDW" => Ok(()),
+        //     Ok(Storage::NftStorage(config))
+        // }
         _ => Err(anyhow!(
             "Unsupported Storage Type. This error should not occur"
         )),
