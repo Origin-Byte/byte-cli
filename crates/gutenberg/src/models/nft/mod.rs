@@ -48,8 +48,7 @@ pub struct NftData {
     #[serde(default)]
     request_policies: RequestPolicies,
     /// Orderbook to be initialized for the NFT
-    #[serde(default)]
-    orderbook: orderbook::Orderbook,
+    orderbook: Option<orderbook::Orderbook>,
 }
 
 #[cfg(not(feature = "full"))]
@@ -82,7 +81,7 @@ impl NftData {
         mint_cap: MintCap,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
-        orderbook: orderbook::Orderbook,
+        orderbook: Option<orderbook::Orderbook>,
     ) -> Self {
         NftData {
             type_name,
@@ -132,8 +131,16 @@ impl NftData {
         self.type_name().to_uppercase()
     }
 
+    /// Returns whether NFT requires transfer policy to be created
+    fn requires_transfer(&self) -> bool {
+        let requires_transfer = self.request_policies.has_transfer();
+        #[cfg(feature = "full")]
+        let requires_transfer = requires_transfer || self.orderbook.is_some();
+        requires_transfer
+    }
+
     /// Returns whether NFT requires withdraw policy to be created
-    pub fn requires_withdraw(&self) -> bool {
+    fn requires_withdraw(&self) -> bool {
         let requires_withdraw = self.request_policies.has_withdraw();
         #[cfg(feature = "full")]
         let requires_withdraw =
@@ -142,7 +149,7 @@ impl NftData {
     }
 
     /// Returns whether NFT requires borrow policy to be created
-    pub fn requires_borrow(&self) -> bool {
+    fn requires_borrow(&self) -> bool {
         let requires_borrow = self.request_policies.has_borrow();
         #[cfg(feature = "full")]
         let requires_borrow = requires_borrow || self.dynamic.is_dynamic();
@@ -200,7 +207,12 @@ impl NftData {
             &self.write_move_policies(collection_data.has_royalties()),
         );
         #[cfg(feature = "full")]
-        misc_init.push_str(&self.orderbook.write_move_init(&type_name));
+        misc_init.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| orderbook.write_move_init(&type_name))
+                .unwrap_or_default(),
+        );
 
         format!(
             "
@@ -265,7 +277,7 @@ impl NftData {
 
         let mut policies_str = String::new();
 
-        if self.request_policies.has_transfer() {
+        if self.requires_transfer() {
             let royalty_strategy_str = has_royalties.then_some("
         nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);").unwrap_or_default();
 
@@ -317,7 +329,7 @@ impl NftData {
     fn write_move_transfer_fns(&self) -> String {
         let mut code = String::new();
 
-        if self.request_policies.has_transfer() {
+        if self.requires_transfer() {
             code.push_str(
                 "
 

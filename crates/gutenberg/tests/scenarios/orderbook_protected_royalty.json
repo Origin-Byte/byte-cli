@@ -1,0 +1,18 @@
+{
+  "packageName": "orderbook_protected_royalty",
+  "collection": {
+    "royalties": {
+      "proportional": {
+        "collectionRoyaltyBps": 700
+      }
+    }
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited",
+    "requestPolicies": {
+      "transfer": false
+    },
+    "orderbook": "protected"
+  }
+}

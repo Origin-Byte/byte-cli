@@ -48,6 +48,12 @@ module joysticks::joystick {
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io"),
+        );
+
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
             nft_protocol::supply::new(
                 delegated_witness, 600, false,
             )

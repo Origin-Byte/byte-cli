@@ -3,16 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
-    None,
     Unprotected,
     Protected,
-}
-
-impl Default for Orderbook {
-    /// No orderbook by default is a safe choice
-    fn default() -> Self {
-        Orderbook::None
-    }
 }
 
 impl Orderbook {
@@ -34,7 +26,6 @@ impl Orderbook {
         );
         liquidity_layer_v1::orderbook::share(orderbook);"
             ),
-            Orderbook::None => String::new(), // do nothing
         }
     }
 }

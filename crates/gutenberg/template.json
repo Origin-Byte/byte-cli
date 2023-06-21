@@ -24,11 +24,6 @@
         "supply": {
             "enforced": 600
         },
-        // MintCap that will be issued during collection initialization
-        // Required.
-        "mintCap": {
-            "supply": 600
-        },
         // Tags for the NFTs. Custom tags are supported as well
         "tags": [
             "Art",
@@ -43,20 +38,22 @@
             "License",
             "Utility"
         ],
-        // Policies for requests.
-        "requestPolicies": {
-            // Specifies whether transfer request policy is created.
-            "transfer": true,
-            // Specifies whether withdraw request policy is created.
-            "withdraw": false,
-            // Specifies whether borrowing request policy is created.
-            "borrow": true
-        },
-        // The type of orderbook to use. "Protected" means enable_orderbook and disable_orderbook functions will be generated.
-        // "Unprotected" generates the orderbook on publishing
-        // Required
-        // Possible values: `["none", "unprotected", "protected"]`
-        "orderbook": "protected"
+        // Royalties that will be charged when trading NFT collection
+        "royalties": {
+            "proportional": {
+                "shares": [
+                    {
+                        "address": "0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5",
+                        "shareBps": 9500
+                    },
+                    {
+                        "address": "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f",
+                        "shareBps": 500
+                    }
+                ],
+                "collectionRoyaltyBps": 700
+            }
+        }
     },
     // NFT details.
     // Required
@@ -71,6 +68,9 @@
         "burn": "permissioned",
         // If set, generates dynamic metadata methods
         "dynamic": false,
+        // MintCap that will be issued during collection initialization
+        // Required.
+        "mintCap": 600,
         // Policies for minting NFTs.
         // Required
         "mintPolicies": {
@@ -80,6 +80,20 @@
             // Specifies whether the airdrop minting policy is enabled. Generates airdrop_nft function.
             // Required
             "airdrop": true
-        }
+        },
+        // Policies for requests.
+        "requestPolicies": {
+            // Specifies whether transfer request policy is created.
+            "transfer": true,
+            // Specifies whether withdraw request policy is created.
+            "withdraw": false,
+            // Specifies whether borrowing request policy is created.
+            "borrow": true
+        },
+        // The type of orderbook to use. "Protected" means enable_orderbook and disable_orderbook functions will be generated.
+        // "Unprotected" generates the orderbook on publishing
+        // Required
+        // Possible values: `["none", "unprotected", "protected"]`
+        "orderbook": "protected"
     }
 }

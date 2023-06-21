@@ -1,4 +1,4 @@
-module joysticks::joystick {
+module orderbook_protected_royalty::joystick {
     /// One time witness is only instantiated in the init method
     struct JOYSTICK has drop {}
 
@@ -21,40 +21,20 @@ module joysticks::joystick {
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
-        let creators = sui::vec_set::empty();
-        sui::vec_set::insert(&mut creators, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f);
+        let royalty_map = sui::vec_map::empty();
 
-        nft_protocol::collection::add_domain(
+        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness,
             &mut collection,
-            nft_protocol::creators::new(creators),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::display_info::new(
-                std::string::utf8(b"Joysticks"),
-                std::string::utf8(b"Joysticks is a dummy collection"),
-            ),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
-        );
-
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io"),
+            nft_protocol::royalty::from_shares(royalty_map, ctx),
+            700,
+            ctx,
         );
 
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
-            &witness, collection_id, 100, ctx
+        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
+            &witness, collection_id, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
@@ -65,11 +45,6 @@ module joysticks::joystick {
         sui::display::add(&mut display, std::string::utf8(b"description"), std::string::utf8(b"{description}"));
         sui::display::add(&mut display, std::string::utf8(b"image_url"), std::string::utf8(b"{url}"));
         sui::display::add(&mut display, std::string::utf8(b"attributes"), std::string::utf8(b"{attributes}"));
-
-        let tags = std::vector::empty();
-        std::vector::push_back(&mut tags, std::string::utf8(b"Gaming"));
-
-        sui::display::add(&mut display, std::string::utf8(b"tags"), ob_utils::display::from_vec(tags));
         sui::display::update_version(&mut display);
 
         sui::transfer::public_transfer(display, sui::tx_context::sender(ctx));
@@ -77,35 +52,19 @@ module joysticks::joystick {
         let (transfer_policy, transfer_policy_cap) = ob_request::transfer_request::init_policy<Joystick>(
             &publisher, ctx,
         );
+        nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
         nft_protocol::transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
+
+        // Protected orderbook such that trading is not initially possible
+        let orderbook = liquidity_layer_v1::orderbook::new_with_protected_actions<Joystick, sui::sui::SUI>(
+            delegated_witness, &transfer_policy, liquidity_layer_v1::orderbook::custom_protection(true, true, true), ctx,
+        );
+        liquidity_layer_v1::orderbook::share(orderbook);
 
         sui::transfer::public_transfer(publisher, sui::tx_context::sender(ctx));
 
         sui::transfer::public_transfer(transfer_policy_cap, sui::tx_context::sender(ctx));
         sui::transfer::public_share_object(transfer_policy);
-    }
-
-    public entry fun mint_nft_to_warehouse(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_cap,
-            ctx,
-        );
-
-        ob_launchpad::warehouse::deposit_nft(warehouse, nft);
     }
 
     public entry fun mint_nft_to_kiosk(
@@ -234,36 +193,6 @@ module joysticks::joystick {
         );
 
         sui::transfer::public_share_object(kiosk);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::end(scenario);
-    }
-
-    #[test]
-    fun it_mints_nft_launchpad() {
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
-
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
-            &scenario,
-            CREATOR,
-        );
-
-        let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
-
-        mint_nft_to_warehouse(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
-            &mut mint_cap,
-            &mut warehouse,
-            sui::test_scenario::ctx(&mut scenario)
-        );
-
-        sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::end(scenario);
     }
