@@ -3,7 +3,7 @@ tmp_dir=$(mktemp -d)
 
 # Generate and compare demo contracts
 echo "Testing generated demo contracts..."
-cargo build --bin gutenberg --features="cli"
+cargo build --bin gutenberg --no-default-features --features="cli"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
@@ -47,7 +47,7 @@ done
 
 # Generate and compare full contracts
 echo "Testing generated full contracts..."
-cargo build --bin gutenberg --features="cli full"
+cargo build --bin gutenberg --no-default-features --features="cli full"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"

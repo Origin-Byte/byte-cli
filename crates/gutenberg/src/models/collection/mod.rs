@@ -45,7 +45,7 @@ pub struct CollectionData {
 
 #[cfg(not(feature = "full"))]
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
@@ -101,7 +101,7 @@ impl CollectionData {
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        name: String,
+        name: Option<String>,
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,

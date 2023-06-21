@@ -21,22 +21,10 @@ module domain_royalties::joystick {
         let collection = nft_protocol::collection::create<Joystick>(delegated_witness, ctx);
         let collection_id = sui::object::id(&collection);
 
-        let royalty_map = sui::vec_map::empty();
-        sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
-        sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
-
-        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::royalty::from_shares(royalty_map, ctx),
-            700,
-            ctx,
-        );
-
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
-            &witness, collection_id, ctx
+        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
+            &witness, collection_id, 100, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 

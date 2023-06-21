@@ -23,8 +23,8 @@ module domain_empty::joystick {
 
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
-            &witness, collection_id, ctx
+        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
+            &witness, collection_id, 100, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 

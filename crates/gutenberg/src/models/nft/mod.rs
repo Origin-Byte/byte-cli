@@ -191,7 +191,8 @@ impl NftData {
         let mint_cap_init =
             self.mint_cap.write_move_init(&witness_name, &type_name);
         #[cfg(not(feature = "full"))]
-        let mint_cap_init = NftData::write_move_init(&witness_name, &type_name);
+        let mint_cap_init =
+            Self::write_mint_cap_init(&witness_name, &type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));

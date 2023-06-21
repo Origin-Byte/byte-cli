@@ -45,26 +45,6 @@ module domain_all::joystick {
             nft_protocol::symbol::new(std::string::utf8(b"JOYS")),
         );
 
-        nft_protocol::collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::supply::new(
-                delegated_witness, 600, false,
-            )
-        );
-
-        let royalty_map = sui::vec_map::empty();
-        sui::vec_map::insert(&mut royalty_map, @0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f, 500);
-        sui::vec_map::insert(&mut royalty_map, @0x8212bb78cc5c42f95766107573147d79b0954fe06e52f54f27e26677b43c88f5, 9500);
-
-        nft_protocol::royalty_strategy_bps::create_domain_and_add_strategy(
-            delegated_witness,
-            &mut collection,
-            nft_protocol::royalty::from_shares(royalty_map, ctx),
-            700,
-            ctx,
-        );
-
         let tags: vector<std::string::String> = std::vector::empty();
         std::vector::push_back(&mut tags, nft_protocol::tags::art());
         std::vector::push_back(&mut tags, nft_protocol::tags::profile_picture());
@@ -82,8 +62,8 @@ module domain_all::joystick {
 
         sui::transfer::public_share_object(collection);
 
-        let mint_cap = nft_protocol::mint_cap::new_unlimited<JOYSTICK, Joystick>(
-            &witness, collection_id, ctx
+        let mint_cap = nft_protocol::mint_cap::new_limited<JOYSTICK, Joystick>(
+            &witness, collection_id, 100, ctx
         );
         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));
 
@@ -125,7 +105,6 @@ module domain_all::joystick {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        collection: &mut nft_protocol::collection::Collection<Joystick>,
         warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -136,7 +115,6 @@ module domain_all::joystick {
             attribute_keys,
             attribute_values,
             mint_cap,
-            collection,
             ctx,
         );
 
@@ -150,7 +128,6 @@ module domain_all::joystick {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -161,7 +138,6 @@ module domain_all::joystick {
             attribute_keys,
             attribute_values,
             mint_cap,
-            collection,
             ctx,
         );
 
@@ -175,7 +151,6 @@ module domain_all::joystick {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
@@ -186,7 +161,6 @@ module domain_all::joystick {
             attribute_keys,
             attribute_values,
             mint_cap,
-            collection,
             ctx,
         );
 
@@ -202,7 +176,6 @@ module domain_all::joystick {
         attribute_keys: vector<std::ascii::String>,
         attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
-        collection: &mut nft_protocol::collection::Collection<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
@@ -220,12 +193,6 @@ module domain_all::joystick {
             nft_protocol::mint_cap::collection_id(mint_cap),
             &nft,
         );
-
-        let supply = nft_protocol::supply::borrow_domain_mut(
-            nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
-        );
-
-        nft_protocol::supply::increment(delegated_witness, supply, 1);
 
         nft_protocol::mint_cap::increment_supply(mint_cap, 1);
 
@@ -266,10 +233,6 @@ module domain_all::joystick {
             CREATOR,
         );
 
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<Joystick>>(
-            &scenario,
-        );
-
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_kiosk(
@@ -279,14 +242,12 @@ module domain_all::joystick {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
-            &mut collection,
             &mut kiosk,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::return_shared(collection);
         sui::test_scenario::end(scenario);
     }
 
@@ -302,10 +263,6 @@ module domain_all::joystick {
             CREATOR,
         );
 
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<Joystick>>(
-            &scenario,
-        );
-
         let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_warehouse(
@@ -315,14 +272,12 @@ module domain_all::joystick {
             vector[std::ascii::string(b"avg_return")],
             vector[std::ascii::string(b"24%")],
             &mut mint_cap,
-            &mut collection,
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)
         );
 
         sui::transfer::public_transfer(warehouse, CREATOR);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::return_shared(collection);
         sui::test_scenario::end(scenario);
     }
 }
