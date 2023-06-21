@@ -314,51 +314,6 @@ async fn run() -> Result<()> {
             // TODO: This project.json will not deserialize to this struct
             state.write_json(&project_path)?;
         }
-        Commands::ParallelMint {
-            name,
-            project_dir,
-            gas_budget,
-            main_gas_id,
-            minor_gas_id,
-        } => {
-            // Input
-            let _schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
-
-            let project_path =
-                io::get_project_filepath(name.as_str(), &project_dir);
-
-            // Logic
-            // let schema = deploy_contract::parse_config(file_path.as_path())?;
-            let state = deploy_contract::parse_state(project_path.as_path())?;
-
-            // if schema.contract.is_none() {
-            //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-            // }
-
-            // let mut state = CollectionState::try_read_config(&state_path)?;
-
-            let main_gas_id = ObjectID::from_str(main_gas_id.as_str())
-                .map_err(|err| {
-                    anyhow!(r#"Unable to parse main-gas-id object: {err}"#)
-                })?;
-            let minor_gas_id = ObjectID::from_str(minor_gas_id.as_str())
-                .map_err(|err| {
-                    anyhow!(r#"Unable to parse minor-gas-id object: {err}"#)
-                })?;
-
-            mint_nfts::parallel_mint_nfts(
-                name,
-                gas_budget,
-                state,
-                main_gas_id,
-                minor_gas_id,
-            )
-            .await?;
-
-            // Output
-            // io::write_collection_state(&state, &state_path)?;
-        }
         Commands::ListCoins {} => {
             let coin_list = coin::list_coins().await?;
 
@@ -485,7 +440,52 @@ async fn run() -> Result<()> {
             // Output
             // Write the contents to the destination file
             destination_file.write_all(&buffer)?;
-        }
+        } // TOOD: Add back feature
+          // Commands::ParallelMint {
+          //     name,
+          //     project_dir,
+          //     gas_budget,
+          //     main_gas_id,
+          //     minor_gas_id,
+          // } => {
+          //     // Input
+          //     let _schema_path =
+          //         io::get_schema_filepath(name.as_str(), &project_dir);
+
+          //     let project_path =
+          //         io::get_project_filepath(name.as_str(), &project_dir);
+
+          //     // Logic
+          //     // let schema = deploy_contract::parse_config(file_path.as_path())?;
+          //     let state = deploy_contract::parse_state(project_path.as_path())?;
+
+          //     // if schema.contract.is_none() {
+          //     //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+          //     // }
+
+          //     // let mut state = CollectionState::try_read_config(&state_path)?;
+
+          //     let main_gas_id = ObjectID::from_str(main_gas_id.as_str())
+          //         .map_err(|err| {
+          //             anyhow!(r#"Unable to parse main-gas-id object: {err}"#)
+          //         })?;
+          //     let minor_gas_id = ObjectID::from_str(minor_gas_id.as_str())
+          //         .map_err(|err| {
+          //             anyhow!(r#"Unable to parse minor-gas-id object: {err}"#)
+          //         })?;
+
+          //     mint_nfts::parallel_mint_nfts(
+          //         name,
+          //         gas_budget,
+          //         state,
+          //         main_gas_id,
+          //         minor_gas_id,
+          //     )
+          //     .await?;
+
+          //     // Output
+          //     // io::write_collection_state(&state, &state_path)?;
+          // }
     }
 
     Ok(())

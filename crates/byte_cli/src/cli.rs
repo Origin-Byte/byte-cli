@@ -97,16 +97,6 @@ pub enum Commands {
         #[clap(long, action)]
         mint_cap_id: Option<String>,
     },
-    ParallelMint {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-        /// Gas budget for minting an NFT
-        #[clap(default_value_t = 18_000_000_000)]
-        gas_budget: usize,
-        main_gas_id: String,
-        minor_gas_id: String,
-    },
 
     ListCoins {},
 
@@ -140,6 +130,17 @@ pub enum Commands {
         #[clap(short, long, action)]
         project_dir: Option<String>,
     },
+    // TODO: Add back feature
+    // ParallelMint {
+    //     name: String,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    //     /// Gas budget for minting an NFT
+    //     #[clap(default_value_t = 18_000_000_000)]
+    //     gas_budget: usize,
+    //     main_gas_id: String,
+    //     minor_gas_id: String,
+    // },
 }
 
 pub fn get_dialoguer_theme() -> ColorfulTheme {
