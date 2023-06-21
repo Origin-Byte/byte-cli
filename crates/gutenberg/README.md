@@ -26,7 +26,7 @@ cargo install --features="cli full" --path .
 To install the demo version you can drop the `full` feature:
 
 ```
-cargo install --features="cli full" --path .
+cargo install --no-default-features --features="cli" --path .
 ```
 
 ### Generate contract
@@ -46,6 +46,6 @@ Options:
 
 Unit tests can be invoked by running `cargo test`.
 
-Integration tests that check whether contracts are being correctly generated, can be invoked by running `./tests/scenarios.sh` from the `gutenberg` directory.
+Integration tests that check whether contracts are being correctly generated, can be invoked by running `./tests/scripts/test-scenarios.sh` from the `gutenberg` directory.
 
-If there was an update made to contract generation, you can regenerate the tests by calling `./tests/generate-tests.sh`.
+If there was an update made to contract generation, you can regenerate the tests by calling `./tests/scripts/generate-tests.sh`.
