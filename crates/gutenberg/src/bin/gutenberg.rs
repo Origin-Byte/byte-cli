@@ -61,7 +61,7 @@ fn assert_schema(path: &Path) -> Schema {
                     "Could not parse `{path}` due to {err}",
                     path = path.display()
                 );
-                std::process::exit(2);
+                std::process::exit(1);
             }
         },
         "json" => match serde_json::from_reader::<_, Schema>(config) {
@@ -71,12 +71,12 @@ fn assert_schema(path: &Path) -> Schema {
                     "Could not parse `{path}` due to {err}",
                     path = path.display()
                 );
-                std::process::exit(2);
+                std::process::exit(1);
             }
         },
         _ => {
             eprintln!("Extension {extension} not supported");
-            std::process::exit(2);
+            std::process::exit(1);
         }
     }
 }
