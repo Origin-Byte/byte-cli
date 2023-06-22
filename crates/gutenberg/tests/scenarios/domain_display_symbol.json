@@ -1,0 +1,10 @@
+{
+  "packageName": "domain_display_symbol",
+  "collection": {
+    "symbol": "GIUT"
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}

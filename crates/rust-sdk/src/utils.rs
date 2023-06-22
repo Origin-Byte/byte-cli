@@ -8,7 +8,7 @@ use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
 use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
 
-use crate::err::{self, RustSdkError};
+use crate::err::RustSdkError;
 
 pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);

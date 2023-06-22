@@ -1,0 +1,10 @@
+{
+  "packageName": "domain_display_url",
+  "collection": {
+    "url": "https://originbyte.io"
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}

@@ -23,8 +23,10 @@ pub async fn init_collection_config(
 
     let keystore = rust_sdk::utils::get_keystore().await?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
-    let project =
-        Project::new(builder.collection.as_ref().unwrap().name(), sender);
+    let project = Project::new(
+        builder.collection.as_ref().unwrap().name().unwrap(),
+        sender,
+    );
 
     println!(
         "{}",

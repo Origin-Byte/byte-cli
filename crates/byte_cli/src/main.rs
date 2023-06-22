@@ -59,9 +59,9 @@ async fn run() -> Result<()> {
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
 
-            if Path::new(&project_path).exists() {}
+            if Path::new(&project_path).exists() {} // TODO
 
-            let (schema, project) = config_simple::init_schema(&name).await?;
+            let (schema, project) = config_simple::init_schema(name).await?;
 
             // Output
             schema.write_json(&schema_path)?;

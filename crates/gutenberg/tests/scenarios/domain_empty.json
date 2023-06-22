@@ -1,0 +1,7 @@
+{
+  "packageName": "domain_empty",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}
