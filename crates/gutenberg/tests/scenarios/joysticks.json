@@ -1,8 +1,10 @@
 {
+  "packageName": "joysticks",
   "collection": {
     "name": "Joysticks",
     "description": "Joysticks is a dummy collection",
     "symbol": "JOYS",
+    "url": "https://originbyte.io",
     "creators": [
       "0x61028a4c388514000a7de787c3f7b8ec1eb88d1bd2dbc0d3dfab37078e39630f"
     ],
@@ -32,9 +34,7 @@
     "typeName": "Joystick",
     "burn": "permissionless",
     "dynamic": true,
-    "mintCap": {
-      "supply": 600
-    },
+    "mintCap": 600,
     "mintPolicies": {
       "launchpad": true,
       "airdrop": true

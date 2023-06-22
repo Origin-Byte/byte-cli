@@ -1,0 +1,10 @@
+{
+  "packageName": "domain_display_name",
+  "collection": {
+    "name": "Joysticks"
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}

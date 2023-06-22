@@ -1,11 +1,23 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::collection::CollectionData;
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
+    #[serde(default)]
     launchpad: bool,
+    #[serde(default)]
     airdrop: bool,
+}
+
+impl Default for MintPolicies {
+    /// Most collections will need at least one kind of mint function, airdrop
+    /// is a good candidate as it may be used for all launch strategies,
+    /// whereas launchpad only makes sense in primary market contexts.
+    fn default() -> Self {
+        Self {
+            launchpad: false,
+            airdrop: true,
+        }
+    }
 }
 
 impl MintPolicies {
@@ -13,13 +25,38 @@ impl MintPolicies {
         Self { launchpad, airdrop }
     }
 
+    pub fn has_launchpad(&self) -> bool {
+        self.launchpad
+    }
+
+    pub fn has_airdrop(&self) -> bool {
+        self.airdrop
+    }
+
+    fn params(&self) -> Vec<String> {
+        vec!["description", "url", "attribute_keys", "attribute_values"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+
+    fn param_types(&self) -> Vec<String> {
+        vec![
+            "std::string::String",
+            "vector<u8>",
+            "vector<std::ascii::String>",
+            "vector<std::ascii::String>",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+    }
+
     pub fn write_move_defs(
         &self,
         type_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
-        let requires_collection = collection_data.requires_collection();
-
         let mut mint_fns = String::new();
 
         let mut base_params = vec!["name".to_string()];
@@ -156,7 +193,7 @@ impl MintPolicies {
                 let collection_increment_str = requires_collection
                     .then(|| {
                         #[cfg(feature = "full")]
-                        let supply_str = collection_data.supply().write_move_increment();
+                        let supply_str = crate::models::collection::Supply::write_move_increment();
                         #[cfg(not(feature = "full"))]
                         let supply_str = "";
 
@@ -192,23 +229,105 @@ impl MintPolicies {
         mint_fns
     }
 
-    fn params(&self) -> Vec<String> {
-        vec!["description", "url", "attribute_keys", "attribute_values"]
-            .into_iter()
-            .map(str::to_string)
-            .collect()
-    }
+    pub fn write_mint_tests(
+        &self,
+        type_name: &str,
+        witness_name: &str,
+        requires_collection: bool,
+    ) -> String {
+        let collection_take_str = requires_collection.then(|| format!("
 
-    fn param_types(&self) -> Vec<String> {
-        vec![
-            "std::string::String",
-            "vector<u8>",
-            "vector<std::ascii::String>",
-            "vector<std::ascii::String>",
-        ]
-        .into_iter()
-        .map(str::to_string)
-        .collect()
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
+            &scenario,
+        );")).unwrap_or_default();
+
+        let collection_param_str = requires_collection
+            .then_some(
+                "
+            &mut collection,",
+            )
+            .unwrap_or_default();
+
+        let collection_return_str = requires_collection
+            .then_some(
+                "
+        sui::test_scenario::return_shared(collection);",
+            )
+            .unwrap_or_default();
+
+        let mut test_str = String::new();
+
+        if self.airdrop {
+            test_str.push_str(&format!(
+                "
+
+    #[test]
+    fun it_mints_nft_airdrop() {{
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
+            &scenario,
+            CREATOR,
+        );{collection_take_str}
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+
+        mint_nft_to_kiosk(
+            std::string::utf8(b\"TEST NAME\"),
+            std::string::utf8(b\"TEST DESCRIPTION\"),
+            b\"https://originbyte.io/\",
+            vector[std::ascii::string(b\"avg_return\")],
+            vector[std::ascii::string(b\"24%\")],
+            &mut mint_cap,{collection_param_str}
+            &mut kiosk,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::transfer::public_share_object(kiosk);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
+        sui::test_scenario::end(scenario);
+    }}"));
+        }
+
+        if self.launchpad {
+            test_str.push_str(&format!(
+                "
+
+    #[test]
+    fun it_mints_nft_launchpad() {{
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
+            &scenario,
+            CREATOR,
+        );{collection_take_str}
+
+        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
+
+        mint_nft_to_warehouse(
+            std::string::utf8(b\"TEST NAME\"),
+            std::string::utf8(b\"TEST DESCRIPTION\"),
+            b\"https://originbyte.io/\",
+            vector[std::ascii::string(b\"avg_return\")],
+            vector[std::ascii::string(b\"24%\")],
+            &mut mint_cap,{collection_param_str}
+            &mut warehouse,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::transfer::public_transfer(warehouse, CREATOR);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
+        sui::test_scenario::end(scenario);
+    }}"));
+        }
+
+        test_str
     }
 }
 

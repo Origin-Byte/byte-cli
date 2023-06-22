@@ -1,0 +1,10 @@
+{
+  "packageName": "mint_policy_airdrop",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited",
+    "mintPolicies": {
+      "airdrop": true
+    }
+  }
+}

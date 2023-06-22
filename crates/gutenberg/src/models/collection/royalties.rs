@@ -9,6 +9,7 @@ use crate::models::Address;
 pub enum RoyaltyPolicy {
     #[serde(rename_all = "camelCase")]
     Proportional {
+        #[serde(default)]
         shares: BTreeSet<Share>,
         collection_royalty_bps: u64,
     },
