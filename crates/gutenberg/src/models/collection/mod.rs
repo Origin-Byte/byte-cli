@@ -294,6 +294,6 @@ impl CollectionData {
             ));
         };
 
-        code
+        Some(code)
     }
 }

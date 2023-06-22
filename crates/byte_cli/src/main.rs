@@ -255,7 +255,7 @@ async fn run() -> Result<()> {
             let toml_string: String =
                 fs::read_to_string(toml_path.clone())?.parse()?;
 
-            let mut move_toml: MoveToml =
+            let move_toml: MoveToml =
                 toml::from_str(toml_string.as_str()).unwrap();
 
             // Logic
