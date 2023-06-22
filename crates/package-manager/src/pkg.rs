@@ -11,7 +11,7 @@ use crate::version::Version;
 pub struct PkgRegistry(pub BTreeMap<String, BTreeMap<Version, PkgInfo>>);
 
 impl PkgRegistry {
-    pub fn get_object_id_from_ref(
+    pub fn get_object_id_from_rev(
         &self,
         pkg_name: String,
         rev: String,
@@ -139,7 +139,12 @@ impl PkgRegistry {
     ) -> Result<Version> {
         for (_, version_map) in self.0.iter() {
             let search_result = version_map.iter().find(|(_, contract)| {
-                contract.contract_ref.object_id == *object_id
+                contract
+                    .package
+                    .published_at
+                    .as_ref()
+                    .expect("Error: PublishedAt field seems to be empty")
+                    == object_id
             });
 
             if let Some(search_result) = search_result {
@@ -167,7 +172,13 @@ impl PkgRegistry {
 
         protocol_versions
             .get(version)
-            .unwrap()
+            .expect(
+                format!(
+                    "Unable to fetch version '{}' for package 'NftProtocol'",
+                    version
+                )
+                .as_str(),
+            )
             .dependencies
             .get(&ext_dep)
             .expect(format!("Unable to fetch {} dependency", ext_dep).as_str())
@@ -222,5 +233,128 @@ impl GitPath {
                 self.subdir = None;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{pkg::PkgRegistry, version::Version};
+
+    use anyhow::Result;
+    use gutenberg::models::Address;
+    use std::{env, fs::File};
+
+    const V1_REV: &str = "95d16538dc7688dd4c4a5e7c3348bf3addf9c310";
+    const V1_2_REV: &str = "93f6cd0b8966354b1b00e7d798cbfddaa867a07b";
+
+    #[test]
+    fn serialize_pkg_registry() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let version_1 = Version::from_string(&String::from("1.0.0"))?;
+        let version_1_2 = Version::from_string(&String::from("1.2.0"))?;
+
+        let nft_protocol_versions = registry.0.get("NftProtocol");
+
+        let nft_protocol_version_1 =
+            nft_protocol_versions.unwrap().get(&version_1).unwrap();
+
+        assert_eq!(nft_protocol_version_1.contract_ref.path.rev, V1_REV);
+
+        assert_eq!(
+            format!("{}", nft_protocol_version_1.contract_ref.object_id),
+            "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+        );
+
+        let nft_protocol_version_1_2 =
+            nft_protocol_versions.unwrap().get(&version_1_2).unwrap();
+
+        assert_eq!(nft_protocol_version_1_2.contract_ref.path.rev, V1_2_REV);
+
+        // ObjectID remains the same, since it refers to the original package
+        assert_eq!(
+            format!("{}", nft_protocol_version_1_2.contract_ref.object_id),
+            "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+        );
+
+        // PublishedAt points to the new object published for this version
+        assert_eq!(
+            format!("{}", nft_protocol_version_1_2.package.published_at.as_ref().unwrap()),
+            "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_obj_id_from_rev() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let obj_v1 = registry.get_object_id_from_rev(
+            String::from("NftProtocol"),
+            V1_REV.to_string(),
+        );
+
+        assert_eq!(
+            format!("{}", obj_v1),
+            "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+        );
+
+        let obj_v1_2 = registry.get_object_id_from_rev(
+            String::from("NftProtocol"),
+            V1_2_REV.to_string(),
+        );
+
+        assert_eq!(
+            format!("{}", obj_v1_2),
+            "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_version_from_obj_id() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let obj_v1 = Address::new(String::from("0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"))?;
+        let v1 = registry.get_version_from_object_id(&obj_v1)?;
+        assert_eq!(format!("{}", v1), "1.0.0");
+
+        let obj_v2 = Address::new(String::from("0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e"))?;
+        let v2 = registry.get_version_from_object_id(&obj_v2)?;
+        assert_eq!(format!("{}", v2), "1.2.0");
+
+        Ok(())
     }
 }

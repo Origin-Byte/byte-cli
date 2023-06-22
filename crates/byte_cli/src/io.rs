@@ -9,8 +9,8 @@ use crate::prelude::CliError;
 use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use gutenberg::schema::Schema;
 
+use gutenberg::Schema;
 use package_manager::{
     info::BuildInfo, pkg::PkgRegistry, toml::MoveToml, Network,
 };
