@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm -rf ./tests/packages
+
 # Generate and compare demo contracts
 echo "Generating demo contracts..."
 cargo build --bin gutenberg --no-default-features --features="cli"
@@ -16,7 +18,6 @@ for file in ./tests/scenarios/*.json; do
     if [[ ! $? -eq 0 ]]; then
         echo "Scenario $file did not generate valid contract"
         echo "FAIL"
-        rm -rf $tmp_dir
         exit 1
     fi
 done
@@ -37,7 +38,6 @@ for file in ./tests/scenarios/*.json; do
     if [[ ! $? -eq 0 ]]; then
         echo "Scenario $file did not generate valid full contract"
         echo "FAIL"
-        rm -rf $tmp_dir
         exit 1
     fi
 done
