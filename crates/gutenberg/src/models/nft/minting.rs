@@ -1,11 +1,25 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::collection::CollectionData;
+use crate::models::write_move_fn;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
+    #[serde(default)]
     launchpad: bool,
+    #[serde(default)]
     airdrop: bool,
+}
+
+impl Default for MintPolicies {
+    /// Most collections will need at least one kind of mint function, airdrop
+    /// is a good candidate as it may be used for all launch strategies,
+    /// whereas launchpad only makes sense in primary market contexts.
+    fn default() -> Self {
+        Self {
+            launchpad: false,
+            airdrop: true,
+        }
+    }
 }
 
 impl MintPolicies {
@@ -13,53 +27,73 @@ impl MintPolicies {
         Self { launchpad, airdrop }
     }
 
+    pub fn has_launchpad(&self) -> bool {
+        self.launchpad
+    }
+
+    pub fn has_airdrop(&self) -> bool {
+        self.airdrop
+    }
+
+    fn params(&self) -> Vec<&str> {
+        vec!["description", "url", "attribute_keys", "attribute_values"]
+    }
+
+    fn param_types(&self) -> Vec<&str> {
+        vec![
+            "std::string::String",
+            "vector<u8>",
+            "vector<std::ascii::String>",
+            "vector<std::ascii::String>",
+        ]
+    }
+
     pub fn write_move_defs(
         &self,
         type_name: &str,
-        collection_data: &CollectionData,
+        requires_collection: bool,
     ) -> String {
-        let requires_collection = collection_data.requires_collection();
-
         let mut mint_fns = String::new();
 
-        let mut base_params = vec!["name".to_string()];
+        let mut base_params = vec!["name"];
         base_params.extend(self.params().into_iter());
-        base_params.push("mint_cap".to_string());
+        base_params.push("mint_cap");
 
         if requires_collection {
-            base_params.push("collection".to_string());
+            base_params.push("collection");
         }
 
         let mut nft_params = base_params.clone();
-        nft_params.push("ctx".to_string());
+        nft_params.push("ctx");
 
-        let mut base_param_types = vec!["std::string::String".to_string()];
+        let mut base_param_types = vec!["std::string::String"];
         base_param_types.extend(self.param_types().into_iter());
-        base_param_types
-            .push(format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>"));
+        let mint_cap_param =
+            format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>");
+        base_param_types.push(&mint_cap_param);
 
+        let collection_param =
+            format!("&mut nft_protocol::collection::Collection<{type_name}>");
         if requires_collection {
-            base_param_types.push(format!(
-                "&mut nft_protocol::collection::Collection<{type_name}>"
-            ));
+            base_param_types.push(&collection_param);
         }
 
         let mut nft_param_types = base_param_types.clone();
-        nft_param_types.push("&mut sui::tx_context::TxContext".to_string());
+        nft_param_types.push("&mut sui::tx_context::TxContext");
 
         // Mint NFT to Warehouse
         //
         // TODO: Mint NFT to Listing
         if self.launchpad {
             let mut params = base_params.clone();
-            params.push("warehouse".to_string());
-            params.push("ctx".to_string());
+            params.push("warehouse");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!(
-                "&mut ob_launchpad::warehouse::Warehouse<{type_name}>"
-            ));
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            let warehouse_param =
+                format!("&mut ob_launchpad::warehouse::Warehouse<{type_name}>");
+            param_types.push(&warehouse_param);
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_warehouse",
@@ -86,12 +120,12 @@ impl MintPolicies {
         if self.airdrop {
             // Write `mint_nft_to_kiosk`
             let mut params = base_params.clone();
-            params.push("receiver".to_string());
-            params.push("ctx".to_string());
+            params.push("receiver");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push("&mut sui::kiosk::Kiosk".to_string());
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            param_types.push("&mut sui::kiosk::Kiosk");
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_kiosk",
@@ -115,12 +149,12 @@ impl MintPolicies {
 
             // Write `mint_nft_to_new_kiosk`
             let mut params = base_params.clone();
-            params.push("receiver".to_string());
-            params.push("ctx".to_string());
+            params.push("receiver");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push("address".to_string());
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            param_types.push("address");
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_new_kiosk",
@@ -156,7 +190,7 @@ impl MintPolicies {
                 let collection_increment_str = requires_collection
                     .then(|| {
                         #[cfg(feature = "full")]
-                        let supply_str = collection_data.supply().write_move_increment();
+                        let supply_str = crate::models::collection::Supply::write_move_increment();
                         #[cfg(not(feature = "full"))]
                         let supply_str = "";
 
@@ -192,65 +226,104 @@ impl MintPolicies {
         mint_fns
     }
 
-    fn params(&self) -> Vec<String> {
-        vec!["description", "url", "attribute_keys", "attribute_values"]
-            .into_iter()
-            .map(str::to_string)
-            .collect()
+    pub fn write_mint_tests(
+        &self,
+        type_name: &str,
+        witness_name: &str,
+        requires_collection: bool,
+    ) -> String {
+        let collection_take_str = requires_collection.then(|| format!("
+
+        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
+            &scenario,
+        );")).unwrap_or_default();
+
+        let collection_param_str = requires_collection
+            .then_some(
+                "
+            &mut collection,",
+            )
+            .unwrap_or_default();
+
+        let collection_return_str = requires_collection
+            .then_some(
+                "
+        sui::test_scenario::return_shared(collection);",
+            )
+            .unwrap_or_default();
+
+        let mut test_str = String::new();
+
+        if self.airdrop {
+            test_str.push_str(&format!(
+                "
+
+    #[test]
+    fun it_mints_nft_airdrop() {{
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
+            &scenario,
+            CREATOR,
+        );{collection_take_str}
+
+        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
+
+        mint_nft_to_kiosk(
+            std::string::utf8(b\"TEST NAME\"),
+            std::string::utf8(b\"TEST DESCRIPTION\"),
+            b\"https://originbyte.io/\",
+            vector[std::ascii::string(b\"avg_return\")],
+            vector[std::ascii::string(b\"24%\")],
+            &mut mint_cap,{collection_param_str}
+            &mut kiosk,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::transfer::public_share_object(kiosk);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
+        sui::test_scenario::end(scenario);
+    }}"));
+        }
+
+        if self.launchpad {
+            test_str.push_str(&format!(
+                "
+
+    #[test]
+    fun it_mints_nft_launchpad() {{
+        let scenario = sui::test_scenario::begin(CREATOR);
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
+
+        sui::test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
+            &scenario,
+            CREATOR,
+        );{collection_take_str}
+
+        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
+
+        mint_nft_to_warehouse(
+            std::string::utf8(b\"TEST NAME\"),
+            std::string::utf8(b\"TEST DESCRIPTION\"),
+            b\"https://originbyte.io/\",
+            vector[std::ascii::string(b\"avg_return\")],
+            vector[std::ascii::string(b\"24%\")],
+            &mut mint_cap,{collection_param_str}
+            &mut warehouse,
+            sui::test_scenario::ctx(&mut scenario)
+        );
+
+        sui::transfer::public_transfer(warehouse, CREATOR);
+        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
+        sui::test_scenario::end(scenario);
+    }}"));
+        }
+
+        test_str
     }
-
-    fn param_types(&self) -> Vec<String> {
-        vec![
-            "std::string::String",
-            "vector<u8>",
-            "vector<std::ascii::String>",
-            "vector<std::ascii::String>",
-        ]
-        .into_iter()
-        .map(str::to_string)
-        .collect()
-    }
-}
-
-fn write_move_fn<F>(
-    name: &str,
-    params: &[String],
-    param_types: &[String],
-    is_public: bool,
-    is_entry: bool,
-    returns: Option<String>,
-    body_fn: F,
-) -> String
-where
-    F: FnOnce() -> String,
-{
-    let is_public_str = match is_public {
-        true => "public ",
-        false => "",
-    };
-
-    let is_entry_str = match is_entry {
-        true => "entry ",
-        false => "",
-    };
-
-    let args_str = params
-        .iter()
-        .zip(param_types)
-        .map(|(param, param_type)| format!("        {param}: {param_type},\n"))
-        .collect::<Vec<String>>()
-        .join("");
-
-    let returns_str = returns
-        .map(|returns| format!(": {returns}"))
-        .unwrap_or_default();
-    let body_str = body_fn();
-
-    format!(
-        "
-
-    {is_public_str}{is_entry_str}fun {name}(
-{args_str}    ){returns_str} {{{body_str}
-    }}"
-    )
 }

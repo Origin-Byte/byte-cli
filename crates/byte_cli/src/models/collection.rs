@@ -95,7 +95,7 @@ impl FromPrompt for CollectionData {
             let royalties = RoyaltyPolicy::from_prompt(creators.as_slice())?;
 
             CollectionData::new(
-                name.to_lowercase(),
+                Some(name.to_lowercase()),
                 Some(description),
                 Some(symbol.to_uppercase()),
                 url,
@@ -109,12 +109,11 @@ impl FromPrompt for CollectionData {
         };
         #[cfg(not(feature = "full"))]
         let collection_data = CollectionData::new(
-            name.to_lowercase(),
+            Some(name),
             Some(description),
             Some(symbol.to_uppercase()),
             url,
             creators,
-            // TODO: Tags
             None,
         );
 

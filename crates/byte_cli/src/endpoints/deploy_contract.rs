@@ -89,7 +89,7 @@ pub fn generate_contract(
         )
     })?;
 
-    let module_name = schema.collection().name();
+    let package_name = schema.package_name();
 
     let main_toml_string =
         write_toml_string(module_name.as_str(), &version, &main_registry)?;
@@ -105,7 +105,7 @@ pub fn generate_contract(
     fs::copy(main_toml_path, &contract_dir.join("Move.toml"))?;
 
     // Write Move contract
-    let move_path = &sources_dir.join(format!("{module_name}.move"));
+    let move_path = &sources_dir.join(format!("{package_name}.move"));
     let mut move_file = File::create(move_path).map_err(|err| {
         anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
     })?;

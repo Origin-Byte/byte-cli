@@ -8,7 +8,8 @@ mod royalties;
 mod supply;
 mod tags;
 
-use super::{nft::NftData, Address};
+use super::Address;
+use crate::deunicode;
 #[cfg(feature = "full")]
 pub use royalties::{RoyaltyPolicy, Share};
 #[cfg(feature = "full")]
@@ -19,11 +20,11 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    name: String,
+    name: Option<String>,
     /// The description of the collection
     description: Option<String>,
     /// The symbol/ticker of the collection
@@ -36,6 +37,7 @@ pub struct CollectionData {
     /// Collection tags
     tags: Option<Tags>,
     /// Collection-level supply
+    #[serde(default)]
     supply: Supply,
     /// Collection royalties
     royalties: Option<RoyaltyPolicy>,
@@ -43,11 +45,11 @@ pub struct CollectionData {
 
 #[cfg(not(feature = "full"))]
 /// Contains the metadata fields of the collection
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
     /// The name of the collection
-    name: String,
+    name: Option<String>,
     /// The description of the collection
     description: Option<String>,
     /// The symbol/ticker of the collection
@@ -65,7 +67,7 @@ pub struct CollectionData {
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        name: String,
+        name: Option<String>,
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,
@@ -99,7 +101,7 @@ impl CollectionData {
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        name: String,
+        name: Option<String>,
         description: Option<String>,
         symbol: Option<String>,
         url: Option<String>,
@@ -118,10 +120,10 @@ impl CollectionData {
 }
 
 impl CollectionData {
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> Option<String> {
         // Since `CollectionData` can be deserialized from an untrusted source
         // it's fields must be escaped when preparing for display.
-        deunicode(&self.name)
+        self.name.as_ref().map(|name| deunicode(name))
     }
 
     pub fn description(&self) -> Option<String> {
@@ -130,31 +132,6 @@ impl CollectionData {
         self.description
             .as_ref()
             .map(|description| deunicode(description))
-    }
-
-    // Retains only alphanumeric characters
-    fn escaped_name(&self) -> String {
-        self.name()
-            .chars()
-            .filter_map(|char| match char {
-                '-' => Some('_'),
-                ' ' => Some('_'),
-                '_' => Some('_'),
-                char => char.is_ascii_alphanumeric().then_some(char),
-            })
-            .collect()
-    }
-
-    pub fn package_name(&self) -> String {
-        // Since `CollectionData` can be deserialized from an untrusted source
-        // it's fields must be escaped when preparing for display.
-        self.escaped_name().to_lowercase()
-    }
-
-    pub fn witness_name(&self) -> String {
-        // Since `CollectionData` can be deserialized from an untrusted source
-        // it's fields must be escaped when preparing for display.
-        self.escaped_name().to_uppercase()
     }
 
     pub fn url(&self) -> Option<String> {
@@ -197,9 +174,7 @@ impl CollectionData {
         requires_collection
     }
 
-    pub fn write_move_init(&self, nft_data: &NftData) -> String {
-        let type_name = nft_data.type_name();
-
+    pub fn write_move_init(&self, type_name: &str) -> String {
         let mut domains_str = String::new();
 
         if let Some(code) = &self.write_move_creators() {
@@ -231,13 +206,6 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        domains_str.push_str(
-            self.tags
-                .as_ref()
-                .map(|tags| tags.write_move_init())
-                .unwrap_or_default()
-                .as_str(),
-        );
 
         // Opt for `collection::create` over `collection::create_from_otw` in
         // order to statically assert `DelegatedWitness` gets created for the
@@ -252,8 +220,9 @@ impl CollectionData {
     }
 
     fn write_move_collection_display_info(&self) -> Option<String> {
-        let name = self.name();
-        self.description().as_ref().map(|description| {
+        self.name().map(|name| {
+            let description = self.description().unwrap_or_default();
+
             format!(
                 "
 
@@ -301,9 +270,7 @@ impl CollectionData {
     fn write_move_creators(&self) -> Option<String> {
         let mut code = String::new();
 
-        if self.creators.is_empty() {
-            return None;
-        } else {
+        if !self.creators.is_empty() {
             code.push_str(
                 "
 
@@ -316,26 +283,17 @@ impl CollectionData {
                 ));
             }
 
-            let creators_domain =
-                "nft_protocol::creators::new(creators)".to_string();
-
             code.push_str(&format!(
                 "
 
-            nft_protocol::collection::add_domain(
-                delegated_witness,
-                &mut collection,
-                {},
-            );",
-                creators_domain
+        nft_protocol::collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            nft_protocol::creators::new(creators),
+        );"
             ));
-
-            return Some(code);
         };
-    }
-}
 
-/// De-unicodes and removes all unknown characters
-fn deunicode(unicode: &str) -> String {
-    deunicode::deunicode_with_tofu(unicode, "")
+        code
+    }
 }

@@ -1,0 +1,11 @@
+{
+  "packageName": "orderbook_protected",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited",
+    "requestPolicies": {
+      "transfer": false
+    },
+    "orderbook": "protected"
+  }
+}

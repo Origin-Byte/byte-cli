@@ -1,0 +1,7 @@
+{
+  "packageName": "supply_policy_limited",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": 200
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "packageName": "burn_permissioned_supply",
+  "collection": {
+    "supply": {
+      "enforced": 600
+    }
+  },
+  "nft": {
+    "typeName": "Joystick",
+    "burn": "permissioned",
+    "mintCap": "unlimited",
+    "requestPolicies": {
+      "withdraw": false
+    }
+  }
+}
