@@ -1,0 +1,8 @@
+{
+  "packageName": "dynamic",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited",
+    "dynamic": true
+  }
+}
