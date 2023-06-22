@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::models::write_move_fn;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     #[serde(default)]
@@ -33,23 +35,17 @@ impl MintPolicies {
         self.airdrop
     }
 
-    fn params(&self) -> Vec<String> {
+    fn params(&self) -> Vec<&str> {
         vec!["description", "url", "attribute_keys", "attribute_values"]
-            .into_iter()
-            .map(str::to_string)
-            .collect()
     }
 
-    fn param_types(&self) -> Vec<String> {
+    fn param_types(&self) -> Vec<&str> {
         vec![
             "std::string::String",
             "vector<u8>",
             "vector<std::ascii::String>",
             "vector<std::ascii::String>",
         ]
-        .into_iter()
-        .map(str::to_string)
-        .collect()
     }
 
     pub fn write_move_defs(
@@ -59,44 +55,45 @@ impl MintPolicies {
     ) -> String {
         let mut mint_fns = String::new();
 
-        let mut base_params = vec!["name".to_string()];
+        let mut base_params = vec!["name"];
         base_params.extend(self.params().into_iter());
-        base_params.push("mint_cap".to_string());
+        base_params.push("mint_cap");
 
         if requires_collection {
-            base_params.push("collection".to_string());
+            base_params.push("collection");
         }
 
         let mut nft_params = base_params.clone();
-        nft_params.push("ctx".to_string());
+        nft_params.push("ctx");
 
-        let mut base_param_types = vec!["std::string::String".to_string()];
+        let mut base_param_types = vec!["std::string::String"];
         base_param_types.extend(self.param_types().into_iter());
-        base_param_types
-            .push(format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>"));
+        let mint_cap_param =
+            format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>");
+        base_param_types.push(&mint_cap_param);
 
+        let collection_param =
+            format!("&mut nft_protocol::collection::Collection<{type_name}>");
         if requires_collection {
-            base_param_types.push(format!(
-                "&mut nft_protocol::collection::Collection<{type_name}>"
-            ));
+            base_param_types.push(&collection_param);
         }
 
         let mut nft_param_types = base_param_types.clone();
-        nft_param_types.push("&mut sui::tx_context::TxContext".to_string());
+        nft_param_types.push("&mut sui::tx_context::TxContext");
 
         // Mint NFT to Warehouse
         //
         // TODO: Mint NFT to Listing
         if self.launchpad {
             let mut params = base_params.clone();
-            params.push("warehouse".to_string());
-            params.push("ctx".to_string());
+            params.push("warehouse");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push(format!(
-                "&mut ob_launchpad::warehouse::Warehouse<{type_name}>"
-            ));
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            let warehouse_param =
+                format!("&mut ob_launchpad::warehouse::Warehouse<{type_name}>");
+            param_types.push(&warehouse_param);
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_warehouse",
@@ -123,12 +120,12 @@ impl MintPolicies {
         if self.airdrop {
             // Write `mint_nft_to_kiosk`
             let mut params = base_params.clone();
-            params.push("receiver".to_string());
-            params.push("ctx".to_string());
+            params.push("receiver");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push("&mut sui::kiosk::Kiosk".to_string());
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            param_types.push("&mut sui::kiosk::Kiosk");
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_kiosk",
@@ -152,12 +149,12 @@ impl MintPolicies {
 
             // Write `mint_nft_to_new_kiosk`
             let mut params = base_params.clone();
-            params.push("receiver".to_string());
-            params.push("ctx".to_string());
+            params.push("receiver");
+            params.push("ctx");
 
             let mut param_types = base_param_types.clone();
-            param_types.push("address".to_string());
-            param_types.push("&mut sui::tx_context::TxContext".to_string());
+            param_types.push("address");
+            param_types.push("&mut sui::tx_context::TxContext");
 
             mint_fns.push_str(&write_move_fn(
                 "mint_nft_to_new_kiosk",
@@ -329,47 +326,4 @@ impl MintPolicies {
 
         test_str
     }
-}
-
-fn write_move_fn<F>(
-    name: &str,
-    params: &[String],
-    param_types: &[String],
-    is_public: bool,
-    is_entry: bool,
-    returns: Option<String>,
-    body_fn: F,
-) -> String
-where
-    F: FnOnce() -> String,
-{
-    let is_public_str = match is_public {
-        true => "public ",
-        false => "",
-    };
-
-    let is_entry_str = match is_entry {
-        true => "entry ",
-        false => "",
-    };
-
-    let args_str = params
-        .iter()
-        .zip(param_types)
-        .map(|(param, param_type)| format!("        {param}: {param_type},\n"))
-        .collect::<Vec<String>>()
-        .join("");
-
-    let returns_str = returns
-        .map(|returns| format!(": {returns}"))
-        .unwrap_or_default();
-    let body_str = body_fn();
-
-    format!(
-        "
-
-    {is_public_str}{is_entry_str}fun {name}(
-{args_str}    ){returns_str} {{{body_str}
-    }}"
-    )
 }
