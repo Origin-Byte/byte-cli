@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::Schema;
 use package_manager::{
-    move_lib::PackageMap,
+    pkg::PkgRegistry,
     toml::{self as move_toml, MoveToml},
     version::Version,
 };
@@ -53,8 +53,8 @@ Call `byte_cli init-collection-config` to initialize the configuration file."#,
 pub fn generate_contract(
     schema: &Schema,
     contract_dir: &Path,
-    main_registry: &PackageMap,
-    test_registry: &PackageMap,
+    main_registry: &PkgRegistry,
+    test_registry: &PkgRegistry,
     version: Option<String>,
 ) -> Result<()> {
     println!("{} Generating contract", style("WIP").cyan().bold());
@@ -145,7 +145,7 @@ pub async fn publish_contract(
 pub fn write_toml_string(
     module_name: &str,
     version: &Option<String>,
-    registry: &PackageMap,
+    registry: &PkgRegistry,
 ) -> Result<String> {
     let mut move_toml = match version {
         Some(version) => MoveToml::get_toml(
