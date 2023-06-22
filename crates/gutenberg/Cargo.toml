@@ -20,7 +20,6 @@ serde_yaml = { version = "0.9", optional = true }
 full = []
 # Compile with CLI support
 cli = ["clap", "serde_json", "serde_yaml"]
-default = ["full"]
 
 [[bin]]
 name = "gutenberg"

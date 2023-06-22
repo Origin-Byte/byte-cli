@@ -65,11 +65,11 @@ pub fn generate_contract(
         )
     })?;
 
-    let module_name = schema.collection().name();
+    let package_name = schema.package_name();
 
     let move_toml = match version {
         Some(version) => MoveToml::get_toml(
-            module_name.as_str(),
+            package_name.as_str(),
             package_map,
             &vec![
                 String::from("NftProtocol"),
@@ -80,7 +80,7 @@ pub fn generate_contract(
             &Version::from_string(version.as_str())?,
         )?,
         None => MoveToml::get_toml_latest(
-            module_name.as_str(),
+            package_name.as_str(),
             package_map,
             &vec![
                 String::from("NftProtocol"),
@@ -99,7 +99,7 @@ pub fn generate_contract(
     package_file.write_all(toml_string.as_bytes())?;
 
     // Write Move contract
-    let move_path = &sources_dir.join(format!("{module_name}.move"));
+    let move_path = &sources_dir.join(format!("{package_name}.move"));
     let mut move_file = File::create(move_path).map_err(|err| {
         anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
     })?;

@@ -8,7 +8,7 @@ edition = "2021"
 full = ["gutenberg/full"]
 
 [dependencies]
-gutenberg = { path = "../gutenberg", default-features = false }
+gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }
