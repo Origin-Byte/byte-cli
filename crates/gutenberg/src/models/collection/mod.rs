@@ -176,7 +176,11 @@ impl CollectionData {
 
     pub fn write_move_init(&self, type_name: &str) -> String {
         let mut domains_str = String::new();
-        domains_str.push_str(&self.write_move_creators());
+
+        if let Some(code) = &self.write_move_creators() {
+            domains_str.push_str(code);
+        }
+
         domains_str.push_str(
             self.write_move_collection_display_info()
                 .unwrap_or_default()
@@ -263,7 +267,7 @@ impl CollectionData {
     }
 
     // TODO: Separate out into `creators` module
-    fn write_move_creators(&self) -> String {
+    fn write_move_creators(&self) -> Option<String> {
         let mut code = String::new();
 
         if !self.creators.is_empty() {
@@ -290,6 +294,6 @@ impl CollectionData {
             ));
         };
 
-        code
+        Some(code)
     }
 }

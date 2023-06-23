@@ -14,6 +14,7 @@ pub enum Commands {
     /// Creates simple configuration file to be used while generating contract
     ConfigSimple {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
     },
 
@@ -21,6 +22,7 @@ pub enum Commands {
     /// generating contract
     ConfigCollection {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
         #[clap(short, long, action)]
         complete: bool,
@@ -31,6 +33,7 @@ pub enum Commands {
     /// off-chain storage service
     ConfigUpload {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
     },
 
@@ -38,67 +41,101 @@ pub enum Commands {
     /// flow, hence make the UX seamless for the majority of use cases
     Config {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
     },
 
     /// Deploys assets to a storage service
     DeployAssets {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
     },
 
     /// Deploys NFT contract to Sui Blockchain
     GenerateContract {
         name: String,
-        project_dir: Option<String>,
         version: Option<String>,
+        #[clap(short, long, action)]
+        project_dir: Option<String>,
     },
 
     /// Deploys NFT contract to Sui Blockchain
     DeployContract {
         name: String,
+        version: Option<String>,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for running module initializers
         #[clap(default_value_t = 600_000_000)]
         gas_budget: usize,
         #[clap(short, long, action)]
         skip_generation: bool,
-        version: Option<String>,
     },
 
     /// Mints NFTs by calling the deployed contract
+    CreateWarehouse {
+        name: String,
+        network: Option<String>,
+        #[clap(short, long, action)]
+        project_dir: Option<String>,
+        /// Gas budget for minting an NFT
+        #[clap(default_value_t = 50_000_000_000)]
+        gas_budget: usize,
+    },
     MintNfts {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for minting an NFT
         #[clap(default_value_t = 50_000_000_000)]
         gas_budget: usize,
         #[clap(long, action)]
         warehouse_id: Option<String>,
+        #[clap(long, action)]
+        mint_cap_id: Option<String>,
     },
     ParallelMint {
         name: String,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for minting an NFT
         #[clap(default_value_t = 18_000_000_000)]
         gas_budget: usize,
-        #[clap(long, action)]
-        warehouse_id: Option<String>,
+        main_gas_id: String,
+        minor_gas_id: String,
     },
+
+    ListCoins {},
+
     SplitCoin {
-        /// Gas budget
-        amount: u64,
+        #[clap(short, long, action)]
+        coin_id: String,
         count: u64,
-        #[clap(default_value_t = 50_000_000)]
+        #[clap(short, long, action)]
+        amount: Option<u64>,
+        #[clap(default_value_t = 10_000_000)]
         gas_budget: usize,
+        #[clap(short, long, action)]
+        gas_id: Option<String>,
     },
     CombineCoins {
         /// Gas budget
         #[clap(default_value_t = 50_000_000)]
         gas_budget: usize,
+        #[clap(long, action)]
+        gas_id: String,
     },
     CheckDependencies {
         name: String,
+        network: Option<String>,
+        #[clap(short, long, action)]
+        project_dir: Option<String>,
+    },
+    UseEnv {
+        network: String,
+        name: Option<String>,
+        #[clap(short, long, action)]
         project_dir: Option<String>,
     },
 }

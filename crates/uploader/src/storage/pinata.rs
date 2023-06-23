@@ -8,11 +8,16 @@ use reqwest::{
 };
 use rust_sdk::metadata::GlobalMetadata;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{
+    fs,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
-use crate::uploader::{Asset, ParallelUploader, Prepare, UploadedAsset};
+use crate::uploader::{
+    Asset, ParallelUploader, Prepare, UploadEffects, UploadedAsset,
+};
 
 // For more check: https://docs.pinata.cloud/pinata-api/pinning
 const UPLOAD_ENDPOINT: &str = "/pinning/pinFileToIPFS";
@@ -114,7 +119,8 @@ impl PinataSetup {
         asset: Asset,
         // mut nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
-    ) -> Result<UploadedAsset> {
+        terminate_flag: Arc<AtomicBool>,
+    ) -> Result<UploadEffects> {
         // TODO: Each uplaod is creating their own CID, however, this
         // should be shared accross the collection..
         let content = fs::read(&asset.path)?;
@@ -128,6 +134,14 @@ impl PinataSetup {
         form = form
             .part("file", file)
             .text("pinataOptions", "{\"wrapWithDirectory\": true}");
+
+        // Note: Here for testing
+        // tokio::time::sleep(Duration::from_millis(100 * asset.index as u64)).await;
+
+        if terminate_flag.load(Ordering::SeqCst) {
+            // Terminate the loop if terminate_flag is true
+            return Ok(UploadEffects::Failure(asset.index));
+        }
 
         let response = setup
             .client
@@ -149,7 +163,10 @@ impl PinataSetup {
             let mut nft_data = metadata.0.get_mut(&asset.index).unwrap();
             nft_data.url = Some(uri.clone());
 
-            Ok(UploadedAsset::new(asset.index, uri.to_string()))
+            Ok(UploadEffects::Success(UploadedAsset::new(
+                asset.index,
+                uri.to_string(),
+            )))
         } else {
             let body = response.json::<serde_json::Value>().await?;
 
@@ -190,12 +207,13 @@ impl ParallelUploader for PinataSetup {
         &self,
         asset: Asset,
         metadata: Arc<GlobalMetadata>,
+        terminate_flag: Arc<AtomicBool>,
         // nft_data: RefMut<u32, Metadata, RandomState>,
-    ) -> JoinHandle<Result<UploadedAsset>> {
+    ) -> JoinHandle<Result<UploadEffects>> {
         let setup = self.0.clone();
 
         tokio::spawn(async move {
-            PinataSetup::write(&setup, asset, metadata).await
+            PinataSetup::write(&setup, asset, metadata, terminate_flag).await
         })
     }
 }

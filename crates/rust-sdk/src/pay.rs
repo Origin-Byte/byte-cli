@@ -1,6 +1,6 @@
 use crate::{
     err::{self, RustSdkError},
-    utils::{get_active_address, get_client, get_context, get_keystore},
+    utils::{get_active_address, get_context, get_keystore},
 };
 use anyhow::{anyhow, Result};
 use shared_crypto::intent::Intent;
@@ -28,18 +28,15 @@ use sui_types::{
 
 pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
     let context = get_context().await.unwrap();
-    let client = get_client().await.unwrap();
-    // Maybe get these from the context
-    let keystore = get_keystore().await.unwrap();
-    let sender = get_active_address(&keystore).unwrap();
+    let client = context.get_client().await?;
+    let keystore = &context.config.keystore;
+    let sender = context.config.active_address.unwrap();
 
     let coin = select_coin(&client, sender).await?;
 
     let split_amounts = vec![split_amount; count as usize];
 
-    let ob_addr = SuiAddress::from_str(
-        "0xf9935ad63df83d84c5c071a65f241548ac7c452af2912218c6d2b3faefba5dc2",
-    );
+    let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS);
 
     let data = client
         .transaction_builder()

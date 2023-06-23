@@ -1,6 +1,7 @@
 use crate::io::{write_json, LocalWrite};
 use anyhow::{anyhow, Result};
 use byte_cli::io::LocalRead;
+use chrono::Local;
 use console::style;
 use dotenv::dotenv;
 use glob::glob;
@@ -27,16 +28,20 @@ pub async fn deploy_assets(
 
     dotenv().ok();
 
-    let shared_metadata: Arc<GlobalMetadata> =
-        Arc::new(GlobalMetadata::read_json(&pre_upload_path)?);
+    let storable_meta = StorableMetadata::read_json(
+        if Path::new(&post_upload_path).exists() {
+            &post_upload_path
+        } else {
+            &pre_upload_path
+        },
+    )?;
+
+    let metadata_idxs = storable_meta.get_to_upload();
+    let shared_metadata = Arc::new(GlobalMetadata::from_map(storable_meta));
 
     let mut error_path = pre_upload_path.parent().unwrap().to_path_buf();
-    error_path.push("error_logs.json");
-
-    // let how_many_metadata = shared_metadata.0.len();
-
-    // TODO: Add logic to check if post-upload file exists and if sto start from
-    // there
+    let now = Local::now().format("%Y%m%d%H%M%S").to_string();
+    error_path.push(format!("logs/logs-{}.json", now));
 
     let mut assets: Vec<Asset> = vec![];
 
@@ -69,6 +74,11 @@ pub async fn deploy_assets(
                 .as_str(),
         );
 
+        if !metadata_idxs.contains(&index) {
+            println!("Skipping File: {}. Already uploaded", file_name);
+            continue;
+        }
+
         let asset = Asset::new(
             index,
             file_string,
@@ -80,7 +90,7 @@ pub async fn deploy_assets(
     }
 
     if assets.is_empty() {
-        panic!("Assets folder is empty. Make sure that you are in the right project folder and that you have your images in the assets/ folder within it.");
+        return Err(anyhow!(format!("Could not find images to upload. Happens either if no images in the folder {} or if all images have already been uploaded", assets_dir)));
     }
 
     let jobs_no = assets.len();

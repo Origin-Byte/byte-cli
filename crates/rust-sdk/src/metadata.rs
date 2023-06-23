@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fmt, marker::PhantomData, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+    marker::PhantomData,
+    str::FromStr,
+};
 
 use anyhow::Result;
 use dashmap::DashMap;
@@ -8,6 +13,7 @@ use serde::{
 };
 use serde_json::json;
 use sui_sdk::json::SuiJsonValue;
+use sui_types::messages::CallArg;
 use url::Url;
 
 #[derive(Debug)]
@@ -41,28 +47,42 @@ impl GlobalMetadata {
 
         hash_map
     }
+
+    pub fn from_map(map: StorableMetadata) -> Self {
+        GlobalMetadata(map.0.into_iter().collect())
+    }
 }
 
 impl StorableMetadata {
     pub fn from_map(hash_map: BTreeMap<u32, Metadata>) -> Self {
         Self(hash_map)
     }
+
+    pub fn get_to_upload(&self) -> BTreeSet<u32> {
+        self.0
+            .iter()
+            .filter_map(|(idx, meta)| match meta.url {
+                Some(_) => None,
+                None => Some(*idx),
+            })
+            .collect()
+    }
 }
 
 impl Metadata {
-    pub fn to_map(&self) -> Result<Vec<SuiJsonValue>> {
-        let mut params: Vec<SuiJsonValue> = Vec::new();
+    pub fn into_args(self) -> Result<Vec<CallArg>> {
+        let mut params: Vec<CallArg> = Vec::new();
 
         if let Some(value) = &self.name {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(value) = &self.url {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(value) = &self.description {
-            params.push(SuiJsonValue::from_str(value.as_str())?);
+            params.push(CallArg::Pure(bcs::to_bytes(value).unwrap()));
         }
 
         if let Some(map) = &self.attributes {
@@ -71,11 +91,8 @@ impl Metadata {
                 .map(|att| (att.trait_type.clone(), att.value.clone()))
                 .unzip();
 
-            let keys_arr = json!(keys);
-            let values_arr = json!(values);
-
-            params.push(SuiJsonValue::new(keys_arr)?);
-            params.push(SuiJsonValue::new(values_arr)?);
+            params.push(CallArg::Pure(bcs::to_bytes(&keys).unwrap()));
+            params.push(CallArg::Pure(bcs::to_bytes(&values).unwrap()));
         }
 
         Ok(params)

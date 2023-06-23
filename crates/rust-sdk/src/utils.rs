@@ -4,7 +4,6 @@ use sui_json_rpc_types::Coin;
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
-use sui_sdk::{SuiClient, SuiClientBuilder};
 use sui_types::base_types::{ObjectRef, SuiAddress};
 
 use crate::err::RustSdkError;
@@ -15,16 +14,6 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let ctx = WalletContext::new(&config_path, None).await?;
 
     Ok(ctx)
-}
-
-pub async fn get_client() -> Result<SuiClient, RustSdkError> {
-    let client_builder = SuiClientBuilder::default();
-    let client = client_builder
-        // TODO: Should be according to active env
-        .build("https://fullnode.testnet.sui.io:443")
-        .await?;
-
-    Ok(client)
 }
 
 pub async fn get_keystore() -> Result<Keystore, RustSdkError> {

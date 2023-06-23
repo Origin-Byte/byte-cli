@@ -1,3 +1,8 @@
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
+
 pub mod info;
 pub mod move_lib;
 pub mod toml;
@@ -17,3 +22,31 @@ pub const OB_PACKAGES: [&str; 12] = [
     "LiquidityLayer",
     "NftProtocol",
 ];
+
+pub enum Network {
+    Mainnet,
+    Testnet,
+}
+
+impl FromStr for Network {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Network, Self::Err> {
+        match input {
+            "mainnet" => Ok(Network::Mainnet),
+            "testnet" => Ok(Network::Testnet),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let string = match self {
+            Network::Mainnet => "mainnet",
+            Network::Testnet => "testnet",
+        };
+
+        f.write_str(string)
+    }
+}

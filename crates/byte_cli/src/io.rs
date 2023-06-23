@@ -10,11 +10,10 @@ use anyhow::{anyhow, Result};
 use git2::Repository;
 use gutenberg::Schema;
 
-use package_manager::{info::BuildInfo, move_lib::PackageMap, toml::MoveToml};
-use rust_sdk::{
-    collection_state::CollectionState,
-    metadata::{GlobalMetadata, StorableMetadata},
+use package_manager::{
+    info::BuildInfo, move_lib::PackageMap, toml::MoveToml, Network,
 };
+use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use serde::{de::DeserializeOwned, Serialize};
 use tempfile::TempDir;
 use uploader::writer::Storage;
@@ -22,15 +21,14 @@ use uploader::writer::Storage;
 impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
-impl LocalRead for CollectionState {}
 impl LocalRead for MoveToml {}
 impl LocalRead for PackageMap {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
+impl LocalRead for StorableMetadata {}
 impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
-impl LocalWrite for CollectionState {}
 impl LocalWrite for SchemaBuilder {}
 impl LocalWrite for MoveToml {}
 impl LocalWrite for StorableMetadata {}
@@ -149,15 +147,17 @@ pub fn get_toml_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "contract", Some("Move.toml"))
 }
 
-pub fn get_pakage_registry_paths() -> (TempDir, PathBuf) {
+pub fn get_pakage_registry_paths() -> (TempDir, PathBuf, PathBuf) {
     let temp_dir =
         TempDir::new().expect("Failed to create temporary directory");
 
-    let filename = PathBuf::from("registry-main.json");
-    let mut registry_path = temp_dir.path().to_path_buf();
-    registry_path.push(&filename);
+    let mut registry_main_path = temp_dir.path().to_path_buf();
+    registry_main_path.push("registry-main.json");
 
-    (temp_dir, registry_path)
+    let mut registry_test_path = temp_dir.path().to_path_buf();
+    registry_test_path.push("registry-test.json");
+
+    (temp_dir, registry_main_path, registry_test_path)
 }
 
 pub fn get_build_info_path(
@@ -225,8 +225,8 @@ pub fn write_json(
     })
 }
 
-pub fn get_program_registry() -> Result<PackageMap> {
-    let (temp_dir, registry_path) = get_pakage_registry_paths();
+pub fn get_program_registries() -> Result<(PackageMap, PackageMap)> {
+    let (temp_dir, mainnet_path, testnet_path) = get_pakage_registry_paths();
 
     let url = "https://github.com/Origin-Byte/program-registry";
 
@@ -243,7 +243,17 @@ pub fn get_program_registry() -> Result<PackageMap> {
         ));
     }
 
-    let map = PackageMap::read_json(&registry_path)?;
+    let main_registry = PackageMap::read_json(&mainnet_path)?;
+    let test_registry = PackageMap::read_json(&testnet_path)?;
 
-    Ok(map)
+    Ok((main_registry, test_registry))
+}
+
+pub fn get_program_registry(network: &Network) -> Result<PackageMap> {
+    let (main_registry, test_registry) = get_program_registries()?;
+
+    Ok(match network {
+        Network::Mainnet => main_registry,
+        Network::Testnet => test_registry,
+    })
 }
