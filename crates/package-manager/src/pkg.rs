@@ -26,7 +26,7 @@ impl PkgRegistry {
         metadata.package.published_at.as_ref().unwrap()
     }
 
-    pub fn get_dependency<'a>(
+    pub fn get_pkg_info<'a>(
         &'a self,
         dep_name: &'a String,
         version: &'a Version,
@@ -44,7 +44,7 @@ impl PkgRegistry {
         dependency
     }
 
-    pub fn get_dependencies(
+    pub fn get_pkgs_git(
         &self,
         dep_names: &Vec<String>,
         version: &Version,
@@ -54,7 +54,7 @@ impl PkgRegistry {
             .map(|dep_name| {
                 (
                     dep_name.clone(),
-                    self.get_dependency(dep_name, version)
+                    self.get_pkg_info(dep_name, version)
                         .contract_ref
                         .path
                         .clone(),
@@ -65,14 +65,14 @@ impl PkgRegistry {
         deps
     }
 
-    pub fn get_dependencies_to_update<'a>(
+    pub fn get_pkgs_to_update<'a>(
         &'a self,
         deps: &'a [&'a PkgInfo],
     ) -> Vec<&'a PkgInfo> {
         let mut to_update: Vec<&'a PkgInfo> = vec![];
 
         deps.iter().for_each(|contract| {
-            if let Some(update) = self.get_updated_dependency(contract) {
+            if let Some(update) = self.get_updated_pkg_info(contract) {
                 to_update.push(update);
             }
         });
@@ -80,7 +80,7 @@ impl PkgRegistry {
         to_update
     }
 
-    pub fn get_updated_dependency<'a>(
+    pub fn get_updated_pkg_info<'a>(
         &'a self,
         dep: &'a PkgInfo,
     ) -> Option<&'a PkgInfo> {
@@ -187,7 +187,7 @@ impl PkgRegistry {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct PkgInfo {
     pub package: Package,
@@ -197,14 +197,14 @@ pub struct PkgInfo {
     pub dependencies: HashMap<String, PkgPath>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct PkgPath {
     pub path: GitPath,
     pub object_id: Address,
 }
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
+#[derive(Deserialize, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct Package {
     pub name: String,
@@ -219,7 +219,7 @@ impl Package {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Serialize)]
+#[derive(Deserialize, Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct GitPath {
     pub git: String,
     pub subdir: Option<String>,
@@ -242,7 +242,9 @@ mod test {
 
     use anyhow::Result;
     use gutenberg::models::Address;
-    use std::{env, fs::File};
+    use std::{collections::HashMap, env, fs::File};
+
+    use super::{GitPath, Package, PkgInfo, PkgPath};
 
     const V1_REV: &str = "95d16538dc7688dd4c4a5e7c3348bf3addf9c310";
     const V1_2_REV: &str = "93f6cd0b8966354b1b00e7d798cbfddaa867a07b";
@@ -357,4 +359,70 @@ mod test {
 
         Ok(())
     }
+
+    #[test]
+    fn test_get_updated_pkg_info() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let old_package = PkgInfo {
+            package: Package {
+                name: String::from("Permissions"),
+                version: Version::from_string("1.0.0")?,
+                published_at: Some(Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?),
+            },
+            contract_ref: PkgPath {
+                path: GitPath {
+                    git: String::from("https://github.com/Origin-Byte/nft-protocol.git"),
+                    subdir: Some(String::from("contracts/permissions")),
+                    rev: String::from("95d16538dc7688dd4c4a5e7c3348bf3addf9c310"),
+                },
+                object_id: Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?,
+            },
+            // No need to add dependencies as they're not used in this function
+            dependencies: HashMap::new(),
+        };
+
+        let mut actual =
+            registry.get_updated_pkg_info(&old_package).unwrap().clone();
+
+        let expected = PkgInfo {
+            package: Package {
+                name: String::from("Permissions"),
+                version: Version::from_string("1.2.0")?,
+                published_at: Some(Address::new(String::from("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8"))?),
+            },
+            contract_ref: PkgPath {
+                path: GitPath {
+                    git: String::from("https://github.com/Origin-Byte/nft-protocol.git"),
+                    subdir: Some(String::from("contracts/permissions")),
+                    rev: String::from("93f6cd0b8966354b1b00e7d798cbfddaa867a07b"),
+                },
+                object_id: Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?,
+            },
+            // No need to add dependencies as they're not used in this function
+            dependencies: HashMap::new(),
+        };
+
+        // Reset dependencies to match expected struct
+        actual.dependencies = HashMap::new();
+
+        assert_eq!(expected, actual);
+
+        Ok(())
+    }
+
+    // TODO
+    // get latest dependency
+    // get_ext_dep_from_protocol
+    // name_pascal
 }

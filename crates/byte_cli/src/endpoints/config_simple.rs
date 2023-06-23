@@ -65,7 +65,7 @@ pub async fn init_schema(
     let project = Project::new(name.clone(), sender);
 
     let collection_data = CollectionData::new(
-        name.to_lowercase(),
+        Some(name.to_lowercase()),
         None,
         None,
         None,

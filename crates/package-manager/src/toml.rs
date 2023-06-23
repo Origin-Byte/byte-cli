@@ -98,7 +98,7 @@ impl MoveToml {
     pub fn update_toml(&mut self, pkg_registry: &PkgRegistry) {
         let dependencies = self.dependency_pkg_infos(pkg_registry);
 
-        let to_update = pkg_registry.get_dependencies_to_update(&dependencies);
+        let to_update = pkg_registry.get_pkgs_to_update(&dependencies);
 
         let mut updated_deps = to_update
             .iter()
@@ -135,8 +135,7 @@ impl MoveToml {
     ) -> Result<Self> {
         let empty_addr = Address::new(String::from("0x0"))?;
 
-        let mut dependencies =
-            pkg_registry.get_dependencies(dep_names, &version);
+        let mut dependencies = pkg_registry.get_pkgs_git(dep_names, &version);
 
         // Inserts Sui and Originmate
         ext_dep_names.iter().for_each(|dep_name| {
