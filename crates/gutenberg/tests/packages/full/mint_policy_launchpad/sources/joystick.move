@@ -9,10 +9,6 @@ module mint_policy_launchpad::joystick {
 
     struct Joystick has key, store {
         id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
     }
 
     fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
@@ -43,21 +39,11 @@ module mint_policy_launchpad::joystick {
     }
 
     public entry fun mint_nft_to_warehouse(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             ctx,
         );
@@ -66,11 +52,6 @@ module mint_policy_launchpad::joystick {
     }
 
     fun mint(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
@@ -78,10 +59,6 @@ module mint_policy_launchpad::joystick {
 
         let nft = Joystick {
             id: sui::object::new(ctx),
-            name,
-            description,
-            url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
         };
 
         nft_protocol::mint_event::emit_mint(
@@ -132,11 +109,6 @@ module mint_policy_launchpad::joystick {
         let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_warehouse(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
             &mut mint_cap,
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)

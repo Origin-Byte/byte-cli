@@ -1,0 +1,25 @@
+{
+  "packageName": "fields_all",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited",
+    "fields": [
+      [
+        "name",
+        "String"
+      ],
+      [
+        "description",
+        "String"
+      ],
+      [
+        "url",
+        "Url"
+      ],
+      [
+        "attributes",
+        "Attributes"
+      ]
+    ]
+  }
+}

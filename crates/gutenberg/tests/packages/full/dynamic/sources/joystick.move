@@ -9,10 +9,6 @@ module dynamic::joystick {
 
     struct Joystick has key, store {
         id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
     }
 
     fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
@@ -50,21 +46,11 @@ module dynamic::joystick {
     }
 
     public entry fun mint_nft_to_kiosk(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             ctx,
         );
@@ -73,21 +59,11 @@ module dynamic::joystick {
     }
 
     public entry fun mint_nft_to_new_kiosk(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             ctx,
         );
@@ -98,11 +74,6 @@ module dynamic::joystick {
     }
 
     fun mint(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
@@ -110,10 +81,6 @@ module dynamic::joystick {
 
         let nft = Joystick {
             id: sui::object::new(ctx),
-            name,
-            description,
-            url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
         };
 
         nft_protocol::mint_event::emit_mint(
@@ -125,190 +92,6 @@ module dynamic::joystick {
         nft_protocol::mint_cap::increment_supply(mint_cap, 1);
 
         nft
-    }
-
-    public fun set_name(
-        _delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        nft: &mut Joystick,
-        name: std::string::String,
-    ) {
-        nft.name = name;
-    }
-
-    public entry fun set_name_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut Joystick,
-        name: std::string::String,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_name(delegated_witness, nft, name);
-    }
-
-    public fun set_name_in_kiosk(
-        delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        name: std::string::String,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<Joystick>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut Joystick = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_name(delegated_witness, nft, name);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, Joystick>(kiosk, borrow, policy);
-    }
-
-    public entry fun set_name_in_kiosk_as_publisher(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        name: std::string::String,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_name_in_kiosk(delegated_witness, kiosk, nft_id, name, policy, ctx);
-    }
-
-    public fun set_description(
-        _delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        nft: &mut Joystick,
-        description: std::string::String,
-    ) {
-        nft.description = description;
-    }
-
-    public entry fun set_description_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut Joystick,
-        description: std::string::String,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_description(delegated_witness, nft, description);
-    }
-
-    public fun set_description_in_kiosk(
-        delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        description: std::string::String,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<Joystick>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut Joystick = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_description(delegated_witness, nft, description);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, Joystick>(kiosk, borrow, policy);
-    }
-
-    public entry fun set_description_in_kiosk_as_publisher(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        description: std::string::String,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_description_in_kiosk(delegated_witness, kiosk, nft_id, description, policy, ctx);
-    }
-
-    public fun set_url(
-        _delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        nft: &mut Joystick,
-        url: vector<u8>,
-    ) {
-        nft.url = sui::url::new_unsafe_from_bytes(url);
-    }
-
-    public entry fun set_url_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut Joystick,
-        url: vector<u8>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_url(delegated_witness, nft, url);
-    }
-
-    public fun set_url_in_kiosk(
-        delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        url: vector<u8>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<Joystick>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut Joystick = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_url(delegated_witness, nft, url);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, Joystick>(kiosk, borrow, policy);
-    }
-
-    public entry fun set_url_in_kiosk_as_publisher(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        url: vector<u8>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_url_in_kiosk(delegated_witness, kiosk, nft_id, url, policy, ctx);
-    }
-
-    public fun set_attributes(
-        _delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        nft: &mut Joystick,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {
-        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
-    }
-
-    public entry fun set_attributes_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut Joystick,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_attributes(delegated_witness, nft, attribute_keys, attribute_values);
-    }
-
-    public fun set_attributes_in_kiosk(
-        delegated_witness: ob_permissions::witness::Witness<Joystick>,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<Joystick>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut Joystick = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_attributes(delegated_witness, nft, attribute_keys, attribute_values);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, Joystick>(kiosk, borrow, policy);
-    }
-
-    public entry fun set_attributes_in_kiosk_as_publisher(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_attributes_in_kiosk(delegated_witness, kiosk, nft_id, attribute_keys, attribute_values, policy, ctx);
     }
 
     #[test_only]
@@ -348,11 +131,6 @@ module dynamic::joystick {
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_kiosk(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
             &mut mint_cap,
             &mut kiosk,
             sui::test_scenario::ctx(&mut scenario)
@@ -360,84 +138,6 @@ module dynamic::joystick {
 
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::end(scenario);
-    }
-
-    #[test]
-    fun it_sets_metadata() {
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init(JOYSTICK {}, sui::test_scenario::ctx(&mut scenario));
-
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<Joystick>>(
-            &scenario,
-            CREATOR,
-        );
-
-        let publisher = sui::test_scenario::take_from_address<sui::package::Publisher>(
-            &scenario,
-            CREATOR,
-        );
-
-        let borrow_policy: ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>> =
-            sui::test_scenario::take_shared(&mut scenario);
-
-        let nft = mint(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
-            &mut mint_cap,
-            sui::test_scenario::ctx(&mut scenario)
-        );
-        let nft_id = sui::object::id(&nft);
-
-        let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
-        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
-
-        set_name_in_kiosk_as_publisher(
-            &publisher,
-            &mut kiosk,
-            nft_id,
-            std::string::utf8(b"Joystick"),
-            &borrow_policy,
-            sui::test_scenario::ctx(&mut scenario),
-        );
-
-        set_description_in_kiosk_as_publisher(
-            &publisher,
-            &mut kiosk,
-            nft_id,
-            std::string::utf8(b"A test collection of Joysticks"),
-            &borrow_policy,
-            sui::test_scenario::ctx(&mut scenario),
-        );
-
-        set_url_in_kiosk_as_publisher(
-            &publisher,
-            &mut kiosk,
-            nft_id,
-            b"https://docs.originbyte.io/",
-            &borrow_policy,
-            sui::test_scenario::ctx(&mut scenario),
-        );
-
-        set_attributes_in_kiosk_as_publisher(
-            &publisher,
-            &mut kiosk,
-            nft_id,
-            vector[std::ascii::string(b"reveal")],
-            vector[std::ascii::string(b"revealed")],
-            &borrow_policy,
-            sui::test_scenario::ctx(&mut scenario),
-        );
-
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);
-        sui::test_scenario::return_to_address(CREATOR, publisher);
-        sui::test_scenario::return_shared(borrow_policy);
-        sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
     }
 }

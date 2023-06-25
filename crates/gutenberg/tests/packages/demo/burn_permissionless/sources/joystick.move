@@ -46,8 +46,8 @@ module burn_permissionless::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
@@ -56,8 +56,8 @@ module burn_permissionless::joystick {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            attributes_keys,
+            attributes_values,
             mint_cap,
             ctx,
         );
@@ -69,8 +69,8 @@ module burn_permissionless::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
@@ -79,8 +79,8 @@ module burn_permissionless::joystick {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            attributes_keys,
+            attributes_values,
             mint_cap,
             ctx,
         );
@@ -94,8 +94,8 @@ module burn_permissionless::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
@@ -106,7 +106,7 @@ module burn_permissionless::joystick {
             name,
             description,
             url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+            attributes: nft_protocol::attributes::from_vec(attributes_keys, attributes_values),
         };
 
         nft_protocol::mint_event::emit_mint(
@@ -157,11 +157,11 @@ module burn_permissionless::joystick {
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_kiosk(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
+            std::string::utf8(b"TEST STRING"),
+            std::string::utf8(b"TEST STRING"),
+            b"https://originbyte.io",
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &mut mint_cap,
             &mut kiosk,
             sui::test_scenario::ctx(&mut scenario)

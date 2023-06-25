@@ -133,8 +133,8 @@ module joysticks::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         warehouse: &mut ob_launchpad::warehouse::Warehouse<Joystick>,
@@ -144,8 +144,8 @@ module joysticks::joystick {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            attributes_keys,
+            attributes_values,
             mint_cap,
             collection,
             ctx,
@@ -158,8 +158,8 @@ module joysticks::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
@@ -169,8 +169,8 @@ module joysticks::joystick {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            attributes_keys,
+            attributes_values,
             mint_cap,
             collection,
             ctx,
@@ -183,8 +183,8 @@ module joysticks::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: address,
@@ -194,8 +194,8 @@ module joysticks::joystick {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            attributes_keys,
+            attributes_values,
             mint_cap,
             collection,
             ctx,
@@ -210,8 +210,8 @@ module joysticks::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
@@ -223,7 +223,7 @@ module joysticks::joystick {
             name,
             description,
             url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+            attributes: nft_protocol::attributes::from_vec(attributes_keys, attributes_values),
         };
 
         nft_protocol::mint_event::emit_mint(
@@ -381,35 +381,35 @@ module joysticks::joystick {
     public fun set_attributes(
         _delegated_witness: ob_permissions::witness::Witness<Joystick>,
         nft: &mut Joystick,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
     ) {
-        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
+        nft.attributes = nft_protocol::attributes::from_vec(attributes_keys, attributes_values);
     }
 
     public entry fun set_attributes_as_publisher(
         publisher: &sui::package::Publisher,
         nft: &mut Joystick,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
     ) {
         let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_attributes(delegated_witness, nft, attribute_keys, attribute_values);
+        set_attributes(delegated_witness, nft, attributes_keys, attributes_values);
     }
 
     public fun set_attributes_in_kiosk(
         delegated_witness: ob_permissions::witness::Witness<Joystick>,
         kiosk: &mut sui::kiosk::Kiosk,
         nft_id: sui::object::ID,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<Joystick>(kiosk, nft_id, std::option::none(), ctx);
 
         let nft: &mut Joystick = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_attributes(delegated_witness, nft, attribute_keys, attribute_values);
+        set_attributes(delegated_witness, nft, attributes_keys, attributes_values);
 
         ob_kiosk::ob_kiosk::return_nft<Witness, Joystick>(kiosk, borrow, policy);
     }
@@ -418,13 +418,13 @@ module joysticks::joystick {
         publisher: &sui::package::Publisher,
         kiosk: &mut sui::kiosk::Kiosk,
         nft_id: sui::object::ID,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         policy: &ob_request::request::Policy<ob_request::request::WithNft<Joystick, ob_request::borrow_request::BORROW_REQ>>,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_attributes_in_kiosk(delegated_witness, kiosk, nft_id, attribute_keys, attribute_values, policy, ctx);
+        set_attributes_in_kiosk(delegated_witness, kiosk, nft_id, attributes_keys, attributes_values, policy, ctx);
     }
 
     public fun burn_nft(
@@ -520,11 +520,11 @@ module joysticks::joystick {
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_kiosk(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
+            std::string::utf8(b"TEST STRING"),
+            std::string::utf8(b"TEST STRING"),
+            b"https://originbyte.io",
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &mut mint_cap,
             &mut collection,
             &mut kiosk,
@@ -556,11 +556,11 @@ module joysticks::joystick {
         let warehouse = ob_launchpad::warehouse::new<Joystick>(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_warehouse(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
+            std::string::utf8(b"TEST STRING"),
+            std::string::utf8(b"TEST STRING"),
+            b"https://originbyte.io",
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &mut mint_cap,
             &mut collection,
             &mut warehouse,
@@ -598,14 +598,14 @@ module joysticks::joystick {
             sui::test_scenario::take_shared(&mut scenario);
 
         let nft = mint(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
+            std::string::utf8(b"TEST STRING"),
+            std::string::utf8(b"TEST STRING"),
+            b"https://originbyte.io",
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &mut mint_cap,
             &mut collection,
-            sui::test_scenario::ctx(&mut scenario)
+            sui::test_scenario::ctx(&mut scenario),
         );
         let nft_id = sui::object::id(&nft);
 
@@ -616,7 +616,7 @@ module joysticks::joystick {
             &publisher,
             &mut kiosk,
             nft_id,
-            std::string::utf8(b"Joystick"),
+            std::string::utf8(b"TEST STRING"),
             &borrow_policy,
             sui::test_scenario::ctx(&mut scenario),
         );
@@ -625,7 +625,7 @@ module joysticks::joystick {
             &publisher,
             &mut kiosk,
             nft_id,
-            std::string::utf8(b"A test collection of Joysticks"),
+            std::string::utf8(b"TEST STRING"),
             &borrow_policy,
             sui::test_scenario::ctx(&mut scenario),
         );
@@ -634,7 +634,7 @@ module joysticks::joystick {
             &publisher,
             &mut kiosk,
             nft_id,
-            b"https://docs.originbyte.io/",
+            b"https://originbyte.io",
             &borrow_policy,
             sui::test_scenario::ctx(&mut scenario),
         );
@@ -643,8 +643,8 @@ module joysticks::joystick {
             &publisher,
             &mut kiosk,
             nft_id,
-            vector[std::ascii::string(b"reveal")],
-            vector[std::ascii::string(b"revealed")],
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &borrow_policy,
             sui::test_scenario::ctx(&mut scenario),
         );
@@ -685,11 +685,11 @@ module joysticks::joystick {
             >(&scenario);
 
             let nft = mint(
-                std::string::utf8(b"TEST NAME"),
-                std::string::utf8(b"TEST DESCRIPTION"),
-                b"https://originbyte.io/",
-                vector[std::ascii::string(b"avg_return")],
-                vector[std::ascii::string(b"24%")],
+                std::string::utf8(b"TEST STRING"),
+                std::string::utf8(b"TEST STRING"),
+                b"https://originbyte.io",
+                vector[std::ascii::string(b"key")],
+                vector[std::ascii::string(b"attribute")],
                 &mut mint_cap,
             &mut collection,
                 sui::test_scenario::ctx(&mut scenario)
@@ -751,11 +751,11 @@ module joysticks::joystick {
         );
 
         let nft = mint(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
+            std::string::utf8(b"TEST STRING"),
+            std::string::utf8(b"TEST STRING"),
+            b"https://originbyte.io",
+            vector[std::ascii::string(b"key")],
+            vector[std::ascii::string(b"attribute")],
             &mut mint_cap,
             &mut collection,
             sui::test_scenario::ctx(&mut scenario),

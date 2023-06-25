@@ -9,10 +9,6 @@ module burn_permissionless_supply::joystick {
 
     struct Joystick has key, store {
         id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
     }
 
     fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
@@ -61,22 +57,12 @@ module burn_permissionless_supply::joystick {
     }
 
     public entry fun mint_nft_to_kiosk(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: &mut sui::kiosk::Kiosk,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             collection,
             ctx,
@@ -86,22 +72,12 @@ module burn_permissionless_supply::joystick {
     }
 
     public entry fun mint_nft_to_new_kiosk(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         receiver: address,
         ctx: &mut sui::tx_context::TxContext,
     ) {
         let nft = mint(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
             mint_cap,
             collection,
             ctx,
@@ -113,11 +89,6 @@ module burn_permissionless_supply::joystick {
     }
 
     fun mint(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         collection: &mut nft_protocol::collection::Collection<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
@@ -126,10 +97,6 @@ module burn_permissionless_supply::joystick {
 
         let nft = Joystick {
             id: sui::object::new(ctx),
-            name,
-            description,
-            url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
         };
 
         nft_protocol::mint_event::emit_mint(
@@ -155,7 +122,7 @@ module burn_permissionless_supply::joystick {
     ) {
         let delegated_witness = ob_permissions::witness::from_witness(Witness {});
         let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-        let Joystick { id, name: _, description: _, url: _, attributes: _ } = nft;
+        let Joystick { id } = nft;
         nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);
 
         let supply = nft_protocol::supply::borrow_domain_mut(
@@ -221,11 +188,6 @@ module burn_permissionless_supply::joystick {
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
         mint_nft_to_kiosk(
-            std::string::utf8(b"TEST NAME"),
-            std::string::utf8(b"TEST DESCRIPTION"),
-            b"https://originbyte.io/",
-            vector[std::ascii::string(b"avg_return")],
-            vector[std::ascii::string(b"24%")],
             &mut mint_cap,
             &mut collection,
             &mut kiosk,
@@ -266,11 +228,6 @@ module burn_permissionless_supply::joystick {
             >(&scenario);
 
             let nft = mint(
-                std::string::utf8(b"TEST NAME"),
-                std::string::utf8(b"TEST DESCRIPTION"),
-                b"https://originbyte.io/",
-                vector[std::ascii::string(b"avg_return")],
-                vector[std::ascii::string(b"24%")],
                 &mut mint_cap,
             &mut collection,
                 sui::test_scenario::ctx(&mut scenario)

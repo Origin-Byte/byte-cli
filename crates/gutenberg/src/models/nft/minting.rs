@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::write_move_fn;
 
+use super::Fields;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MintPolicies {
     #[serde(default)]
@@ -35,28 +37,17 @@ impl MintPolicies {
         self.airdrop
     }
 
-    fn params(&self) -> Vec<&str> {
-        vec!["description", "url", "attribute_keys", "attribute_values"]
-    }
-
-    fn param_types(&self) -> Vec<&str> {
-        vec![
-            "std::string::String",
-            "vector<u8>",
-            "vector<std::ascii::String>",
-            "vector<std::ascii::String>",
-        ]
-    }
-
     pub fn write_move_defs(
         &self,
+        fields: &Fields,
         type_name: &str,
         requires_collection: bool,
     ) -> String {
         let mut mint_fns = String::new();
 
-        let mut base_params = vec!["name"];
-        base_params.extend(self.params().into_iter());
+        let params: Vec<String> = fields.params().collect();
+        let mut base_params: Vec<&str> =
+            params.iter().map(String::as_str).collect();
         base_params.push("mint_cap");
 
         if requires_collection {
@@ -66,8 +57,7 @@ impl MintPolicies {
         let mut nft_params = base_params.clone();
         nft_params.push("ctx");
 
-        let mut base_param_types = vec!["std::string::String"];
-        base_param_types.extend(self.param_types().into_iter());
+        let mut base_param_types: Vec<&str> = fields.param_types().collect();
         let mint_cap_param =
             format!("&mut nft_protocol::mint_cap::MintCap<{type_name}>");
         base_param_types.push(&mint_cap_param);
@@ -198,16 +188,23 @@ impl MintPolicies {
                     })
                     .unwrap_or_default();
 
+                let fields_str: String = fields.iter().map(|field| {
+                    let field_name = field.name();
+                    let init = field
+                        .write_move_init()
+                        .map(|init| format!("{field_name}: {init}"))
+                        .unwrap_or_else(|| field_name.to_string());
+
+                    format!("
+            {init},")
+                }).collect();
+
                 format!(
                     "
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});
 
         let nft = {type_name} {{
-            id: sui::object::new(ctx),
-            name,
-            description,
-            url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+            id: sui::object::new(ctx),{fields_str}
         }};
 
         nft_protocol::mint_event::emit_mint(
@@ -228,6 +225,7 @@ impl MintPolicies {
 
     pub fn write_mint_tests(
         &self,
+        fields: &Fields,
         type_name: &str,
         witness_name: &str,
         requires_collection: bool,
@@ -252,6 +250,16 @@ impl MintPolicies {
             )
             .unwrap_or_default();
 
+        let fields_str: String = fields
+            .test_params()
+            .map(|param| {
+                format!(
+                    "
+            {param},"
+                )
+            })
+            .collect();
+
         let mut test_str = String::new();
 
         if self.airdrop {
@@ -272,12 +280,7 @@ impl MintPolicies {
 
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
 
-        mint_nft_to_kiosk(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
+        mint_nft_to_kiosk({fields_str}
             &mut mint_cap,{collection_param_str}
             &mut kiosk,
             sui::test_scenario::ctx(&mut scenario)
@@ -307,12 +310,7 @@ impl MintPolicies {
 
         let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
 
-        mint_nft_to_warehouse(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
+        mint_nft_to_warehouse({fields_str}
             &mut mint_cap,{collection_param_str}
             &mut warehouse,
             sui::test_scenario::ctx(&mut scenario)

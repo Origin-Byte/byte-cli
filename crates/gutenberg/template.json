@@ -94,6 +94,25 @@
         // "Unprotected" generates the orderbook on publishing
         // Required
         // Possible values: `["none", "unprotected", "protected"]`
-        "orderbook": "protected"
+        "orderbook": "protected",
+        // Fields that will be generated on NFT
+        "fields": [
+            [
+                "name",
+                "String"
+            ],
+            [
+                "description",
+                "String"
+            ],
+            [
+                "url",
+                "Url"
+            ],
+            [
+                "attributes",
+                "Attributes"
+            ]
+        ]
     }
 }

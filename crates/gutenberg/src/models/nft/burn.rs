@@ -6,6 +6,8 @@ use std::{
 
 use crate::{err::GutenError, models::collection::Supply};
 
+use super::Fields;
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Burn {
@@ -49,6 +51,7 @@ impl Burn {
 
     pub fn write_move_defs(
         &self,
+        fields: &Fields,
         type_name: &str,
         requires_collection: bool,
         requires_listing: bool,
@@ -106,6 +109,9 @@ impl Burn {
             )
             .unwrap_or_default();
 
+        let fields_str: String =
+            fields.keys().map(|field| format!(", {field}: _")).collect();
+
         code.push_str(&format!(
             "
 
@@ -114,7 +120,7 @@ impl Burn {
         nft: {type_name},
     ) {{{delegated_witness_init_str}
         let guard = nft_protocol::mint_event::start_burn(delegated_witness, &nft);
-        let {type_name} {{ id, name: _, description: _, url: _, attributes: _ }} = nft;
+        let {type_name} {{ id{fields_str} }} = nft;
         nft_protocol::mint_event::emit_burn(guard, sui::object::id(collection), id);{collection_decrement_str}
     }}
 
@@ -180,6 +186,7 @@ impl Burn {
 
     pub fn write_move_tests(
         &self,
+        fields: &Fields,
         type_name: &str,
         witness_name: &str,
         requires_collection: bool,
@@ -203,6 +210,16 @@ impl Burn {
                 )
             })
             .unwrap_or_default();
+
+        let fields_str: String = fields
+            .test_params()
+            .map(|param| {
+                format!(
+                    "
+                {param},"
+                )
+            })
+            .collect();
 
         format!("
 
@@ -233,12 +250,7 @@ impl Burn {
                 >
             >(&scenario);
 
-            let nft = mint(
-                std::string::utf8(b\"TEST NAME\"),
-                std::string::utf8(b\"TEST DESCRIPTION\"),
-                b\"https://originbyte.io/\",
-                vector[std::ascii::string(b\"avg_return\")],
-                vector[std::ascii::string(b\"24%\")],
+            let nft = mint({fields_str}
                 &mut mint_cap,{collection_param_str}
                 sui::test_scenario::ctx(&mut scenario)
             );
