@@ -8,7 +8,7 @@ use gutenberg::models::{
 use gutenberg::{
     models::{
         collection::CollectionData,
-        nft::{MintPolicies, NftData, RequestPolicies},
+        nft::{MintPolicies, NftData, RequestPolicies, FieldType},
     },
     Schema,
 };
@@ -49,6 +49,13 @@ pub async fn init_schema(
         MintPolicies::new(true, true),
         RequestPolicies::new(true, false, false),
         Some(Orderbook::Unprotected),
+        vec![
+            ("name", FieldType::String),
+            ("description", FieldType::String),
+            ("url", FieldType::Url),
+            ("attributes", FieldType::Attributes),
+        ]
+        .into(),
     );
 
     Ok((Schema::new(name, collection_data, nft_data), project))
