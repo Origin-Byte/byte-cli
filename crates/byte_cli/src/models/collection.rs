@@ -109,7 +109,7 @@ impl FromPrompt for CollectionData {
         };
         #[cfg(not(feature = "full"))]
         let collection_data = CollectionData::new(
-            Some(name.to_lowercase()),
+            name.to_lowercase(),
             Some(description),
             Some(symbol.to_uppercase()),
             url,

@@ -203,7 +203,7 @@ fn get_file_path(
     filepath.push(format!("{}/", folder));
 
     if let Some(file) = filename {
-        filepath.push(format!("{}", file));
+        filepath.push(file);
     }
 
     filepath

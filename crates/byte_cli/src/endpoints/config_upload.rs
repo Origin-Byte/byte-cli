@@ -5,7 +5,7 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Password, Select};
 
 use uploader::{
-    storage::{aws, nft_storage, pinata},
+    storage::{aws, pinata},
     writer::Storage,
 };
 

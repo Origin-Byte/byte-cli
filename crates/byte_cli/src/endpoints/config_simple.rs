@@ -56,16 +56,16 @@ pub async fn init_schema(
 
 #[cfg(not(feature = "full"))]
 pub async fn init_schema(
-    name: &String,
+    name: &str,
 ) -> Result<(Schema, Project), anyhow::Error> {
     let keystore = rust_sdk::utils::get_keystore().await?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
 
-    let nft_type = name.as_str().to_case(Case::Pascal);
-    let project = Project::new(name.clone(), sender);
+    let nft_type = name.to_case(Case::Pascal);
+    let project = Project::new(name.to_owned(), sender);
 
     let collection_data = CollectionData::new(
-        Some(name.to_lowercase()),
+        name.to_lowercase(),
         None,
         None,
         None,

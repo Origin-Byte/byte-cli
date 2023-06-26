@@ -147,10 +147,9 @@ pub trait Uploader: Prepare {
 
 #[async_trait]
 pub trait ParallelUploader: Uploader + Send + Sync {
-    fn upload_asset<'a>(
+    fn upload_asset(
         &self,
         asset: Asset,
-        // nft_data: RefMut<'a, u32, Metadata, RandomState>,
         metadata: Arc<GlobalMetadata>,
         terminate_flag: Arc<AtomicBool>,
     ) -> JoinHandle<Result<UploadEffects>>;

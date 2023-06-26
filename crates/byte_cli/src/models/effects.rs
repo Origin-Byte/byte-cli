@@ -1,28 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct MintEffects {
     pub minted_nfts: Vec<String>,
     pub error_logs: Vec<MintError>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Minted(pub Vec<u32>);
-
-impl Minted {
-    pub fn new() -> Self {
-        Minted(vec![])
-    }
-}
-
-impl MintEffects {
-    pub fn new() -> Self {
-        Self {
-            minted_nfts: vec![],
-            error_logs: vec![],
-        }
-    }
-}
 
 #[derive(Deserialize, Serialize)]
 pub struct MintError {

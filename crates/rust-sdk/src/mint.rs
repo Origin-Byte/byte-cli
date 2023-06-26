@@ -1,18 +1,16 @@
 use crate::{
     err::{self, RustSdkError},
     metadata::Metadata,
-    utils::{get_context, MoveType},
+    utils::{get_context, get_reference_gas_price, MoveType},
 };
 use anyhow::Result;
 use move_core_types::identifier::Identifier;
 use shared_crypto::intent::Intent;
-use std::{collections::BTreeMap, str::FromStr, sync::Arc};
-use std::{thread, time};
+use std::{str::FromStr, sync::Arc};
 use sui_json_rpc_types::SuiExecutionStatus;
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockEffects};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
-    json::SuiJsonValue,
     types::{
         base_types::{ObjectID, SuiAddress},
         messages::Transaction,
@@ -46,10 +44,13 @@ pub async fn create_warehouse(
     collection_type: MoveType,
     package_id: ObjectID,
     gas_coin: ObjectRef,
+    gas_budget: u64,
 ) -> Result<ObjectID, RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
     let keystore = &wallet_ctx.config.keystore;
     let sender = wallet_ctx.config.active_address.unwrap();
+
+    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
 
     let collection_type = collection_type.write_type();
     let module = Identifier::from_str("warehouse")?;
@@ -68,8 +69,8 @@ pub async fn create_warehouse(
         sender,
         vec![gas_coin], // Gas Objects
         builder.finish(),
-        10_000_000, // Gas Budget
-        1_000,      // Gas Price
+        gas_budget,
+        gas_price,
     );
 
     // Sign transaction.
@@ -95,6 +96,7 @@ pub async fn create_warehouse(
     Ok(warehouse_id)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn handle_mint_nfts_to_warehouse(
     data: Vec<(u32, Metadata)>,
     wallet_ctx: Arc<WalletContext>,
@@ -122,6 +124,7 @@ pub async fn handle_mint_nfts_to_warehouse(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn mint_nfts_to_warehouse(
     mut data: Vec<(u32, Metadata)>,
     wallet_ctx: Arc<WalletContext>,
@@ -139,6 +142,8 @@ pub async fn mint_nfts_to_warehouse(
         .map_err(|err| err::object_id(err, warehouse.as_str()))?;
     let mint_cap_id = ObjectID::from_str(mint_cap.as_str())
         .map_err(|err| err::object_id(err, mint_cap.as_str()))?;
+
+    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
 
     let mut builder = ProgrammableTransactionBuilder::new();
 
@@ -158,11 +163,8 @@ pub async fn mint_nfts_to_warehouse(
         let mut args = nft_data.into_args()?;
         objs.iter().for_each(|obj| {
             let obj_data = obj.data.as_ref().unwrap();
-            let obj_ref: ObjectRef = (
-                obj_data.object_id.clone(),
-                obj_data.version,
-                obj_data.digest,
-            );
+            let obj_ref: ObjectRef =
+                (obj_data.object_id, obj_data.version, obj_data.digest);
             args.push(CallArg::Object(ObjectArg::ImmOrOwnedObject(obj_ref)));
         });
 
@@ -193,8 +195,9 @@ pub async fn mint_nfts_to_warehouse(
 
     let pt = builder.finish();
 
-    let data =
-        TransactionData::new_programmable(sender, coins, pt, gas_budget, 1_000);
+    let data = TransactionData::new_programmable(
+        sender, coins, pt, gas_budget, gas_price,
+    );
 
     // Sign transaction.
     let signatures: Vec<Signature> = vec![wallet_ctx
@@ -234,11 +237,9 @@ pub async fn mint_nfts_to_warehouse(
                 })
                 .collect::<Vec<String>>();
 
-            return Ok(MintEffect::Success(nfts));
+            Ok(MintEffect::Success(nfts))
         }
-        SuiExecutionStatus::Failure { error } => {
-            return Ok(MintEffect::Error(error));
-        }
+        SuiExecutionStatus::Failure { error } => Ok(MintEffect::Error(error)),
     }
 }
 

@@ -7,8 +7,8 @@ use package_manager::{
     version::Version,
 };
 use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
-use std::io::Write;
 use std::path::Path;
+use std::{io::Write, str::FromStr};
 use sui_sdk::rpc_types::{
     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
 };
@@ -70,7 +70,7 @@ pub fn generate_contract(
 
     // Write Move.toml
     // Create the directory if it doesn't exist
-    fs::create_dir_all(&contract_dir.join("flavours/"))?;
+    fs::create_dir_all(contract_dir.join("flavours/"))?;
 
     let main_toml_path = &contract_dir.join("flavours/Move-main.toml");
     let mut mail_toml_file = File::create(main_toml_path).map_err(|err| {
@@ -92,17 +92,17 @@ pub fn generate_contract(
     let module_name = schema.collection().name();
 
     let main_toml_string =
-        write_toml_string(module_name.as_str(), &version, &main_registry)?;
+        write_toml_string(module_name.as_str(), &version, main_registry)?;
 
     let test_toml_string =
-        write_toml_string(module_name.as_str(), &version, &test_registry)?;
+        write_toml_string(module_name.as_str(), &version, test_registry)?;
 
     // Output
     mail_toml_file.write_all(main_toml_string.as_bytes())?;
     test_toml_file.write_all(test_toml_string.as_bytes())?;
 
     // Copy Main Move.toml
-    fs::copy(main_toml_path, &contract_dir.join("Move.toml"))?;
+    fs::copy(main_toml_path, contract_dir.join("Move.toml"))?;
 
     // Write Move contract
     let move_path = &sources_dir.join(format!("{module_name}.move"));
@@ -151,23 +151,23 @@ pub fn write_toml_string(
         Some(version) => MoveToml::get_toml(
             module_name,
             registry,
-            &vec![
+            &[
                 String::from("NftProtocol"),
                 String::from("Launchpad"),
                 String::from("LiquidityLayerV1"),
             ],
-            &vec![String::from("Sui"), String::from("Originmate")],
-            &Version::from_string(version.as_str())?,
+            &[String::from("Sui"), String::from("Originmate")],
+            &Version::from_str(version.as_str())?,
         )?,
         None => MoveToml::get_toml_latest(
             module_name,
             registry,
-            &vec![
+            &[
                 String::from("NftProtocol"),
                 String::from("Launchpad"),
                 String::from("LiquidityLayerV1"),
             ],
-            &vec![String::from("Sui"), String::from("Originmate")],
+            &[String::from("Sui"), String::from("Originmate")],
         )?,
     };
 

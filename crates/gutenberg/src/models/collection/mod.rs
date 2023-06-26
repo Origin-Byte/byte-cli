@@ -302,7 +302,7 @@ impl CollectionData {
         let mut code = String::new();
 
         if self.creators.is_empty() {
-            return None;
+            None
         } else {
             code.push_str(
                 "
@@ -330,8 +330,8 @@ impl CollectionData {
                 creators_domain
             ));
 
-            return Some(code);
-        };
+            Some(code)
+        }
     }
 }
 

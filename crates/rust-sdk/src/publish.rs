@@ -6,11 +6,8 @@ use std::sync::mpsc::Sender;
 use sui_sdk::wallet_context::WalletContext;
 
 use shared_crypto::intent::Intent;
-use std::sync::mpsc::channel;
+use sui_json_rpc_types::SuiTransactionBlockResponse;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
-use sui_json_rpc_types::{
-    SuiTransactionBlockEffects, SuiTransactionBlockResponse,
-};
 use sui_keys::keystore::AccountKeystore;
 use sui_move_build::BuildConfig;
 use sui_sdk::{types::messages::Transaction, SuiClient};
@@ -38,7 +35,6 @@ pub async fn publish_contract(
     let build_config = MoveBuildConfig::default();
 
     let context = get_context().await.unwrap();
-    let client = context.get_client().await?;
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
 

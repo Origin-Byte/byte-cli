@@ -16,7 +16,10 @@ impl PkgRegistry {
         pkg_name: String,
         rev: String,
     ) -> &Address {
-        let versions = &self.0.get(&pkg_name).unwrap();
+        let versions = &self.0.get(&pkg_name).expect(
+            format!("Unable to find package '{}' in Registry", pkg_name)
+                .as_str(),
+        );
 
         let (_, metadata) = versions
             .iter()
@@ -46,7 +49,7 @@ impl PkgRegistry {
 
     pub fn get_pkgs_git(
         &self,
-        dep_names: &Vec<String>,
+        dep_names: &[String],
         version: &Version,
     ) -> HashMap<String, GitPath> {
         let deps = dep_names
@@ -110,10 +113,7 @@ impl PkgRegistry {
         (dep.package.version != latest.package.version).then_some(latest)
     }
 
-    pub fn get_latest_protocol_version<'a>(
-        &'a self,
-        dep_name: &String,
-    ) -> &'a Version {
+    pub fn get_latest_version<'a>(&'a self, dep_name: &str) -> &'a Version {
         // Fetch available versions by package name
         let versions = self.0.get(dep_name).expect(
             format!("Could not find Package Name {} in PkgRegistry", dep_name)
@@ -158,14 +158,14 @@ impl PkgRegistry {
     // i.e. Sui or Originmate
     pub fn get_ext_dep_from_protocol(
         &self,
-        ext_dep: String,
+        ext_dep: &str,
         version: &Version,
     ) -> GitPath {
         let protocol_versions =
             self.0.get(&String::from("NftProtocol")).expect(
                 format!(
                     "Could not find Package Name {} in PkgRegistry",
-                    &ext_dep
+                    ext_dep
                 )
                 .as_str(),
             );
@@ -180,7 +180,7 @@ impl PkgRegistry {
                 .as_str(),
             )
             .dependencies
-            .get(&ext_dep)
+            .get(ext_dep)
             .expect(format!("Unable to fetch {} dependency", ext_dep).as_str())
             .path
             .clone()
@@ -242,7 +242,7 @@ mod test {
 
     use anyhow::Result;
     use gutenberg::models::Address;
-    use std::{collections::HashMap, env, fs::File};
+    use std::{collections::HashMap, env, fs::File, str::FromStr};
 
     use super::{GitPath, Package, PkgInfo, PkgPath};
 
@@ -263,8 +263,8 @@ mod test {
         let file = File::open(current_dir)?;
         let registry: PkgRegistry = serde_json::from_reader(file)?;
 
-        let version_1 = Version::from_string(&String::from("1.0.0"))?;
-        let version_1_2 = Version::from_string(&String::from("1.2.0"))?;
+        let version_1 = Version::from_str(&String::from("1.0.0"))?;
+        let version_1_2 = Version::from_str(&String::from("1.2.0"))?;
 
         let nft_protocol_versions = registry.0.get("NftProtocol");
 
@@ -377,7 +377,7 @@ mod test {
         let old_package = PkgInfo {
             package: Package {
                 name: String::from("Permissions"),
-                version: Version::from_string("1.0.0")?,
+                version: Version::from_str("1.0.0")?,
                 published_at: Some(Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?),
             },
             contract_ref: PkgPath {
@@ -398,7 +398,7 @@ mod test {
         let expected = PkgInfo {
             package: Package {
                 name: String::from("Permissions"),
-                version: Version::from_string("1.2.0")?,
+                version: Version::from_str("1.2.0")?,
                 published_at: Some(Address::new(String::from("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8"))?),
             },
             contract_ref: PkgPath {
@@ -421,8 +421,139 @@ mod test {
         Ok(())
     }
 
-    // TODO
-    // get latest dependency
-    // get_ext_dep_from_protocol
-    // name_pascal
+    #[test]
+    fn test_get_latest_version() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let actual = registry.get_latest_version("NftProtocol");
+        let expected = Version::from_str("1.2.0")?;
+
+        assert_eq!(actual, &expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_ext_dependency() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let actual = registry
+            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.0.0")?);
+
+        assert_eq!(
+            actual.git,
+            String::from("https://github.com/MystenLabs/sui.git")
+        );
+        assert_eq!(
+            actual.subdir,
+            Some(String::from("crates/sui-framework/packages/sui-framework"))
+        );
+        assert_eq!(
+            actual.rev,
+            String::from("ae1212baf8f0837e25926d941db3d26a61c1bea2")
+        );
+
+        let actual = registry
+            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.2.0")?);
+
+        assert_eq!(
+            actual.git,
+            String::from("https://github.com/MystenLabs/sui.git")
+        );
+        assert_eq!(
+            actual.subdir,
+            Some(String::from("crates/sui-framework/packages/sui-framework"))
+        );
+        assert_eq!(
+            actual.rev,
+            String::from("8b681515c0cf435df2a54198a28ab4ef574d202b")
+        );
+
+        let actual = registry.get_ext_dep_from_protocol(
+            "Originmate",
+            &Version::from_str("1.0.0")?,
+        );
+
+        assert_eq!(
+            actual.git,
+            String::from("https://github.com/Origin-Byte/originmate.git")
+        );
+        assert_eq!(actual.subdir, Some(String::from("")));
+        assert_eq!(
+            actual.rev,
+            String::from("36e02283fa00451e8476a1bbc201af9a248396de")
+        );
+
+        let actual = registry.get_ext_dep_from_protocol(
+            "Originmate",
+            &Version::from_str("1.2.0")?,
+        );
+
+        assert_eq!(
+            actual.git,
+            String::from("https://github.com/Origin-Byte/originmate.git")
+        );
+        assert_eq!(actual.subdir, Some(String::from("")));
+        assert_eq!(
+            actual.rev,
+            String::from("3e23d0707a346cf8780345611a2a25db3ec482b3")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_pascal_name() -> Result<()> {
+        let current_dir =
+            env::current_dir().expect("Failed to retrieve current directory.");
+
+        // Specify the file name or relative path of the file
+        let file_path = "registry/registry-main.json";
+
+        // Construct the full path to the file
+        let current_dir = current_dir.join(file_path);
+
+        let file = File::open(current_dir)?;
+        let registry: PkgRegistry = serde_json::from_reader(file)?;
+
+        let pkg = registry
+            .0
+            .get("NftProtocol")
+            .unwrap()
+            .get(&Version::from_str("1.0.0")?)
+            .unwrap();
+
+        assert_eq!(pkg.package.name_pascal(), "NftProtocol");
+
+        let pkg = registry
+            .0
+            .get("LiquidityLayer")
+            .unwrap()
+            .get(&Version::from_str("1.0.0")?)
+            .unwrap();
+
+        assert_eq!(pkg.package.name_pascal(), "LiquidityLayer");
+
+        Ok(())
+    }
 }

@@ -1,9 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use console::style;
 use gutenberg::models::Address;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+};
 
 use crate::{
     pkg::{GitPath, Package, PkgInfo, PkgPath, PkgRegistry},
@@ -129,27 +132,27 @@ impl MoveToml {
     pub fn get_toml(
         name: &str,
         pkg_registry: &PkgRegistry,
-        dep_names: &Vec<String>,
-        ext_dep_names: &Vec<String>,
+        dep_names: &[String],
+        ext_dep_names: &[String],
         version: &Version,
     ) -> Result<Self> {
         let empty_addr = Address::new(String::from("0x0"))?;
 
-        let mut dependencies = pkg_registry.get_pkgs_git(dep_names, &version);
+        let mut dependencies = pkg_registry.get_pkgs_git(dep_names, version);
 
         // Inserts Sui and Originmate
         ext_dep_names.iter().for_each(|dep_name| {
             dependencies.insert(
                 dep_name.clone(),
                 pkg_registry
-                    .get_ext_dep_from_protocol(dep_name.clone(), version),
+                    .get_ext_dep_from_protocol(dep_name.as_str(), version),
             );
         });
 
         let toml = MoveToml {
             package: Package {
                 name: name.to_string(),
-                version: Version::from_string("1.0.0")?,
+                version: Version::from_str("1.0.0")?,
                 published_at: Some(empty_addr.clone()),
             },
             dependencies,
@@ -162,12 +165,12 @@ impl MoveToml {
     pub fn get_toml_latest(
         name: &str,
         pkg_registry: &PkgRegistry,
-        dep_names: &Vec<String>,
-        ext_dep_names: &Vec<String>,
+        dep_names: &[String],
+        ext_dep_names: &[String],
     ) -> Result<Self> {
         // Oath of honor --> Monolitic release (for now)
-        let version = pkg_registry
-            .get_latest_protocol_version(&String::from("NftProtocol"));
+        let version =
+            pkg_registry.get_latest_version(&String::from("NftProtocol"));
 
         MoveToml::get_toml(
             name,
@@ -178,10 +181,7 @@ impl MoveToml {
         )
     }
 
-    pub fn get_dependency<'a>(
-        self: &'a Self,
-        dep_name: &'a str,
-    ) -> &'a GitPath {
+    pub fn get_dependency<'a>(&'a self, dep_name: &'a str) -> &'a GitPath {
         // Fetch available versions by package name
         let dependency = self.dependencies.get(dep_name).expect(
             format!("Could not find GitPath Name {} in Move.toml", dep_name)
@@ -249,6 +249,7 @@ pub fn get_contract_ref(
 /// This function is here because Toml serialiser seems to be
 /// failing to add a vertical space between the tables `package` and `dependencies`
 pub fn add_vertical_spacing(input: &str) -> String {
-    let re = Regex::new(r"(?m)^(published-at.*)").unwrap();
+    let re = Regex::new(r"(?m)^(published-at.*)")
+        .expect("Failed to read `published-at` field");
     re.replace_all(input, "$1\n").to_string()
 }

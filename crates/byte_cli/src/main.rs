@@ -143,7 +143,6 @@ async fn run() -> Result<()> {
             name,
             project_dir,
             gas_budget,
-            version,
         } => {
             // Input
             let project_path =
@@ -341,9 +340,7 @@ async fn run() -> Result<()> {
             project_dir,
         } => {
             let mut project_dir = match project_dir {
-                Some(pj_dir) => {
-                    PathBuf::from(Path::new(pj_dir.clone().as_str()))
-                }
+                Some(pj_dir) => PathBuf::from(Path::new(pj_dir.as_str())),
                 None => match &name {
                     // If there is a project name but no project dir, then
                     // default to `.byte` directory
@@ -355,7 +352,7 @@ async fn run() -> Result<()> {
             };
 
             if let Some(name) = name {
-                project_dir.push(format!("{}/contract", name.clone()));
+                project_dir.push(format!("{}/contract", name));
             }
 
             let network = Network::from_str(network.as_str())
@@ -375,7 +372,7 @@ async fn run() -> Result<()> {
 
             // Create or open the destination file for writing
             let mut destination_file =
-                fs::File::create(&project_dir.join("Move.toml"))?;
+                fs::File::create(project_dir.join("Move.toml"))?;
 
             // Read the contents of the source file
             let mut buffer = Vec::new();

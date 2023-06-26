@@ -8,7 +8,7 @@ use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
 use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
 
-use crate::err::{self, RustSdkError};
+use crate::err::RustSdkError;
 
 pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);
@@ -16,6 +16,19 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let ctx = WalletContext::new(&config_path, None).await?;
 
     Ok(ctx)
+}
+
+pub async fn get_reference_gas_price(
+    wallet_ctx: &WalletContext,
+) -> Result<u64, RustSdkError> {
+    let gas_price = wallet_ctx
+        .get_client()
+        .await?
+        .read_api()
+        .get_reference_gas_price()
+        .await?;
+
+    Ok(gas_price)
 }
 
 pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
@@ -71,8 +84,5 @@ impl MoveType {
 }
 
 pub fn get_object_id(obj_id_str: &str) -> ObjectID {
-    let obj_id =
-        ObjectID::from_str(obj_id_str).expect("Could not parse object ID");
-
-    obj_id
+    ObjectID::from_str(obj_id_str).expect("Could not parse object ID")
 }
