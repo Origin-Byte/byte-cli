@@ -45,7 +45,6 @@ pub struct PinataConfig {
     pub jwt: String,
     pub upload_gateway: String,
     pub retrieval_gateway: String,
-    // TODO: Reconsider this limit
     #[serde(default = "default_limit")]
     pub parallel_limit: u16,
 }

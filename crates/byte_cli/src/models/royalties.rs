@@ -35,7 +35,6 @@ impl FromPrompt for RoyaltyPolicy {
 pub fn get_policy_type() -> Result<RoyaltyPolicy, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
-    // TODO: Check that the basis points do not surpass 100%
     let bps = Input::with_theme(&theme)
         .with_prompt("What is the proportional royalty fee in basis points?")
         .validate_with(bps_validator)
@@ -91,7 +90,6 @@ pub fn get_beneficiaries() -> Result<BTreeSet<Share>> {
             }
         };
 
-        // TODO: Check that sum of shares matches 100%
         let share = loop {
             let share = Input::with_theme(&theme)
                 .with_prompt(

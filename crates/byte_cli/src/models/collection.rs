@@ -21,19 +21,19 @@ impl FromPrompt for CollectionData {
         let theme = get_dialoguer_theme();
 
         let name = Input::with_theme(&theme)
-            .with_prompt("Please provide the name of the Collection:")
+            .with_prompt("Collection name:")
             .validate_with(name_validator)
             .interact()
             .unwrap();
 
         let description = Input::with_theme(&theme)
-            .with_prompt("Please provide the description of the Collection:")
+            .with_prompt("Collection description:")
             .interact()
             .unwrap();
 
         let symbol = Input::with_theme(&theme)
             .with_prompt(format!(
-                "Please provide the symbol of the Collection? (Maximum of {} letters)",
+                "Collection symbol (Maximum of {} letters):",
                 MAX_SYMBOL_LENGTH
             ))
             .validate_with(symbol_validator)
@@ -41,13 +41,13 @@ impl FromPrompt for CollectionData {
             .unwrap();
 
         let has_url = Confirm::with_theme(&theme)
-            .with_prompt("Do you want to add a URL to your project's website?")
+            .with_prompt("Do you want to add a Link to the project website?")
             .interact()
             .unwrap();
 
         let url = has_url.then(|| {
             Input::with_theme(&theme)
-                .with_prompt("What is the URL of the project's website?")
+                .with_prompt("Project website link:")
                 .validate_with(url_validator)
                 .interact()
                 .unwrap()
@@ -55,7 +55,7 @@ impl FromPrompt for CollectionData {
 
         // TODO: Separate into `Creators::from_prompt`
         let creators_num = Input::with_theme(&theme)
-            .with_prompt("How many creator addresses are there?")
+            .with_prompt("Number of creator addresses:")
             .validate_with(positive_integer_validator)
             .interact()
             .unwrap()

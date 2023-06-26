@@ -6,6 +6,7 @@ use crate::{
 };
 
 pub mod collection;
+pub mod effects;
 pub mod nft;
 pub mod project;
 #[cfg(feature = "full")]

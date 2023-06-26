@@ -1,7 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::Schema;
-use package_manager::move_lib::PackageMap;
 use package_manager::toml::MoveToml;
 use package_manager::Network;
 use rust_sdk::{coin, utils::MoveType};
@@ -10,30 +9,28 @@ use std::sync::Arc;
 use sui_sdk::types::base_types::ObjectID;
 use terminal_link::Link;
 
-use rust_sdk::{
-    mint::{self},
-    utils::{get_active_address, get_context},
-};
+use rust_sdk::{mint, utils::get_context};
 
-use crate::models::project::{CollectionObjects, Project};
+use crate::{
+    io,
+    models::project::{CollectionObjects, Project},
+};
 
 pub async fn create_warehouse(
     schema: &Schema,
     gas_budget: usize,
     move_toml: &MoveToml,
-    // TODO: Get registry depending on the network
-    registry: &PackageMap,
     state: &mut Project,
-    network: &Network,
 ) -> Result<()> {
     let contract_id = state.package_id.as_ref().unwrap().to_string();
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let wallet_ctx = Arc::new(get_context().await.unwrap());
-    let active_address =
-        get_active_address(&wallet_ctx.config.keystore).unwrap();
+    let network_string = wallet_ctx.config.active_env.as_ref().unwrap();
+    let net = Network::from_str(network_string.as_str())
+        .map_err(|_| anyhow!("Invalid network string"))?;
 
-    let gas_budget_ref = Arc::new(gas_budget as u64);
+    let registry = io::get_program_registry(&net)?;
 
     println!("{} Creating warehouse", style("WIP").cyan().bold());
     let collection_type = MoveType::new(
@@ -65,7 +62,7 @@ pub async fn create_warehouse(
     let explorer_link = format!(
         "https://explorer.sui.io/object/{}?network={}",
         warehouse_object_id.clone(),
-        network
+        net
     );
     let link = Link::new("Sui Explorer", explorer_link.as_str());
 

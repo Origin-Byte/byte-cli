@@ -1,5 +1,6 @@
 use crate::storage::{
-    aws::AWSConfig, nft_storage::NftStorageConfig, pinata::PinataConfig,
+    aws::AWSConfig,
+    pinata::PinataConfig, // nft_storage::NftStorageConfig
 };
 
 use serde::{Deserialize, Serialize};
@@ -8,9 +9,5 @@ use serde::{Deserialize, Serialize};
 pub enum Storage {
     Aws(AWSConfig),
     Pinata(PinataConfig),
-    NftStorage(NftStorageConfig),
-    // Bundlr(BundlrConfig),
-    // Shdw(ShdwConfig),
+    // NftStorage(NftStorageConfig),
 }
-
-// TODO: Add method to upload

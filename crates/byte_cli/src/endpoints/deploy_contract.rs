@@ -47,7 +47,7 @@ Call `byte_cli init-collection-config` to initialize the configuration file."#,
     })?;
 
     serde_json::from_reader::<File, Project>(file)
-        .map_err(|err| anyhow!(r#"ERR TODO: {err}."#))
+        .map_err(|err| anyhow!(r#"Failed to serialize project state: {err}."#))
 }
 
 pub fn generate_contract(

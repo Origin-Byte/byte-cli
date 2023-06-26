@@ -1,4 +1,3 @@
-// TODO: Add back minting with arguments, including mint_cap and warehouse
 use crate::{
     err::{self, RustSdkError},
     metadata::Metadata,
@@ -7,12 +6,11 @@ use crate::{
 use anyhow::Result;
 use move_core_types::identifier::Identifier;
 use shared_crypto::intent::Intent;
-use std::{collections::BTreeMap, str::FromStr, sync::Arc};
-use std::{thread, time};
+use std::{str::FromStr, sync::Arc};
+use sui_json_rpc_types::SuiExecutionStatus;
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockEffects};
 use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
-    json::SuiJsonValue,
     types::{
         base_types::{ObjectID, SuiAddress},
         messages::Transaction,
@@ -22,6 +20,7 @@ use sui_sdk::{
 use sui_types::{
     base_types::ObjectRef,
     messages::{CallArg, ObjectArg},
+    object::Owner,
     parse_sui_type_tag,
 };
 use sui_types::{
@@ -29,6 +28,17 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 use tokio::task::JoinHandle;
+
+pub enum MintEffect {
+    Success(Vec<String>),
+    Error(String),
+}
+
+pub enum MintFunction {
+    WalletAirdrop,
+    KioskAirdrop(ObjectRef),
+    Warehouse(ObjectRef),
+}
 
 pub async fn create_warehouse(
     collection_type: MoveType,
@@ -83,35 +93,44 @@ pub async fn create_warehouse(
     Ok(warehouse_id)
 }
 
-pub async fn handle_mint_nft(
+pub async fn handle_mint_nfts_to_warehouse(
+    data: Vec<(u32, Metadata)>,
     wallet_ctx: Arc<WalletContext>,
     package_id: Arc<String>,
     module_name: Arc<String>,
-    gas_budget: Arc<u64>,
+    gas_budget: u64,
+    gas_coin: Option<Arc<ObjectRef>>,
     sender: SuiAddress,
-) -> JoinHandle<Result<Vec<ObjectID>, RustSdkError>> {
+    warehouse: Arc<String>,
+    mint_cap: Arc<String>,
+) -> JoinHandle<Result<MintEffect, RustSdkError>> {
     tokio::spawn(async move {
-        mint_nft_concurrent(
+        mint_nfts_to_warehouse(
+            data,
             wallet_ctx,
             package_id,
             module_name,
             gas_budget,
+            gas_coin,
             sender,
+            warehouse,
+            mint_cap,
         )
         .await
     })
 }
 
-pub async fn mint_nfts_in_batch(
-    mut data: BTreeMap<u32, Metadata>,
-    wallet_ctx: &WalletContext,
-    package_id: String,
-    module_name: String,
+pub async fn mint_nfts_to_warehouse(
+    mut data: Vec<(u32, Metadata)>,
+    wallet_ctx: Arc<WalletContext>,
+    package_id: Arc<String>,
+    module_name: Arc<String>,
     gas_budget: u64,
+    gas_coin: Option<Arc<ObjectRef>>,
     sender: SuiAddress,
-    warehouse: String,
-    mint_cap: String,
-) -> Result<Vec<ObjectID>, RustSdkError> {
+    warehouse: Arc<String>,
+    mint_cap: Arc<String>,
+) -> Result<MintEffect, RustSdkError> {
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
     let warehouse_id = ObjectID::from_str(warehouse.as_str())
@@ -133,9 +152,7 @@ pub async fn mint_nfts_in_batch(
         .unwrap();
 
     // Iterate over the entries and consume them
-    while let Some((index, nft_data)) = data.pop_first() {
-        println!("Key: {}, Value: {:?}", index, nft_data);
-
+    while let Some((_index, nft_data)) = data.pop() {
         let mut args = nft_data.into_args()?;
         objs.iter().for_each(|obj| {
             let obj_data = obj.data.as_ref().unwrap();
@@ -150,28 +167,32 @@ pub async fn mint_nfts_in_batch(
         builder.move_call(
             package_id,
             Identifier::new(module_name.as_str()).unwrap(),
-            Identifier::new("airdrop_nft").unwrap(),
+            Identifier::new("mint_nft_to_warehouse").unwrap(),
             vec![],
             args,
         )?;
     }
 
     // Get gas object
-    let coins: Vec<ObjectRef> = wallet_ctx
-        .gas_objects(sender)
-        .await?
-        .iter()
-        // Ok to unwrap() since `get_gas_objects` guarantees gas
-        .map(|(_val, object)| (object.object_id, object.version, object.digest))
-        .collect();
+    let coins: Vec<ObjectRef> = match gas_coin {
+        Some(coin) => vec![*coin],
+        None => {
+            wallet_ctx
+                .gas_objects(sender)
+                .await?
+                .iter()
+                // Ok to unwrap() since `get_gas_objects` guarantees gas
+                .map(|(_val, object)| {
+                    (object.object_id, object.version, object.digest)
+                })
+                .collect()
+        }
+    };
 
-    let data = TransactionData::new_programmable(
-        sender,
-        coins, // Gas Objects
-        builder.finish(),
-        gas_budget, // Gas Budget
-        1_000,      // Gas Price
-    );
+    let pt = builder.finish();
+
+    let data =
+        TransactionData::new_programmable(sender, coins, pt, gas_budget, 1_000);
 
     // Sign transaction.
     let signatures: Vec<Signature> = vec![wallet_ctx
@@ -189,216 +210,138 @@ pub async fn mint_nfts_in_batch(
 
     let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
-    let nft_ids = effects.created;
-    let mut i = 0;
+    match effects.status {
+        SuiExecutionStatus::Success => {
+            let obj_ids = effects.created;
+            let warehouse_addr =
+                SuiAddress::from_str(warehouse.as_str()).unwrap();
 
-    let nfts = nft_ids
-        .iter()
-        .map(|obj_ref| {
-            println!("NFT minted: {:?}", obj_ref.reference.object_id);
-            i += 1;
-            obj_ref.reference.object_id
-        })
-        .collect::<Vec<ObjectID>>();
+            let nfts = obj_ids
+                .iter()
+                .filter_map(|obj_ref| {
+                    // Filters out dynamic fields
+                    if let Owner::ObjectOwner(owner) = obj_ref.owner {
+                        if owner == warehouse_addr {
+                            Some(obj_ref.reference.object_id.to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<String>>();
 
-    Ok(nfts)
+            return Ok(MintEffect::Success(nfts));
+        }
+        SuiExecutionStatus::Failure { error } => {
+            return Ok(MintEffect::Error(error));
+        }
+    }
 }
 
-pub async fn mint_nft_concurrent(
-    wallet_ctx: Arc<WalletContext>,
-    package_id: Arc<String>,
-    module_name: Arc<String>,
-    gas_budget: Arc<u64>,
-    // SuiAddress implements Copy
-    sender: SuiAddress,
-) -> Result<Vec<ObjectID>, RustSdkError> {
-    let package_id = ObjectID::from_str(package_id.as_str())
-        .map_err(|err| err::object_id(err, package_id.as_str()))?;
+// TODO: Add back
+// pub async fn handle_parallel_mint_nft(
+//     wallet_ctx: Arc<WalletContext>,
+//     package_id: Arc<String>,
+//     module_name: Arc<String>,
+//     gas_budget: Arc<u64>,
+//     gas_coin: Arc<ObjectRef>,
+//     sender: SuiAddress,
+// ) -> JoinHandle<Result<Vec<ObjectID>, RustSdkError>> {
+//     tokio::spawn(async move {
+//         mint_nft_with_gas_coin(
+//             wallet_ctx,
+//             package_id,
+//             module_name,
+//             gas_budget,
+//             gas_coin,
+//             sender,
+//         )
+//         .await
+//     })
+// }
 
-    let mut retry = 0;
-    let response = loop {
-        let mut builder = ProgrammableTransactionBuilder::new();
+// TODO: Add back
+// pub async fn mint_nft_with_gas_coin(
+//     wallet_ctx: Arc<WalletContext>,
+//     package_id: Arc<String>,
+//     module_name: Arc<String>,
+//     gas_budget: Arc<u64>,
+//     gas_coin: Arc<ObjectRef>,
+//     // SuiAddress implements Copy
+//     sender: SuiAddress,
+// ) -> Result<Vec<ObjectID>, RustSdkError> {
+//     let package_id = ObjectID::from_str(package_id.as_str())
+//         .map_err(|err| err::object_id(err, package_id.as_str()))?;
 
-        for _ in 0..1 {
-            builder.move_call(
-                package_id,
-                Identifier::new(module_name.as_str()).unwrap(),
-                Identifier::new("airdrop_nft").unwrap(),
-                vec![],
-                vec![],
-            )?;
-        }
+//     let mut retry = 0;
+//     let response = loop {
+//         let mut builder = ProgrammableTransactionBuilder::new();
 
-        // Get gas object
-        let coins: Vec<ObjectRef> = wallet_ctx
-            .gas_objects(sender)
-            .await?
-            .iter()
-            // Ok to unwrap() since `get_gas_objects` guarantees gas
-            .map(|(_val, object)| {
-                (object.object_id, object.version, object.digest)
-            })
-            .collect();
+//         // TODO: generalise amount of NFTs minted
+//         for _ in 0..1_000 {
+//             builder.move_call(
+//                 package_id,
+//                 Identifier::new(module_name.as_str()).unwrap(),
+//                 Identifier::new("airdrop_nft").unwrap(),
+//                 vec![],
+//                 vec![],
+//             )?;
+//         }
 
-        let data = TransactionData::new_programmable(
-            sender,
-            coins, // Gas Objects
-            builder.finish(),
-            *gas_budget, // Gas Budget
-            1_000,       // Gas Price
-        );
+//         let data = TransactionData::new_programmable(
+//             sender,
+//             vec![*gas_coin], // Gas Objects
+//             builder.finish(),
+//             *gas_budget, // Gas Budget
+//             1_000,       // Gas Price
+//         );
 
-        // Sign transaction.
-        let signatures: Vec<Signature> = vec![wallet_ctx
-            .config
-            .keystore
-            .sign_secure(&sender, &data, Intent::sui_transaction())?];
+//         // Sign transaction.
+//         let signatures: Vec<Signature> = vec![wallet_ctx
+//             .config
+//             .keystore
+//             .sign_secure(&sender, &data, Intent::sui_transaction())?];
 
-        // Execute the transaction.
+//         // Execute the transaction.
+//         let response_ = wallet_ctx
+//             .execute_transaction_block(
+//                 Transaction::from_data(
+//                     data,
+//                     Intent::sui_transaction(),
+//                     signatures,
+//                 )
+//                 .verify()?,
+//             )
+//             .await;
 
-        let response_ = wallet_ctx
-            .execute_transaction_block(
-                Transaction::from_data(
-                    data,
-                    Intent::sui_transaction(),
-                    signatures,
-                )
-                .verify()?,
-            )
-            .await;
+//         if retry == 3 {
+//             break response_?;
+//         }
 
-        if retry == 3 {
-            break response_?;
-        }
+//         if response_.is_err() {
+//             println!("Retrying mint...");
+//             let ten_millis = time::Duration::from_millis(1000);
+//             thread::sleep(ten_millis);
+//             retry += 1;
+//             continue;
+//         }
+//         break response_?;
+//     };
 
-        if response_.is_err() {
-            println!("Retrying mint...");
-            let ten_millis = time::Duration::from_millis(1000);
-            thread::sleep(ten_millis);
-            retry += 1;
-            continue;
-        }
-        break response_?;
-    };
+//     let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+//     let nft_ids = effects.created;
+//     let mut i = 0;
 
-    let nft_ids = effects.created;
-    let mut i = 0;
+//     let nfts = nft_ids
+//         .iter()
+//         .map(|obj_ref| {
+//             i += 1;
+//             obj_ref.reference.object_id
+//         })
+//         .collect::<Vec<ObjectID>>();
 
-    let nfts = nft_ids
-        .iter()
-        .map(|obj_ref| {
-            println!("NFT minted: {:?}", obj_ref.reference.object_id);
-            i += 1;
-            obj_ref.reference.object_id
-        })
-        .collect::<Vec<ObjectID>>();
-
-    Ok(nfts)
-}
-
-pub async fn handle_parallel_mint_nft(
-    wallet_ctx: Arc<WalletContext>,
-    package_id: Arc<String>,
-    module_name: Arc<String>,
-    gas_budget: Arc<u64>,
-    gas_coin: Arc<ObjectRef>,
-    sender: SuiAddress,
-) -> JoinHandle<Result<Vec<ObjectID>, RustSdkError>> {
-    tokio::spawn(async move {
-        mint_nft_with_gas_coin(
-            wallet_ctx,
-            package_id,
-            module_name,
-            gas_budget,
-            gas_coin,
-            sender,
-        )
-        .await
-    })
-}
-
-pub async fn mint_nft_with_gas_coin(
-    wallet_ctx: Arc<WalletContext>,
-    package_id: Arc<String>,
-    module_name: Arc<String>,
-    gas_budget: Arc<u64>,
-    gas_coin: Arc<ObjectRef>,
-    // SuiAddress implements Copy
-    sender: SuiAddress,
-) -> Result<Vec<ObjectID>, RustSdkError> {
-    let package_id = ObjectID::from_str(package_id.as_str())
-        .map_err(|err| err::object_id(err, package_id.as_str()))?;
-
-    let mut retry = 0;
-    let response = loop {
-        let mut builder = ProgrammableTransactionBuilder::new();
-
-        // TODO: generalise amount of NFTs minted
-        for _ in 0..1_000 {
-            builder.move_call(
-                package_id,
-                Identifier::new(module_name.as_str()).unwrap(),
-                Identifier::new("airdrop_nft").unwrap(),
-                vec![],
-                vec![],
-            )?;
-        }
-
-        let data = TransactionData::new_programmable(
-            sender,
-            vec![*gas_coin], // Gas Objects
-            builder.finish(),
-            *gas_budget, // Gas Budget
-            1_000,       // Gas Price
-        );
-
-        // Sign transaction.
-        let signatures: Vec<Signature> = vec![wallet_ctx
-            .config
-            .keystore
-            .sign_secure(&sender, &data, Intent::sui_transaction())?];
-
-        // Execute the transaction.
-        let response_ = wallet_ctx
-            .execute_transaction_block(
-                Transaction::from_data(
-                    data,
-                    Intent::sui_transaction(),
-                    signatures,
-                )
-                .verify()?,
-            )
-            .await;
-
-        if retry == 3 {
-            break response_?;
-        }
-
-        if response_.is_err() {
-            println!("Retrying mint...");
-            let ten_millis = time::Duration::from_millis(1000);
-            thread::sleep(ten_millis);
-            retry += 1;
-            continue;
-        }
-        break response_?;
-    };
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    let nft_ids = effects.created;
-    let mut i = 0;
-
-    let nfts = nft_ids
-        .iter()
-        .map(|obj_ref| {
-            println!("NFT minted: {:?}", obj_ref.reference.object_id);
-            i += 1;
-            obj_ref.reference.object_id
-        })
-        .collect::<Vec<ObjectID>>();
-
-    Ok(nfts)
-}
+//     Ok(nfts)
+// }
