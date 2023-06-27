@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg::models::Address;
 use regex::Regex;
@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::{
-    pkg::{GitPath, Package, PkgInfo, PkgPath, PkgRegistry},
+    package::{GitPath, Package, PackageInfo, PackagePath, PackageRegistry},
     version::Version,
 };
 
@@ -29,63 +29,63 @@ impl MoveToml {
 
     pub fn pkg_info_list<'a>(
         &'a self,
-        pkg_registry: &'a PkgRegistry,
-    ) -> &'a BTreeMap<Version, PkgInfo> {
-        pkg_registry.0.get(&self.package.name_pascal()).expect(
-            format!(
-                "Could not find package '{}' in Package Registry",
-                self.package.name_pascal()
-            )
-            .as_str(),
-        )
+        pkg_registry: &'a PackageRegistry,
+    ) -> Result<&'a BTreeMap<Version, PackageInfo>> {
+        pkg_registry
+            .0
+            .get(&self.package.name_pascal())
+            .ok_or_else(|| {
+                anyhow!(format!(
+                    "Could not find package '{}' in Package Registry",
+                    self.package.name_pascal()
+                ))
+            })
     }
 
     pub fn pkg_info<'a>(
         &'a self,
-        pkg_registry: &'a PkgRegistry,
-    ) -> &'a PkgInfo {
-        let info_list = self.pkg_info_list(pkg_registry);
+        pkg_registry: &'a PackageRegistry,
+    ) -> Result<&'a PackageInfo> {
+        let info_list = self.pkg_info_list(pkg_registry)?;
 
-        info_list.get(&self.package.version).expect(
-            format!(
+        info_list.get(&self.package.version).ok_or_else(|| {
+            anyhow!(format!(
                 "Could not find version '{}' for Package '{}'",
                 self.package.version,
                 self.package.name_pascal()
-            )
-            .as_str(),
-        )
+            ))
+        })
     }
 
     pub fn dependency_pkg_infos<'a>(
         &'a self,
-        pkg_registry: &'a PkgRegistry,
-    ) -> Vec<&'a PkgInfo> {
+        pkg_registry: &'a PackageRegistry,
+    ) -> Vec<&'a PackageInfo> {
         self.dependencies
             .iter()
             .filter_map(|(name, specs)| {
                 let dep_pack = pkg_registry.0.get(name);
 
                 if let Some(pack) = dep_pack {
-                    Some(get_pkg_info(specs, pack))
+                    Some(get_package_info(specs, pack))
                 } else {
                     println!("{} Skipping Package {:?}, could not find it in the Package Registry", style("Warning ").yellow().bold(), name);
                     None
                 }
             })
-            .collect::<Vec<&'a PkgInfo>>()
+            .collect::<Vec<&'a PackageInfo>>()
     }
 
     pub fn get_dependency_ids<'a>(
         &'a self,
-        pkg_registry: &'a PkgRegistry,
+        pkg_registry: &'a PackageRegistry,
     ) -> Vec<&'a Address> {
-        self
-            .dependencies
+        self.dependencies
             .iter()
             .map(|(name, specs)| {
                 let dep_pack = pkg_registry.0.get(name).expect(
                     format!(
-                        "Could not find Package Name {} in PkgRegistry",
+                        "Could not find Package Name {} in PackageRegistry",
                         name
                     )
                     .as_str(),
@@ -96,10 +96,10 @@ impl MoveToml {
             .collect()
     }
 
-    pub fn update_toml(&mut self, pkg_registry: &PkgRegistry) {
+    pub fn update_toml(&mut self, pkg_registry: &PackageRegistry) {
         let dependencies = self.dependency_pkg_infos(pkg_registry);
 
-        let to_update = pkg_registry.get_pkgs_to_update(&dependencies);
+        let to_update = pkg_registry.get_packages_to_update(&dependencies);
 
         let mut updated_deps = to_update
             .iter()
@@ -129,23 +129,27 @@ impl MoveToml {
 
     pub fn get_toml(
         name: &str,
-        pkg_registry: &PkgRegistry,
+        pkg_registry: &PackageRegistry,
         dep_names: &[String],
         ext_dep_names: &[String],
         version: &Version,
     ) -> Result<Self> {
         let empty_addr = Address::new(String::from("0x0"))?;
 
-        let mut dependencies = pkg_registry.get_pkgs_git(dep_names, version);
+        let mut dependencies =
+            pkg_registry.get_packages_git(dep_names, version)?;
 
         // Inserts Sui and Originmate
-        ext_dep_names.iter().for_each(|dep_name| {
-            dependencies.insert(
-                dep_name.clone(),
-                pkg_registry
-                    .get_ext_dep_from_protocol(dep_name.as_str(), version),
-            );
-        });
+        ext_dep_names
+            .iter()
+            .try_for_each::<_, Result<()>>(|dep_name| {
+                let ext_dep = pkg_registry
+                    .get_ext_dep_from_protocol(dep_name.as_str(), version)?;
+
+                dependencies.insert(dep_name.clone(), ext_dep);
+
+                Ok(())
+            })?;
 
         let toml = MoveToml {
             package: Package {
@@ -162,13 +166,13 @@ impl MoveToml {
 
     pub fn get_toml_latest(
         name: &str,
-        pkg_registry: &PkgRegistry,
+        pkg_registry: &PackageRegistry,
         dep_names: &[String],
         ext_dep_names: &[String],
     ) -> Result<Self> {
         // Oath of honor --> Monolitic release (for now)
         let version =
-            pkg_registry.get_latest_version(&String::from("NftProtocol"));
+            pkg_registry.get_latest_version(&String::from("NftProtocol"))?;
 
         MoveToml::get_toml(
             name,
@@ -190,10 +194,10 @@ impl MoveToml {
     }
 }
 
-pub fn get_pkg_info<'a>(
+pub fn get_package_info<'a>(
     dependency: &'a GitPath,
-    versions: &'a BTreeMap<Version, PkgInfo>,
-) -> &'a PkgInfo {
+    versions: &'a BTreeMap<Version, PackageInfo>,
+) -> &'a PackageInfo {
     let (_, contract) =
         get_version_and_pkg_info_from_rev(versions, &dependency.rev);
 
@@ -201,19 +205,19 @@ pub fn get_pkg_info<'a>(
 }
 
 pub fn get_version_and_pkg_info_from_rev<'a>(
-    versions: &'a BTreeMap<Version, PkgInfo>,
+    versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
-) -> (&'a Version, &'a PkgInfo) {
+) -> (&'a Version, &'a PackageInfo) {
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
         .expect(format!("Could not find rev {} in version map", rev).as_str())
 }
 
-pub fn get_pkg_info_from_rev<'a>(
-    versions: &'a BTreeMap<Version, PkgInfo>,
+pub fn get_package_info_from_rev<'a>(
+    versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
-) -> &'a PkgInfo {
+) -> &'a PackageInfo {
     versions
         .iter()
         .find(|(_, contract)| contract.contract_ref.path.rev == *rev)
@@ -222,23 +226,23 @@ pub fn get_pkg_info_from_rev<'a>(
 }
 
 pub fn get_object_id_from_rev<'a>(
-    versions: &'a BTreeMap<Version, PkgInfo>,
+    versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
 ) -> &'a Address {
     println!("Getting object ID from ");
-    let contract = get_pkg_info_from_rev(versions, rev);
+    let contract = get_package_info_from_rev(versions, rev);
 
     &contract.contract_ref.object_id
 }
 
 pub fn get_contract_ref(
     dependency: &GitPath,
-    versions: &BTreeMap<Version, PkgInfo>,
-) -> PkgPath {
+    versions: &BTreeMap<Version, PackageInfo>,
+) -> PackagePath {
     let (_, contract) =
         get_version_and_pkg_info_from_rev(versions, &dependency.rev);
 
-    PkgPath {
+    PackagePath {
         path: dependency.clone(),
         object_id: contract.contract_ref.object_id.clone(),
     }

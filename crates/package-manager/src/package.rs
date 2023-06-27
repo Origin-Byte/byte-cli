@@ -8,127 +8,129 @@ use crate::version::Version;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct PkgRegistry(pub BTreeMap<String, BTreeMap<Version, PkgInfo>>);
+pub struct PackageRegistry(
+    pub BTreeMap<String, BTreeMap<Version, PackageInfo>>,
+);
 
-impl PkgRegistry {
+impl PackageRegistry {
     pub fn get_object_id_from_rev(
         &self,
         pkg_name: String,
         rev: String,
-    ) -> &Address {
-        let versions = &self.0.get(&pkg_name).expect(
-            format!("Unable to find package '{}' in Registry", pkg_name)
-                .as_str(),
-        );
+    ) -> Result<&Address> {
+        let versions = self.0.get(&pkg_name).ok_or_else(|| {
+            anyhow!(format!(
+                "Unable to find package '{}' in Registry",
+                pkg_name
+            ))
+        })?;
 
         let (_, metadata) = versions
             .iter()
             .find(|(_v, metadata)| metadata.contract_ref.path.rev == rev)
             .unwrap();
 
-        metadata.package.published_at.as_ref().unwrap()
+        metadata.package.published_at.as_ref().ok_or_else(||
+            anyhow!(format!(
+                "Failed to retrieve `published-at` package address from package '{}'"
+                , metadata.package.name)
+            ))
     }
 
-    pub fn get_pkg_info<'a>(
+    pub fn get_package_info<'a>(
         &'a self,
         dep_name: &'a String,
         version: &'a Version,
-    ) -> &'a PkgInfo {
+    ) -> Result<&'a PackageInfo> {
         // Fetch available versions by package name
-        let versions = self.0.get(dep_name).expect(
-            format!("Could not find Package Name {} in PkgRegistry", dep_name)
-                .as_str(),
-        );
+        let versions = self.0.get(dep_name).ok_or_else(|| {
+            anyhow!(format!(
+                "Could not find Package Name {} in thePackage Registry'",
+                dep_name
+            ))
+        })?;
 
-        let dependency = versions.get(version).expect(
-            format!("Unable to fetch {} v{}", dep_name, version).as_str(),
-        );
+        let dependency = versions.get(version).ok_or_else(|| {
+            anyhow!(format!("Unable to fetch {} v{}", dep_name, version))
+        })?;
 
-        dependency
+        Ok(dependency)
     }
 
-    pub fn get_pkgs_git(
+    pub fn get_packages_git(
         &self,
         dep_names: &[String],
         version: &Version,
-    ) -> HashMap<String, GitPath> {
+    ) -> Result<HashMap<String, GitPath>> {
         dep_names
             .iter()
             .map(|dep_name| {
-                (
+                Ok((
                     dep_name.clone(),
-                    self.get_pkg_info(dep_name, version)
+                    self.get_package_info(dep_name, version)?
                         .contract_ref
                         .path
                         .clone(),
-                )
+                ))
             })
             .collect()
     }
 
-    pub fn get_pkgs_to_update<'a>(
+    pub fn get_packages_to_update<'a>(
         &'a self,
-        deps: &'a [&'a PkgInfo],
-    ) -> Vec<&'a PkgInfo> {
-        let mut to_update: Vec<&'a PkgInfo> = vec![];
-
-        deps.iter().for_each(|contract| {
-            if let Some(update) = self.get_updated_pkg_info(contract) {
-                to_update.push(update);
-            }
-        });
-
-        to_update
+        deps: &'a [&'a PackageInfo],
+    ) -> Vec<&'a PackageInfo> {
+        deps.iter()
+            .filter_map(|contract| self.get_updated_package_info(contract))
+            .collect()
     }
 
-    pub fn get_updated_pkg_info<'a>(
+    pub fn get_updated_package_info<'a>(
         &'a self,
-        dep: &'a PkgInfo,
-    ) -> Option<&'a PkgInfo> {
+        dep: &'a PackageInfo,
+    ) -> Option<&'a PackageInfo> {
         // Fetch available versions by package name
-        let versions = self.0.get(&dep.package.name).expect(
-            format!(
-                "Could not find Package Name {} in PkgRegistry",
-                &dep.package.name
-            )
-            .as_str(),
-        );
+        let versions = if let Some(versions) = self.0.get(&dep.package.name) {
+            versions
+        } else {
+            return None;
+        };
 
-        let latest_version = versions
-            .keys()
-            .max()
-            // This error should not occur
-            .expect(
-                format!(
-                    "Unexpected error: Unable to retrieve latest version of {}",
-                    &dep.package.name
-                )
-                .as_str(),
-            );
+        let latest_version = if let Some(latest) = versions.keys().max() {
+            latest
+        } else {
+            return None;
+        };
 
+        // Safe to unwrap as `latest_version` was retrieved from
+        // `versions.keys()`
         let latest = versions.get(latest_version).unwrap();
 
         (dep.package.version != latest.package.version).then_some(latest)
     }
 
-    pub fn get_latest_version<'a>(&'a self, dep_name: &str) -> &'a Version {
+    pub fn get_latest_version<'a>(
+        &'a self,
+        dep_name: &str,
+    ) -> Result<&'a Version> {
         // Fetch available versions by package name
-        let versions = self.0.get(dep_name).expect(
-            format!("Could not find Package Name {} in PkgRegistry", dep_name)
-                .as_str(),
-        );
+        let versions = self.0.get(dep_name).ok_or_else(|| {
+            anyhow!(format!(
+                "Could not find Package Name {} in PackageRegistry",
+                dep_name
+            ))
+        })?;
 
         versions
             .keys()
             .max()
             // This error should not occur
-            .expect(
-                format!(
+            .ok_or_else(|| {
+                anyhow!(format!(
                     "Unexpected error: Unable to retrieve latest version of {}",
                     dep_name
-                )
-                .as_str(),
-            )
+                ))
+            })
     }
 
     pub fn get_version_from_object_id(
@@ -141,6 +143,8 @@ impl PkgRegistry {
                     .package
                     .published_at
                     .as_ref()
+                    // This closure must return `bool` not wrapped by Result
+                    // as this is the expected output to `find`
                     .expect("Error: PublishedAt field seems to be empty")
                     == object_id
             });
@@ -158,46 +162,46 @@ impl PkgRegistry {
         &self,
         ext_dep: &str,
         version: &Version,
-    ) -> GitPath {
+    ) -> Result<GitPath> {
         let protocol_versions =
-            self.0.get(&String::from("NftProtocol")).expect(
-                format!(
-                    "Could not find Package Name {} in PkgRegistry",
+            self.0.get(&String::from("NftProtocol")).ok_or_else(|| {
+                anyhow!(format!(
+                    "Could not find Package Name {} in PackageRegistry",
                     ext_dep
-                )
-                .as_str(),
-            );
+                ))
+            })?;
 
-        protocol_versions
+        Ok(protocol_versions
             .get(version)
-            .expect(
-                format!(
+            .ok_or_else(|| {
+                anyhow!(format!(
                     "Unable to fetch version '{}' for package 'NftProtocol'",
                     version
-                )
-                .as_str(),
-            )
+                ))
+            })?
             .dependencies
             .get(ext_dep)
-            .expect(format!("Unable to fetch {} dependency", ext_dep).as_str())
+            .ok_or_else(|| {
+                anyhow!(format!("Unable to fetch {} dependency", ext_dep))
+            })?
             .path
-            .clone()
+            .clone())
     }
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
-pub struct PkgInfo {
+pub struct PackageInfo {
     pub package: Package,
-    pub contract_ref: PkgPath,
+    pub contract_ref: PackagePath,
     // TODO: Consider making this a self-similar struct, such that
     // we keep dependency tree's depth in its entirity
-    pub dependencies: HashMap<String, PkgPath>,
+    pub dependencies: HashMap<String, PackagePath>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
-pub struct PkgPath {
+pub struct PackagePath {
     pub path: GitPath,
     pub object_id: Address,
 }
@@ -236,13 +240,13 @@ impl GitPath {
 
 #[cfg(test)]
 mod test {
-    use crate::{pkg::PkgRegistry, version::Version};
+    use crate::{package::PackageRegistry, version::Version};
 
     use anyhow::Result;
     use gutenberg::models::Address;
     use std::{collections::HashMap, env, fs::File, str::FromStr};
 
-    use super::{GitPath, Package, PkgInfo, PkgPath};
+    use super::{GitPath, Package, PackageInfo, PackagePath};
 
     const V1_REV: &str = "95d16538dc7688dd4c4a5e7c3348bf3addf9c310";
     const V1_2_REV: &str = "93f6cd0b8966354b1b00e7d798cbfddaa867a07b";
@@ -259,7 +263,7 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
         let version_1 = Version::from_str(&String::from("1.0.0"))?;
         let version_1_2 = Version::from_str(&String::from("1.2.0"))?;
@@ -308,12 +312,12 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
         let obj_v1 = registry.get_object_id_from_rev(
             String::from("NftProtocol"),
             V1_REV.to_string(),
-        );
+        )?;
 
         assert_eq!(
             format!("{}", obj_v1),
@@ -323,7 +327,7 @@ mod test {
         let obj_v1_2 = registry.get_object_id_from_rev(
             String::from("NftProtocol"),
             V1_2_REV.to_string(),
-        );
+        )?;
 
         assert_eq!(
             format!("{}", obj_v1_2),
@@ -345,7 +349,7 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
         let obj_v1 = Address::new(String::from("0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"))?;
         let v1 = registry.get_version_from_object_id(&obj_v1)?;
@@ -359,7 +363,7 @@ mod test {
     }
 
     #[test]
-    fn test_get_updated_pkg_info() -> Result<()> {
+    fn test_get_updated_package_info() -> Result<()> {
         let current_dir =
             env::current_dir().expect("Failed to retrieve current directory.");
 
@@ -370,15 +374,15 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
-        let old_package = PkgInfo {
+        let old_package = PackageInfo {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.0.0")?,
                 published_at: Some(Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?),
             },
-            contract_ref: PkgPath {
+            contract_ref: PackagePath {
                 path: GitPath {
                     git: String::from("https://github.com/Origin-Byte/nft-protocol.git"),
                     subdir: Some(String::from("contracts/permissions")),
@@ -390,16 +394,18 @@ mod test {
             dependencies: HashMap::new(),
         };
 
-        let mut actual =
-            registry.get_updated_pkg_info(&old_package).unwrap().clone();
+        let mut actual = registry
+            .get_updated_package_info(&old_package)
+            .unwrap()
+            .clone();
 
-        let expected = PkgInfo {
+        let expected = PackageInfo {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.2.0")?,
                 published_at: Some(Address::new(String::from("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8"))?),
             },
-            contract_ref: PkgPath {
+            contract_ref: PackagePath {
                 path: GitPath {
                     git: String::from("https://github.com/Origin-Byte/nft-protocol.git"),
                     subdir: Some(String::from("contracts/permissions")),
@@ -431,9 +437,9 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
-        let actual = registry.get_latest_version("NftProtocol");
+        let actual = registry.get_latest_version("NftProtocol")?;
         let expected = Version::from_str("1.2.0")?;
 
         assert_eq!(actual, &expected);
@@ -453,10 +459,10 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
         let actual = registry
-            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.0.0")?);
+            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.0.0")?)?;
 
         assert_eq!(
             actual.git,
@@ -472,7 +478,7 @@ mod test {
         );
 
         let actual = registry
-            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.2.0")?);
+            .get_ext_dep_from_protocol("Sui", &Version::from_str("1.2.0")?)?;
 
         assert_eq!(
             actual.git,
@@ -490,7 +496,7 @@ mod test {
         let actual = registry.get_ext_dep_from_protocol(
             "Originmate",
             &Version::from_str("1.0.0")?,
-        );
+        )?;
 
         assert_eq!(
             actual.git,
@@ -505,7 +511,7 @@ mod test {
         let actual = registry.get_ext_dep_from_protocol(
             "Originmate",
             &Version::from_str("1.2.0")?,
-        );
+        )?;
 
         assert_eq!(
             actual.git,
@@ -532,7 +538,7 @@ mod test {
         let current_dir = current_dir.join(file_path);
 
         let file = File::open(current_dir)?;
-        let registry: PkgRegistry = serde_json::from_reader(file)?;
+        let registry: PackageRegistry = serde_json::from_reader(file)?;
 
         let pkg = registry
             .0

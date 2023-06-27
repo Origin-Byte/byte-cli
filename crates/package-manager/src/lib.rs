@@ -4,7 +4,7 @@ use std::{
 };
 
 pub mod info;
-pub mod pkg;
+pub mod package;
 pub mod toml;
 pub mod version;
 

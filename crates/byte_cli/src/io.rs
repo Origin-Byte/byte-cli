@@ -12,7 +12,7 @@ use git2::Repository;
 
 use gutenberg::Schema;
 use package_manager::{
-    info::BuildInfo, pkg::PkgRegistry, toml::MoveToml, Network,
+    info::BuildInfo, package::PackageRegistry, toml::MoveToml, Network,
 };
 use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use serde::{de::DeserializeOwned, Serialize};
@@ -23,7 +23,7 @@ impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for MoveToml {}
-impl LocalRead for PkgRegistry {}
+impl LocalRead for PackageRegistry {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}
@@ -230,7 +230,7 @@ pub fn write_json(
     })
 }
 
-pub fn get_program_registries() -> Result<(PkgRegistry, PkgRegistry)> {
+pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
     let (temp_dir, mainnet_path, testnet_path) = get_pakage_registry_paths();
 
     let url = "https://github.com/Origin-Byte/program-registry";
@@ -248,13 +248,13 @@ pub fn get_program_registries() -> Result<(PkgRegistry, PkgRegistry)> {
         ));
     }
 
-    let main_registry = PkgRegistry::read_json(&mainnet_path)?;
-    let test_registry = PkgRegistry::read_json(&testnet_path)?;
+    let main_registry = PackageRegistry::read_json(&mainnet_path)?;
+    let test_registry = PackageRegistry::read_json(&testnet_path)?;
 
     Ok((main_registry, test_registry))
 }
 
-pub fn get_program_registry(network: &Network) -> Result<PkgRegistry> {
+pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
     let (main_registry, test_registry) = get_program_registries()?;
 
     Ok(match network {
