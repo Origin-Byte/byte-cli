@@ -46,11 +46,17 @@ impl Schema {
         &self.nft
     }
 
-    pub fn write_move_defs(&self, is_full: bool) -> String {
-        self.nft.write_move_defs(&self.collection, is_full)
+    /// Disables features that should not be enabled in demo mode
+    pub fn enforce_demo(&mut self) {
+        self.nft.enforce_demo();
+        self.collection.enforce_demo();
     }
 
-    pub fn write_tests(&self, is_full: bool) -> String {
+    pub fn write_move_defs(&self) -> String {
+        self.nft.write_move_defs(&self.collection)
+    }
+
+    pub fn write_tests(&self) -> String {
         let type_name = self.nft().type_name();
         let witness_name = self.nft().witness_name();
         let collection_data = self.collection();
@@ -80,8 +86,7 @@ impl Schema {
         sui::test_scenario::end(scenario);
     }}");
 
-        tests_str
-            .push_str(&self.nft.write_move_tests(collection_data, is_full));
+        tests_str.push_str(&self.nft.write_move_tests(collection_data));
 
         tests_str
     }
@@ -92,15 +97,14 @@ impl Schema {
     /// the caller.
     pub fn write_move<W: std::io::Write>(
         &self,
-        is_full: bool,
         mut output: W,
     ) -> Result<(), GutenError> {
         let witness_name = self.nft().witness_name();
         let module_name = self.nft().module_name();
         let package_name = self.package_name();
 
-        let definitions = self.write_move_defs(is_full);
-        let tests = self.write_tests(is_full);
+        let definitions = self.write_move_defs();
+        let tests = self.write_tests();
 
         let res = format!(
             "module {package_name}::{module_name} {{

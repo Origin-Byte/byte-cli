@@ -22,11 +22,14 @@ fn main() {
 
     let config_path_parsed = Path::new(&input_config_path);
     let output_dir_parsed = Path::new(&output_dir);
-    generate_contract(!demo, &config_path_parsed, &output_dir_parsed);
+    generate_contract(demo, &config_path_parsed, &output_dir_parsed);
 }
 
-fn generate_contract(is_full: bool, config_path: &Path, output_dir: &Path) {
-    let schema = assert_schema(config_path);
+fn generate_contract(is_demo: bool, config_path: &Path, output_dir: &Path) {
+    let mut schema = assert_schema(config_path);
+    if is_demo {
+        schema.enforce_demo();
+    }
 
     // Create main contract directory
     let package_name = schema.package_name();
@@ -46,7 +49,7 @@ fn generate_contract(is_full: bool, config_path: &Path, output_dir: &Path) {
     let module_file =
         File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
     schema
-        .write_move(is_full, module_file)
+        .write_move(module_file)
         .expect("Could not write Move module");
 }
 

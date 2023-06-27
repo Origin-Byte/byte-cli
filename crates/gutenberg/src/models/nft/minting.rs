@@ -42,7 +42,6 @@ impl MintPolicies {
         fields: &Fields,
         type_name: &str,
         requires_collection: bool,
-        is_full: bool,
     ) -> String {
         let mut mint_fns = String::new();
 
@@ -178,7 +177,7 @@ impl MintPolicies {
             false,
             Some(type_name.to_string()),
             || {
-                let collection_increment_str = (requires_collection && is_full)
+                let collection_increment_str = requires_collection
                     .then(Supply::write_move_increment)
                     .unwrap_or_default();
 

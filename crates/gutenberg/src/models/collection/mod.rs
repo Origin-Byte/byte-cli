@@ -118,7 +118,13 @@ impl CollectionData {
         self.supply().requires_collection()
     }
 
-    pub fn write_move_init(&self, type_name: &str, is_full: bool) -> String {
+    /// Disables features that should not be enabled in demo mode
+    pub fn enforce_demo(&mut self) {
+        self.supply = Supply::Untracked;
+        self.royalties = None;
+    }
+
+    pub fn write_move_init(&self, type_name: &str) -> String {
         let mut domains_str = String::new();
 
         if let Some(code) = &self.write_move_creators() {
@@ -140,16 +146,14 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        if is_full {
-            domains_str.push_str(&self.supply().write_move_domain());
-            domains_str.push_str(
-                self.royalties
-                    .as_ref()
-                    .map(|royalties| royalties.write_move_init())
-                    .unwrap_or_default()
-                    .as_str(),
-            );
-        }
+        domains_str.push_str(&self.supply().write_move_domain());
+        domains_str.push_str(
+            self.royalties
+                .as_ref()
+                .map(|royalties| royalties.write_move_init())
+                .unwrap_or_default()
+                .as_str(),
+        );
 
         // Opt for `collection::create` over `collection::create_from_otw` in
         // order to statically assert `DelegatedWitness` gets created for the

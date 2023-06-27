@@ -115,6 +115,23 @@ impl NftData {
         self.type_name().to_uppercase()
     }
 
+    /// Disables features that should not be enabled in demo mode
+    pub fn enforce_demo(&mut self) {
+        self.burn = None;
+        self.dynamic = Dynamic::new(false);
+        self.mint_cap = MintCap::limited(100);
+        self.request_policies = RequestPolicies::new(false, false, false);
+        self.orderbook = None;
+        // Only allow a certain field configuration in demo mode
+        self.fields = vec![
+            ("name", FieldType::String),
+            ("description", FieldType::String),
+            ("url", FieldType::Url),
+            ("attributes", FieldType::Attributes),
+        ]
+        .into()
+    }
+
     fn write_move_struct(&self) -> String {
         let type_name = self.type_name();
         let fields: String = self
@@ -139,46 +156,33 @@ impl NftData {
         )
     }
 
-    pub fn write_init_fn(
-        &self,
-        collection_data: &CollectionData,
-        is_full: bool,
-    ) -> String {
+    pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
         let witness_name = self.witness_name();
         let type_name = self.type_name();
 
-        let collection_init =
-            collection_data.write_move_init(&type_name, is_full);
+        let collection_init = collection_data.write_move_init(&type_name);
 
-        let transfer_fns = is_full
-            .then(|| self.write_move_transfer_fns())
-            .unwrap_or_default();
+        let transfer_fns = self.write_move_transfer_fns();
 
         // Write MintCap instantiation
         //
         // If using non-full version of Gutenberg, a MintCap with supply
         // limited to 100 will always be instantiated
 
-        let mint_cap_init = is_full
-            .then(|| self.mint_cap.write_move_init(&witness_name, &type_name))
-            .unwrap_or_else(|| {
-                self.mint_cap
-                    .write_move_demo_init(&witness_name, &type_name)
-            });
+        let mint_cap_init =
+            self.mint_cap.write_move_init(&witness_name, &type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));
-        if is_full {
-            misc_init.push_str(
-                &self.write_move_policies(collection_data.has_royalties()),
-            );
-            misc_init.push_str(
-                &self
-                    .orderbook
-                    .map(|orderbook| orderbook.write_move_init(&type_name))
-                    .unwrap_or_default(),
-            );
-        }
+        misc_init.push_str(
+            &self.write_move_policies(collection_data.has_royalties()),
+        );
+        misc_init.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| orderbook.write_move_init(&type_name))
+                .unwrap_or_default(),
+        );
 
         format!(
             "
@@ -193,50 +197,39 @@ impl NftData {
         )
     }
 
-    pub fn write_move_defs(
-        &self,
-        collection_data: &CollectionData,
-        is_full: bool,
-    ) -> String {
+    pub fn write_move_defs(&self, collection_data: &CollectionData) -> String {
         let fields = self.fields();
         let type_name = self.type_name();
         let requires_collection = collection_data.requires_collection();
 
         let mut defs_str = String::new();
         defs_str.push_str(&self.write_move_struct());
-        defs_str.push_str(&self.write_init_fn(collection_data, is_full));
+        defs_str.push_str(&self.write_init_fn(collection_data));
         defs_str.push_str(&self.mint_policies.write_move_defs(
             fields,
             &type_name,
             requires_collection,
-            is_full,
         ));
-        if is_full {
-            defs_str
-                .push_str(&self.dynamic.write_move_defs(fields, &type_name));
-            defs_str.push_str(
-                &self
-                    .burn
-                    .map(|burn| {
-                        burn.write_move_defs(
-                            fields,
-                            &type_name,
-                            requires_collection,
-                            self.mint_policies.has_launchpad(),
-                            !self.request_policies.has_withdraw(),
-                        )
-                    })
-                    .unwrap_or_default(),
-            );
-        }
+        defs_str.push_str(&self.dynamic.write_move_defs(fields, &type_name));
+        defs_str.push_str(
+            &self
+                .burn
+                .map(|burn| {
+                    burn.write_move_defs(
+                        fields,
+                        &type_name,
+                        requires_collection,
+                        self.mint_policies.has_launchpad(),
+                        !self.request_policies.has_withdraw(),
+                    )
+                })
+                .unwrap_or_default(),
+        );
+
         defs_str
     }
 
-    pub fn write_move_tests(
-        &self,
-        collection_data: &CollectionData,
-        is_full: bool,
-    ) -> String {
+    pub fn write_move_tests(&self, collection_data: &CollectionData) -> String {
         let fields = self.fields();
         let type_name = self.type_name();
         let witness_name = self.witness_name();
@@ -249,41 +242,39 @@ impl NftData {
             &witness_name,
             requires_collection,
         ));
-        if is_full {
-            tests_str.push_str(&self.dynamic.write_move_tests(
-                fields,
-                &type_name,
-                &witness_name,
-                requires_collection,
-            ));
-            tests_str.push_str(
-                &self
-                    .burn
-                    .map(|burn| {
-                        burn.write_move_tests(
-                            fields,
-                            &type_name,
-                            &witness_name,
-                            requires_collection,
-                        )
-                    })
-                    .unwrap_or_default(),
-            );
-            tests_str.push_str(
-                &self
-                    .orderbook
-                    .map(|orderbook| {
-                        orderbook.write_move_tests(
-                            fields,
-                            &type_name,
-                            &witness_name,
-                            requires_collection,
-                            collection_data.has_royalties(),
-                        )
-                    })
-                    .unwrap_or_default(),
-            );
-        }
+        tests_str.push_str(&self.dynamic.write_move_tests(
+            fields,
+            &type_name,
+            &witness_name,
+            requires_collection,
+        ));
+        tests_str.push_str(
+            &self
+                .burn
+                .map(|burn| {
+                    burn.write_move_tests(
+                        fields,
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                    )
+                })
+                .unwrap_or_default(),
+        );
+        tests_str.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| {
+                    orderbook.write_move_tests(
+                        fields,
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                        collection_data.has_royalties(),
+                    )
+                })
+                .unwrap_or_default(),
+        );
         tests_str
     }
 
