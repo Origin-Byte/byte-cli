@@ -3,6 +3,10 @@ name = "byte-cli"
 version = "0.2.0"
 edition = "2021"
 
+[features]
+# Include full `gutenberg` generation functionality
+full = ["gutenberg/full"]
+
 [dependencies]
 gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
@@ -23,6 +27,7 @@ hex = "0.4"
 dotenv = "0.15"
 glob = "0.3"
 toml = "0.5"
+walkdir = "2.3.2"
 url = "2.4"
 convert_case = "0.6.0"
 tempfile = "3.2"
