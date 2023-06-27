@@ -55,6 +55,7 @@ pub struct NftData {
 
 impl NftData {
     /// Create new [`NftData`]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         type_name: String,
         burn: Option<Burn>,

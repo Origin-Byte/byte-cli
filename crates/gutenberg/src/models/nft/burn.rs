@@ -62,7 +62,7 @@ impl Burn {
         let mut_str = requires_collection.then_some("mut ").unwrap_or_default();
 
         let collection_decrement_str = requires_collection
-            .then(|| Supply::write_move_decrement())
+            .then(Supply::write_move_decrement)
             .unwrap_or_default();
 
         let confirm_contract_str = requires_confirm
@@ -78,17 +78,17 @@ impl Burn {
             .unwrap_or_default();
 
         let delegated_witness_init_str = self.is_permissionless()
-            .then(|| format!(
+            .then_some(
             "
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});"
-            ))
+            )
             .unwrap_or_default();
 
         let delegated_witness_publisher_init_str = self.is_permissioned()
-            .then(|| format!(
+            .then_some(
             "
         let delegated_witness = ob_permissions::witness::from_publisher(publisher);"
-            ))
+            )
             .unwrap_or_default();
 
         let delegated_witness_param_str = self
@@ -203,12 +203,10 @@ impl Burn {
 
         let delegated_witness_init_param_str = self
             .is_permissioned()
-            .then(|| {
-                format!(
-                    "
-                ob_permissions::witness::from_witness(Witness {{}}),"
-                )
-            })
+            .then_some(
+                "
+                ob_permissions::witness::from_witness(Witness {{}}),",
+            )
             .unwrap_or_default();
 
         let fields_str: String = fields

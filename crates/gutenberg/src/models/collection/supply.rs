@@ -56,17 +56,17 @@ impl Supply {
         )
     }
 
-    pub fn write_move_increment() -> String {
+    pub fn write_move_increment() -> &'static str {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(
             nft_protocol::collection::borrow_uid_mut(delegated_witness, collection),
         );
 
-        nft_protocol::supply::increment(delegated_witness, supply, 1);".to_string()
+        nft_protocol::supply::increment(delegated_witness, supply, 1);"
     }
 
-    pub fn write_move_decrement() -> String {
+    pub fn write_move_decrement() -> &'static str {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(
@@ -74,6 +74,6 @@ impl Supply {
         );
 
         nft_protocol::supply::decrement(delegated_witness, supply, 1);
-        nft_protocol::supply::decrease_supply_ceil(delegated_witness, supply, 1);".to_string()
+        nft_protocol::supply::decrease_supply_ceil(delegated_witness, supply, 1);"
     }
 }

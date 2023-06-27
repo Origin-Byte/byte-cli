@@ -231,15 +231,15 @@ impl CollectionData {
                 ));
             }
 
-            code.push_str(&format!(
+            code.push_str(
                 "
 
         nft_protocol::collection::add_domain(
             delegated_witness,
             &mut collection,
             nft_protocol::creators::new(creators),
-        );"
-            ));
+        );",
+            );
         };
 
         Some(code)
