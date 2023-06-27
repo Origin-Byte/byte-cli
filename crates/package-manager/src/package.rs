@@ -209,15 +209,31 @@ pub struct PackagePath {
 #[derive(Deserialize, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct Package {
-    pub name: String,
-    pub version: Version,
+    name: String,
+    version: Version,
     #[serde(rename(serialize = "published-at"))]
-    pub published_at: Option<Address>,
+    published_at: Option<Address>,
 }
 
 impl Package {
-    pub fn name_pascal(&self) -> String {
+    pub fn new(
+        name: String,
+        version: Version,
+        published_at: Option<Address>,
+    ) -> Self {
+        Self {
+            name,
+            version,
+            published_at,
+        }
+    }
+
+    pub fn name(&self) -> String {
         self.name.as_str().to_case(Case::Pascal)
+    }
+
+    pub fn version(&self) -> &Version {
+        &self.version
     }
 }
 
@@ -542,7 +558,7 @@ mod test {
             .get(&Version::from_str("1.0.0")?)
             .unwrap();
 
-        assert_eq!(pkg.package.name_pascal(), "NftProtocol");
+        assert_eq!(pkg.package.name(), "NftProtocol");
 
         let pkg = registry
             .0
@@ -551,7 +567,7 @@ mod test {
             .get(&Version::from_str("1.0.0")?)
             .unwrap();
 
-        assert_eq!(pkg.package.name_pascal(), "LiquidityLayer");
+        assert_eq!(pkg.package.name(), "LiquidityLayer");
 
         Ok(())
     }

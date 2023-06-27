@@ -28,32 +28,27 @@ impl MoveToml {
     }
 
     pub fn pkg_info_list<'a>(
-        &'a self,
+        &self,
         pkg_registry: &'a PackageRegistry,
     ) -> Result<&'a BTreeMap<Version, PackageInfo>> {
-        pkg_registry
-            .0
-            .get(&self.package.name_pascal())
-            .ok_or_else(|| {
-                anyhow!(format!(
-                    "Could not find package '{}' in Package Registry",
-                    self.package.name_pascal()
-                ))
-            })
+        let name = self.package.name();
+        pkg_registry.0.get(&name).ok_or_else(|| {
+            anyhow!("Could not find package '{name}' in Package Registry")
+        })
     }
 
     pub fn pkg_info<'a>(
-        &'a self,
+        &self,
         pkg_registry: &'a PackageRegistry,
     ) -> Result<&'a PackageInfo> {
+        let version = self.package.version();
         let info_list = self.pkg_info_list(pkg_registry)?;
 
-        info_list.get(&self.package.version).ok_or_else(|| {
-            anyhow!(format!(
-                "Could not find version '{}' for Package '{}'",
-                self.package.version,
-                self.package.name_pascal()
-            ))
+        info_list.get(&version).ok_or_else(|| {
+            anyhow!(
+                "Could not find version '{version}' for Package '{}'",
+                self.package.name()
+            )
         })
     }
 
@@ -73,7 +68,7 @@ impl MoveToml {
                     None
                 }
             })
-            .collect::<Vec<&'a PackageInfo>>()
+            .collect()
     }
 
     pub fn get_dependency_ids<'a>(
@@ -105,9 +100,9 @@ impl MoveToml {
             .iter()
             .map(|dep| {
                 (
-                    dep.package.name.clone(),
+                    dep.package.name(),
                     dep.contract_ref.path.clone(),
-                    dep.package.version,
+                    dep.package.version().clone(),
                 )
             })
             .collect::<Vec<(String, GitPath, Version)>>();
@@ -152,11 +147,11 @@ impl MoveToml {
             })?;
 
         let toml = MoveToml {
-            package: Package {
-                name: name.to_string(),
-                version: Version::from_str("1.0.0")?,
-                published_at: Some(empty_addr.clone()),
-            },
+            package: Package::new(
+                name.to_string(),
+                Version::from_str("1.0.0")?,
+                Some(empty_addr.clone()),
+            ),
             dependencies,
             addresses: HashMap::from([(String::from(name), empty_addr)]),
         };
