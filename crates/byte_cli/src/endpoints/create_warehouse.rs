@@ -43,7 +43,7 @@ pub async fn create_warehouse(
 
     let launchpad_pkg = ObjectID::from_str(
         registry
-            .get_object_id_from_rev(String::from("Launchpad"), rev)
+            .get_object_id_from_rev(String::from("Launchpad"), rev)?
             .as_string(),
     )?;
 
