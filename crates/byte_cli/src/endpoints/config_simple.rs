@@ -15,7 +15,7 @@ use gutenberg::{
 
 #[cfg(feature = "full")]
 pub async fn init_schema(
-    name: String,
+    name: &String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     use crate::models::FromPrompt;
 
@@ -58,7 +58,10 @@ pub async fn init_schema(
         .into(),
     );
 
-    Ok((Schema::new(name, collection_data, nft_data), project))
+    Ok((
+        Schema::new(name.clone(), collection_data, nft_data),
+        project,
+    ))
 }
 
 #[cfg(not(feature = "full"))]
