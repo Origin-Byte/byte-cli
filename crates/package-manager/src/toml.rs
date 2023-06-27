@@ -79,7 +79,7 @@ impl MoveToml {
         &'a self,
         pkg_registry: &'a PkgRegistry,
     ) -> Vec<&'a Address> {
-        let dep_ids = self
+        self
             .dependencies
             .iter()
             .map(|(name, specs)| {
@@ -93,9 +93,7 @@ impl MoveToml {
 
                 get_object_id_from_rev(dep_pack, &specs.rev)
             })
-            .collect::<Vec<&'a Address>>();
-
-        dep_ids
+            .collect()
     }
 
     pub fn update_toml(&mut self, pkg_registry: &PkgRegistry) {
