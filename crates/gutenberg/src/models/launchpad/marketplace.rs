@@ -3,10 +3,8 @@
 //! String but should match to a value in a given Enum. Such Enums represent
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
-use package_manager::Address;
+use package_manager::{Address, AddressError};
 use serde::{Deserialize, Serialize};
-
-use crate::err::GutenError;
 
 /// Contains the market configurations of the marketplace
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -22,7 +20,7 @@ impl Marketplace {
         admin: &str,
         receiver: &str,
         default_fee: u64,
-    ) -> Result<Self, GutenError> {
+    ) -> Result<Self, AddressError> {
         // TODO: Validate default fee basis points
 
         Ok(Marketplace {

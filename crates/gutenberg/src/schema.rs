@@ -2,7 +2,6 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-use crate::err::GutenError;
 use crate::models::{collection::CollectionData, nft::NftData};
 use crate::normalize_type;
 use serde::{Deserialize, Serialize};
@@ -95,10 +94,7 @@ impl Schema {
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
     /// the caller.
-    pub fn write_move<W: std::io::Write>(
-        &self,
-        mut output: W,
-    ) -> Result<(), GutenError> {
+    pub fn write_move(&self) -> String {
         let witness_name = self.nft().witness_name();
         let module_name = self.nft().module_name();
         let package_name = self.package_name();
@@ -106,7 +102,7 @@ impl Schema {
         let definitions = self.write_move_defs();
         let tests = self.write_tests();
 
-        let res = format!(
+        format!(
             "module {package_name}::{module_name} {{
     /// One time witness is only instantiated in the init method
     struct {witness_name} has drop {{}}
@@ -117,26 +113,13 @@ impl Schema {
     struct Witness has drop {{}}{definitions}{tests}
 }}
 "
-        );
-
-        output.write_all(res.as_bytes())?;
-
-        Ok(())
+        )
     }
 
-    pub fn write_move_toml<W: std::io::Write>(
-        &self,
-        mut output: W,
-    ) -> Result<(), GutenError> {
-        let package_name = self.package_name();
-
-        let res = format!(
+    pub fn write_move_toml(&self) -> String {
+        format!(
             include_str!("../templates/Move.toml"),
-            package_name = package_name,
-        );
-
-        output.write_all(res.as_bytes())?;
-
-        Ok(())
+            package_name = self.package_name(),
+        )
     }
 }

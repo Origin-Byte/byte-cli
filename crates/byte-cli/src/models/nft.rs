@@ -8,7 +8,7 @@ use gutenberg::models::nft::{
 };
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
-const BURN_PERMISSIONS: [&str; 3] = ["None", "Permissioned", "Permissionless"];
+const BURN_PERMISSIONS: [&str; 2] = ["Permissioned", "Permissionless"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 
 impl FromPrompt for Burn {
@@ -18,8 +18,6 @@ impl FromPrompt for Burn {
     where
         Self: Sized,
     {
-        use std::str::FromStr;
-
         let theme = get_dialoguer_theme();
 
         let burn_permission_idx = dialoguer::Select::with_theme(&theme)
@@ -28,7 +26,12 @@ impl FromPrompt for Burn {
             .interact()
             .unwrap();
 
-        Ok(Burn::from_str(BURN_PERMISSIONS[burn_permission_idx]).unwrap())
+        match BURN_PERMISSIONS[burn_permission_idx] {
+            "Permissioned" => Ok(Burn::Permissioned),
+            "Permissionless" => Ok(Burn::Permissionless),
+            // SAFETY: Prompt items will return an index within the bounds of BURN_PERMISSIONS
+            _ => unreachable!(),
+        }
     }
 }
 

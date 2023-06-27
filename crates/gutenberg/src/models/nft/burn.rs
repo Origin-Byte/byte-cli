@@ -1,10 +1,6 @@
+use crate::models::collection::Supply;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
-use crate::{err::GutenError, models::collection::Supply};
+use std::fmt::{self, Display};
 
 use super::Fields;
 
@@ -23,20 +19,6 @@ impl Display for Burn {
         };
 
         f.write_str(string)
-    }
-}
-
-impl FromStr for Burn {
-    type Err = GutenError;
-
-    fn from_str(level: &str) -> Result<Burn, Self::Err> {
-        match level {
-            "Permissioned" => Ok(Burn::Permissioned),
-            "Permissionless" => Ok(Burn::Permissionless),
-            level => Err(GutenError::UnsupportedSettings(
-                format!("Burn level of `{level}` is unsupported. Supported levels include: [`None`, `Permissioned`, `Permissionless`].")
-            ))
-        }
     }
 }
 
@@ -80,7 +62,7 @@ impl Burn {
         let delegated_witness_init_str = self.is_permissionless()
             .then_some(
             "
-        let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});"
+        let delegated_witness = ob_permissions::witness::from_witness(Witness {});"
             )
             .unwrap_or_default();
 
@@ -205,7 +187,7 @@ impl Burn {
             .is_permissioned()
             .then_some(
                 "
-                ob_permissions::witness::from_witness(Witness {{}}),",
+                ob_permissions::witness::from_witness(Witness {}),",
             )
             .unwrap_or_default();
 

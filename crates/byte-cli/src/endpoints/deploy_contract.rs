@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use console::style;
 use gutenberg::Schema;
 use package_manager::{
@@ -110,11 +110,8 @@ pub fn generate_contract(
         anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
     })?;
 
-    schema.write_move(&mut move_file).map_err(|err| {
-        anyhow!(
-            r#"Could not Move contract "{}": {err}"#,
-            move_path.display()
-        )
+    write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
+        anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
     })?;
 
     println!("{} Generating contract", style("DONE").green().bold());

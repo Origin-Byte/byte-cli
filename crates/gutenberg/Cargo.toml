@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 package-manager = { path = "../package-manager" }
 
-thiserror = "1.0"
 url = "2.4"
 hex = "0.4"
 deunicode = "1.3"
