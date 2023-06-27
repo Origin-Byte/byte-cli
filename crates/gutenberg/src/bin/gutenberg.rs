@@ -7,22 +7,25 @@ use std::path::Path;
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct Cli {
+    #[arg(short, long)]
+    demo: bool,
     input_config_path: String,
     output_dir: String,
 }
 
 fn main() {
     let Cli {
+        demo,
         input_config_path,
         output_dir,
     } = Cli::parse();
 
     let config_path_parsed = Path::new(&input_config_path);
     let output_dir_parsed = Path::new(&output_dir);
-    generate_contract(&config_path_parsed, &output_dir_parsed);
+    generate_contract(!demo, &config_path_parsed, &output_dir_parsed);
 }
 
-fn generate_contract(config_path: &Path, output_dir: &Path) {
+fn generate_contract(is_full: bool, config_path: &Path, output_dir: &Path) {
     let schema = assert_schema(config_path);
 
     // Create main contract directory
@@ -43,7 +46,7 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
     let module_file =
         File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
     schema
-        .write_move(module_file)
+        .write_move(is_full, module_file)
         .expect("Could not write Move module");
 }
 

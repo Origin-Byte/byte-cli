@@ -21,6 +21,20 @@ impl MintCap {
         Self { supply: None }
     }
 
+    /// Write MintCap instantiation with supply always limited to 100
+    pub fn write_move_demo_init(
+        &self,
+        witness: &str,
+        type_name: &str,
+    ) -> String {
+        format!("
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
+            &witness, collection_id, 100, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
+    }
+
     /// Write MintCap instantiation
     pub fn write_move_init(&self, witness: &str, type_name: &str) -> String {
         let mint_cap_str = match self.supply {

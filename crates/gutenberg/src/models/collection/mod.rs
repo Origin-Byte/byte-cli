@@ -2,23 +2,22 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
-#[cfg(feature = "full")]
+
 mod royalties;
-#[cfg(feature = "full")]
+
 mod supply;
 mod tags;
 
 use super::Address;
 use crate::deunicode;
-#[cfg(feature = "full")]
+
 pub use royalties::{RoyaltyPolicy, Share};
-#[cfg(feature = "full")]
+
 pub use supply::Supply;
 pub use tags::{Tag, Tags};
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "full")]
 /// Contains the metadata fields of the collection
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -43,27 +42,6 @@ pub struct CollectionData {
     royalties: Option<RoyaltyPolicy>,
 }
 
-#[cfg(not(feature = "full"))]
-/// Contains the metadata fields of the collection
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionData {
-    /// The name of the collection
-    name: Option<String>,
-    /// The description of the collection
-    description: Option<String>,
-    /// The symbol/ticker of the collection
-    symbol: Option<String>,
-    /// The URL of the collection website
-    url: Option<String>,
-    #[serde(default)]
-    /// The addresses of creators
-    creators: Vec<Address>,
-    /// Collection tags
-    tags: Option<Tags>,
-}
-
-#[cfg(feature = "full")]
 impl CollectionData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -88,38 +66,6 @@ impl CollectionData {
         }
     }
 
-    pub fn supply(&self) -> &Supply {
-        &self.supply
-    }
-
-    pub fn royalties(&self) -> &Option<RoyaltyPolicy> {
-        &self.royalties
-    }
-}
-
-#[cfg(not(feature = "full"))]
-impl CollectionData {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        name: Option<String>,
-        description: Option<String>,
-        symbol: Option<String>,
-        url: Option<String>,
-        creators: Vec<Address>,
-        tags: Option<Tags>,
-    ) -> CollectionData {
-        CollectionData {
-            name,
-            description,
-            symbol,
-            url,
-            creators,
-            tags,
-        }
-    }
-}
-
-impl CollectionData {
     pub fn name(&self) -> Option<String> {
         // Since `CollectionData` can be deserialized from an untrusted source
         // it's fields must be escaped when preparing for display.
@@ -146,6 +92,14 @@ impl CollectionData {
         self.symbol.clone()
     }
 
+    pub fn supply(&self) -> &Supply {
+        &self.supply
+    }
+
+    pub fn royalties(&self) -> &Option<RoyaltyPolicy> {
+        &self.royalties
+    }
+
     pub fn creators(&self) -> &Vec<Address> {
         &self.creators
     }
@@ -156,25 +110,15 @@ impl CollectionData {
 
     /// Whether collection has royalty policy defined
     pub fn has_royalties(&self) -> bool {
-        #[cfg(feature = "full")]
-        let has_royalties = self.royalties().is_some();
-        #[cfg(not(feature = "full"))]
-        let has_royalties = false;
-
-        has_royalties
+        self.royalties().is_some()
     }
 
     /// Whether `&mut Collection` needs to be passed into mint methods
     pub fn requires_collection(&self) -> bool {
-        #[cfg(feature = "full")]
-        let requires_collection = self.supply().requires_collection();
-        #[cfg(not(feature = "full"))]
-        let requires_collection = false;
-
-        requires_collection
+        self.supply().requires_collection()
     }
 
-    pub fn write_move_init(&self, type_name: &str) -> String {
+    pub fn write_move_init(&self, type_name: &str, is_full: bool) -> String {
         let mut domains_str = String::new();
 
         if let Some(code) = &self.write_move_creators() {
@@ -196,16 +140,16 @@ impl CollectionData {
                 .unwrap_or_default()
                 .as_str(),
         );
-        #[cfg(feature = "full")]
-        domains_str.push_str(&self.supply().write_move_domain());
-        #[cfg(feature = "full")]
-        domains_str.push_str(
-            self.royalties
-                .as_ref()
-                .map(|royalties| royalties.write_move_init())
-                .unwrap_or_default()
-                .as_str(),
-        );
+        if is_full {
+            domains_str.push_str(&self.supply().write_move_domain());
+            domains_str.push_str(
+                self.royalties
+                    .as_ref()
+                    .map(|royalties| royalties.write_move_init())
+                    .unwrap_or_default()
+                    .as_str(),
+            );
+        }
 
         // Opt for `collection::create` over `collection::create_from_otw` in
         // order to statically assert `DelegatedWitness` gets created for the
