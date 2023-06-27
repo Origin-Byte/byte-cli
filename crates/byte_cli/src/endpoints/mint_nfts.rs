@@ -35,7 +35,6 @@ pub async fn mint_nfts(
         get_active_address(&wallet_ctx.config.keystore).unwrap();
 
     let module_name = Arc::new(schema.package_name());
-    let gas_budget_ref = gas_budget as u64;
 
     println!("{} Collecting NFT metadata", style("WIP").cyan().bold());
     let nft_data = StorableMetadata::read_json(&metadata_path)?;
@@ -70,7 +69,7 @@ pub async fn mint_nfts(
     let mut minted: Minted = if Path::new(&mint_path).exists() {
         Minted::read_json(&mint_path)?
     } else {
-        Minted::new()
+        Minted::default()
     };
 
     // TODO: Make this a variable
@@ -100,7 +99,7 @@ pub async fn mint_nfts(
     let mut i = 0;
     let mut batches = vec![];
     let mut stack = vec![];
-    let last_key = *keys.get(keys.len() - 1).unwrap();
+    let last_key = *keys.last().unwrap();
 
     println!("{} Preparing Metadata", style("WIP").cyan().bold());
     for key in keys.drain(..) {
@@ -125,16 +124,16 @@ pub async fn mint_nfts(
         }
     }
 
-    if meta.len() != 0 {
+    if !meta.is_empty() {
         return Err(anyhow!("An error has occurred while processing metadata"));
     }
-    if keys.len() != 0 {
+    if !keys.is_empty() {
         return Err(anyhow!("An error has occurred while processing metadata"));
     }
     println!("{} Preparing Metadata", style("DONE").green().bold());
 
     println!("{} Minting NFTs on-chain", style("WIP").cyan().bold());
-    let mut effects = MintEffects::new();
+    let mut effects = MintEffects::default();
 
     for batch in batches.drain(..) {
         let from_nft = batch.last().unwrap().0;

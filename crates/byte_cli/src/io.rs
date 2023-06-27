@@ -9,10 +9,10 @@ use crate::prelude::CliError;
 use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use gutenberg::Schema;
 
+use gutenberg::Schema;
 use package_manager::{
-    info::BuildInfo, move_lib::PackageMap, toml::MoveToml, Network,
+    info::BuildInfo, package::PackageRegistry, toml::MoveToml, Network,
 };
 use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use serde::{de::DeserializeOwned, Serialize};
@@ -23,7 +23,7 @@ impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for MoveToml {}
-impl LocalRead for PackageMap {}
+impl LocalRead for PackageRegistry {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}
@@ -203,7 +203,7 @@ fn get_file_path(
     filepath.push(format!("{}/", folder));
 
     if let Some(file) = filename {
-        filepath.push(format!("{}", file));
+        filepath.push(file);
     }
 
     filepath
@@ -230,7 +230,7 @@ pub fn write_json(
     })
 }
 
-pub fn get_program_registries() -> Result<(PackageMap, PackageMap)> {
+pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
     let (temp_dir, mainnet_path, testnet_path) = get_pakage_registry_paths();
 
     let url = "https://github.com/Origin-Byte/program-registry";
@@ -248,13 +248,13 @@ pub fn get_program_registries() -> Result<(PackageMap, PackageMap)> {
         ));
     }
 
-    let main_registry = PackageMap::read_json(&mainnet_path)?;
-    let test_registry = PackageMap::read_json(&testnet_path)?;
+    let main_registry = PackageRegistry::read_json(&mainnet_path)?;
+    let test_registry = PackageRegistry::read_json(&testnet_path)?;
 
     Ok((main_registry, test_registry))
 }
 
-pub fn get_program_registry(network: &Network) -> Result<PackageMap> {
+pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
     let (main_registry, test_registry) = get_program_registries()?;
 
     Ok(match network {

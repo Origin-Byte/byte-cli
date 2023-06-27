@@ -43,17 +43,21 @@ pub async fn create_warehouse(
 
     let launchpad_pkg = ObjectID::from_str(
         registry
-            .get_object_id_from_ref(String::from("Launchpad"), rev)
+            .get_object_id_from_rev(String::from("Launchpad"), rev)?
             .as_string(),
     )?;
 
     let gas_coin =
         rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
 
-    let warehouse_object_id =
-        mint::create_warehouse(collection_type, launchpad_pkg, gas_coin)
-            .await
-            .unwrap();
+    let warehouse_object_id = mint::create_warehouse(
+        collection_type,
+        launchpad_pkg,
+        gas_coin,
+        gas_budget as u64,
+    )
+    .await
+    .unwrap();
 
     println!("{} Creating warehouse", style("DONE").green().bold());
 

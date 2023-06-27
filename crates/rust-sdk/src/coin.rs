@@ -1,3 +1,4 @@
+use crate::utils::get_reference_gas_price;
 use crate::{err::RustSdkError, utils::get_context};
 use anyhow::{anyhow, Result};
 use shared_crypto::intent::Intent;
@@ -126,6 +127,8 @@ pub async fn combine(
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
 
+    let gas_price = get_reference_gas_price(&context).await?;
+
     let (main_coin, gas_coin, coins_to_merge) =
         separate_gas_and_max_coin(&client, sender, gas_id).await?;
 
@@ -139,8 +142,8 @@ pub async fn combine(
         sender,
         vec![gas_coin_ref], // Gas Objects
         pt,
-        gas_budget, // Gas Budget
-        1_000,      // Gas Price
+        gas_budget,
+        gas_price,
     );
 
     // Sign transaction.
@@ -329,7 +332,6 @@ pub async fn merge_coins(
 
     let type_param = TypeTag::from_str(main_coin.coin_type.as_str()).unwrap();
     let type_args = vec![type_param];
-    let _gas_price = 1_000;
 
     coins_to_merge_args.iter().try_for_each(|coin| {
         builder.move_call(

@@ -8,14 +8,14 @@ use gutenberg::models::{
 use gutenberg::{
     models::{
         collection::CollectionData,
-        nft::{MintPolicies, NftData, RequestPolicies, FieldType},
+        nft::{FieldType, MintPolicies, NftData, RequestPolicies},
     },
     Schema,
 };
 
 #[cfg(feature = "full")]
 pub async fn init_schema(
-    name: String,
+    name: &String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     use crate::models::FromPrompt;
 
@@ -58,17 +58,20 @@ pub async fn init_schema(
         .into(),
     );
 
-    Ok((Schema::new(name, collection_data, nft_data), project))
+    Ok((
+        Schema::new(name.clone(), collection_data, nft_data),
+        project,
+    ))
 }
 
 #[cfg(not(feature = "full"))]
 pub async fn init_schema(
-    name: String,
+    name: &String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     let keystore = rust_sdk::utils::get_keystore().await?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
 
-    let nft_type = name.as_str().to_case(Case::Pascal);
+    let nft_type = name.to_case(Case::Pascal);
     let project = Project::new(name.clone(), sender);
 
     let collection_data = CollectionData::new(
@@ -86,5 +89,8 @@ pub async fn init_schema(
         RequestPolicies::new(true, false, false),
     );
 
-    Ok((Schema::new(name, collection_data, nft_data), project))
+    Ok((
+        Schema::new(name.clone(), collection_data, nft_data),
+        project,
+    ))
 }

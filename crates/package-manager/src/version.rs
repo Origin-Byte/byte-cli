@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::{cmp::Ordering, fmt, marker::PhantomData};
+use std::{cmp::Ordering, fmt, marker::PhantomData, str::FromStr};
 
 use serde::{
     de::{self, Unexpected, Visitor},
@@ -13,9 +13,11 @@ pub struct Version {
     pub patch: u8,
 }
 
-impl Version {
-    pub fn from_string(string: &str) -> Result<Self> {
-        let version: Vec<&str> = string.split('.').collect();
+impl FromStr for Version {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let version: Vec<&str> = s.split('.').collect();
 
         if version.len() != 3 {
             return Err(anyhow!("Version semantics is incorrect"));
@@ -25,7 +27,9 @@ impl Version {
             .iter()
             .map(|v| {
                 let v_string = v.to_string();
-                v_string.parse::<u8>().unwrap()
+                v_string
+                    .parse::<u8>()
+                    .expect("Unable to convert version substring to u8")
             })
             .collect::<Vec<u8>>();
 
@@ -70,7 +74,9 @@ impl<'de> Visitor<'de> for VersionVisitor {
             .iter()
             .map(|v| {
                 let v_string = v.to_string();
-                v_string.parse::<u8>().unwrap()
+                v_string
+                    .parse::<u8>()
+                    .expect("Unable to convert version substring to u8")
             })
             .collect::<Vec<u8>>();
 
@@ -154,24 +160,24 @@ mod test_version {
 
     #[test]
     fn test_order() -> Result<()> {
-        let version_a = Version::from_string(&String::from("1.0.1"))?;
-        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        let version_a = Version::from_str("1.0.1")?;
+        let version_b = Version::from_str("1.0.0")?;
         assert!(version_a > version_b);
 
-        let version_a = Version::from_string(&String::from("1.1.0"))?;
-        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        let version_a = Version::from_str("1.1.0")?;
+        let version_b = Version::from_str("1.0.0")?;
         assert!(version_a > version_b);
 
-        let version_a = Version::from_string(&String::from("1.0.0"))?;
-        let version_b = Version::from_string(&String::from("1.0.0"))?;
+        let version_a = Version::from_str("1.0.0")?;
+        let version_b = Version::from_str("1.0.0")?;
         assert!(version_a == version_b);
 
-        let version_a = Version::from_string(&String::from("2.0.0"))?;
-        let version_b = Version::from_string(&String::from("1.5.0"))?;
+        let version_a = Version::from_str("2.0.0")?;
+        let version_b = Version::from_str("1.5.0")?;
         assert!(version_a > version_b);
 
-        let version_a = Version::from_string(&String::from("0.0.30"))?;
-        let version_b = Version::from_string(&String::from("0.5.0"))?;
+        let version_a = Version::from_str("0.0.30")?;
+        let version_b = Version::from_str("0.5.0")?;
         assert!(version_a < version_b);
 
         Ok(())

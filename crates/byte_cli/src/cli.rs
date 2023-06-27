@@ -53,7 +53,6 @@ pub enum Commands {
     /// Deploys NFT contract to Sui Blockchain
     DeployContract {
         name: String,
-        version: Option<String>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for running module initializers

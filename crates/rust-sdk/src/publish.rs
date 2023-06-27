@@ -6,10 +6,8 @@ use std::sync::mpsc::Sender;
 use sui_sdk::wallet_context::WalletContext;
 
 use shared_crypto::intent::Intent;
+use sui_json_rpc_types::SuiTransactionBlockResponse;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
-use sui_json_rpc_types::{
-    SuiTransactionBlockResponse,
-};
 use sui_keys::keystore::AccountKeystore;
 use sui_move_build::BuildConfig;
 use sui_sdk::{types::messages::Transaction, SuiClient};

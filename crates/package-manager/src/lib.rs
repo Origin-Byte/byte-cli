@@ -4,7 +4,7 @@ use std::{
 };
 
 pub mod info;
-pub mod move_lib;
+pub mod package;
 pub mod toml;
 pub mod version;
 

@@ -18,6 +18,19 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     Ok(ctx)
 }
 
+pub async fn get_reference_gas_price(
+    wallet_ctx: &WalletContext,
+) -> Result<u64, RustSdkError> {
+    let gas_price = wallet_ctx
+        .get_client()
+        .await?
+        .read_api()
+        .get_reference_gas_price()
+        .await?;
+
+    Ok(gas_price)
+}
+
 pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
     // Load keystore from ~/.sui/sui_config/sui.keystore
     let keystore_path = match dirs::home_dir() {
@@ -71,8 +84,5 @@ impl MoveType {
 }
 
 pub fn get_object_id(obj_id_str: &str) -> ObjectID {
-    let obj_id =
-        ObjectID::from_str(obj_id_str).expect("Could not parse object ID");
-
-    obj_id
+    ObjectID::from_str(obj_id_str).expect("Could not parse object ID")
 }
