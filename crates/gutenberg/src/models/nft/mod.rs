@@ -2,6 +2,7 @@
 mod burn;
 #[cfg(feature = "full")]
 mod dynamic;
+mod fields;
 #[cfg(feature = "full")]
 mod mint_cap;
 mod minting;
@@ -13,6 +14,7 @@ mod request;
 pub use burn::Burn;
 #[cfg(feature = "full")]
 pub use dynamic::Dynamic;
+pub use fields::{Field, FieldType, Fields};
 #[cfg(feature = "full")]
 pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
@@ -48,6 +50,9 @@ pub struct NftData {
     request_policies: RequestPolicies,
     /// Orderbook to be initialized for the NFT
     orderbook: Option<orderbook::Orderbook>,
+    /// NFT fields and types
+    #[serde(default)]
+    fields: Fields,
 }
 
 #[cfg(not(feature = "full"))]
@@ -81,6 +86,7 @@ impl NftData {
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
         orderbook: Option<orderbook::Orderbook>,
+        fields: Fields,
     ) -> Self {
         NftData {
             type_name,
@@ -90,6 +96,7 @@ impl NftData {
             mint_policies,
             request_policies,
             orderbook,
+            fields,
         }
     }
 
@@ -107,6 +114,10 @@ impl NftData {
     fn requires_borrow(&self) -> bool {
         self.request_policies.has_borrow() || self.dynamic.is_dynamic()
     }
+
+    fn fields(&self) -> &Fields {
+        &self.fields
+    }
 }
 
 #[cfg(not(feature = "full"))]
@@ -122,6 +133,17 @@ impl NftData {
             mint_policies,
             request_policies,
         }
+    }
+
+    fn fields(&self) -> Fields {
+        // Non-full Gutenberg can only generate for standard set of fields
+        vec![
+            ("name", FieldType::String),
+            ("description", FieldType::String),
+            ("url", FieldType::Url),
+            ("attributes", FieldType::Attributes),
+        ]
+        .into()
     }
 }
 
@@ -147,16 +169,24 @@ impl NftData {
 
     fn write_move_struct(&self) -> String {
         let type_name = self.type_name();
+        let fields: String = self
+            .fields()
+            .iter()
+            .map(|field| {
+                format!(
+                    "
+        {name}: {field_type},",
+                    name = field.name(),
+                    field_type = field.field_type().write_move()
+                )
+            })
+            .collect();
 
         format!(
             "
 
     struct {type_name} has key, store {{
-        id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
+        id: sui::object::UID,{fields}
     }}"
         )
     }
@@ -221,25 +251,30 @@ impl NftData {
     }
 
     pub fn write_move_defs(&self, collection_data: &CollectionData) -> String {
+        let fields = self.fields();
+        #[cfg(not(feature = "full"))]
+        let fields = &fields;
+
         let type_name = self.type_name();
         let requires_collection = collection_data.requires_collection();
 
         let mut defs_str = String::new();
         defs_str.push_str(&self.write_move_struct());
         defs_str.push_str(&self.write_init_fn(collection_data));
-        defs_str.push_str(
-            &self
-                .mint_policies
-                .write_move_defs(&type_name, requires_collection),
-        );
+        defs_str.push_str(&self.mint_policies.write_move_defs(
+            fields,
+            &type_name,
+            requires_collection,
+        ));
         #[cfg(feature = "full")]
-        defs_str.push_str(&self.dynamic.write_move_defs(&type_name));
+        defs_str.push_str(&self.dynamic.write_move_defs(fields, &type_name));
         #[cfg(feature = "full")]
         defs_str.push_str(
             &self
                 .burn
                 .map(|burn| {
                     burn.write_move_defs(
+                        fields,
                         &type_name,
                         requires_collection,
                         self.mint_policies.has_launchpad(),
@@ -252,6 +287,10 @@ impl NftData {
     }
 
     pub fn write_move_tests(&self, collection_data: &CollectionData) -> String {
+        let fields = self.fields();
+        #[cfg(not(feature = "full"))]
+        let fields = &fields;
+
         let type_name = self.type_name();
         let witness_name = self.witness_name();
         let requires_collection = collection_data.requires_collection();
@@ -259,12 +298,14 @@ impl NftData {
         #[allow(unused_mut)]
         let mut tests_str = String::new();
         tests_str.push_str(&self.mint_policies.write_mint_tests(
+            fields,
             &type_name,
             &witness_name,
             requires_collection,
         ));
         #[cfg(feature = "full")]
         tests_str.push_str(&self.dynamic.write_move_tests(
+            fields,
             &type_name,
             &witness_name,
             requires_collection,
@@ -275,6 +316,7 @@ impl NftData {
                 .burn
                 .map(|burn| {
                     burn.write_move_tests(
+                        fields,
                         &type_name,
                         &witness_name,
                         requires_collection,
@@ -288,6 +330,7 @@ impl NftData {
                 .orderbook
                 .map(|orderbook| {
                     orderbook.write_move_tests(
+                        fields,
                         &type_name,
                         &witness_name,
                         requires_collection,

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::Fields;
+
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
@@ -31,6 +33,7 @@ impl Orderbook {
 
     pub fn write_move_tests(
         &self,
+        fields: &Fields,
         type_name: &str,
         witness_name: &str,
         requires_collection: bool,
@@ -63,6 +66,16 @@ impl Orderbook {
         nft_protocol::royalty_strategy_bps::confirm_transfer<{type_name}, sui::sui::SUI>(&mut royalty_strategy, &mut request);
         sui::test_scenario::return_shared(royalty_strategy);"))
             .unwrap_or_default();
+
+        let fields_str: String = fields
+            .test_params()
+            .map(|param| {
+                format!(
+                    "
+            {param},"
+                )
+            })
+            .collect();
 
         format!("
 
@@ -97,12 +110,7 @@ impl Orderbook {
             &mut scenario, CREATOR,
         );{collection_take_str}
 
-        let nft = mint(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
+        let nft = mint({fields_str}
             &mut mint_cap,{collection_param_str}
             sui::test_scenario::ctx(&mut scenario),
         );

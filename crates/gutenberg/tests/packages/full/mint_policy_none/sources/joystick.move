@@ -9,10 +9,6 @@ module mint_policy_none::joystick {
 
     struct Joystick has key, store {
         id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
     }
 
     fun init(witness: JOYSTICK, ctx: &mut sui::tx_context::TxContext) {
@@ -43,11 +39,6 @@ module mint_policy_none::joystick {
     }
 
     fun mint(
-        name: std::string::String,
-        description: std::string::String,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
@@ -55,10 +46,6 @@ module mint_policy_none::joystick {
 
         let nft = Joystick {
             id: sui::object::new(ctx),
-            name,
-            description,
-            url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
         };
 
         nft_protocol::mint_event::emit_mint(

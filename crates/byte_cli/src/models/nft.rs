@@ -4,7 +4,9 @@ use crate::prelude::get_dialoguer_theme;
 use dialoguer::{Input, MultiSelect};
 #[cfg(feature = "full")]
 use gutenberg::models::nft::{Burn, Dynamic, MintCap, Orderbook};
-use gutenberg::models::nft::{MintPolicies, NftData, RequestPolicies};
+use gutenberg::models::nft::{
+    FieldType, MintPolicies, NftData, RequestPolicies,
+};
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 #[cfg(feature = "full")]
@@ -135,6 +137,13 @@ impl FromPrompt for NftData {
             MintPolicies::from_prompt(())?,
             RequestPolicies::default(),
             Some(Orderbook::Protected),
+            vec![
+                ("name", FieldType::String),
+                ("description", FieldType::String),
+                ("url", FieldType::Url),
+                ("attributes", FieldType::Attributes),
+            ]
+            .into(),
         );
         #[cfg(not(feature = "full"))]
         let nft_data = NftData::new(

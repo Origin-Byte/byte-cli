@@ -46,8 +46,8 @@ module mint_policy_none::joystick {
         name: std::string::String,
         description: std::string::String,
         url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
+        attributes_keys: vector<std::ascii::String>,
+        attributes_values: vector<std::ascii::String>,
         mint_cap: &mut nft_protocol::mint_cap::MintCap<Joystick>,
         ctx: &mut sui::tx_context::TxContext,
     ): Joystick {
@@ -58,7 +58,7 @@ module mint_policy_none::joystick {
             name,
             description,
             url: sui::url::new_unsafe_from_bytes(url),
-            attributes: nft_protocol::attributes::from_vec(attribute_keys, attribute_values)
+            attributes: nft_protocol::attributes::from_vec(attributes_keys, attributes_values),
         };
 
         nft_protocol::mint_event::emit_mint(
