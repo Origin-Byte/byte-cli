@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
@@ -7,41 +7,26 @@ use std::path::Path;
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct Cli {
-    #[clap(subcommand)]
-    pub command: Commands,
-}
-
-#[derive(Subcommand)]
-pub enum Commands {
-    Generate {
-        input_config_path: String,
-        output_dir: String,
-    },
-
-    GenerateTests,
+    input_config_path: String,
+    output_dir: String,
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let Cli {
+        input_config_path,
+        output_dir,
+    } = Cli::parse();
 
-    match cli.command {
-        Commands::Generate {
-            input_config_path,
-            output_dir,
-        } => {
-            let config_path_parsed = Path::new(&input_config_path);
-            let output_dir_parsed = Path::new(&output_dir);
-            generate_contract(&config_path_parsed, &output_dir_parsed);
-        }
-        Commands::GenerateTests => generate_tests(),
-    }
+    let config_path_parsed = Path::new(&input_config_path);
+    let output_dir_parsed = Path::new(&output_dir);
+    generate_contract(&config_path_parsed, &output_dir_parsed);
 }
 
 fn generate_contract(config_path: &Path, output_dir: &Path) {
     let schema = assert_schema(config_path);
 
     // Create main contract directory
-    let package_name = schema.collection().package_name();
+    let package_name = schema.package_name();
     let contract_dir = output_dir.join(&package_name);
     let sources_dir = contract_dir.join("sources");
 
@@ -54,29 +39,12 @@ fn generate_contract(config_path: &Path, output_dir: &Path) {
         .write_move_toml(move_file)
         .expect("Could not write `Move.toml`");
 
+    let module_name = schema.nft().module_name();
     let module_file =
-        File::create(sources_dir.join(format!("{package_name}.move"))).unwrap();
+        File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
     schema
         .write_move(module_file)
         .expect("Could not write Move module");
-}
-
-fn generate_tests() {
-    let scenarios_path = Path::new("./tests/scenarios");
-    let modules_path = Path::new("./tests/packages");
-
-    let files = std::fs::read_dir(scenarios_path)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let path = entry.path();
-            path.is_file().then_some(entry)
-        });
-
-    for entry in files {
-        let config_path = entry.path();
-        generate_contract(&config_path, modules_path);
-    }
 }
 
 /// Asserts that the config file has correct schema
@@ -93,7 +61,7 @@ fn assert_schema(path: &Path) -> Schema {
                     "Could not parse `{path}` due to {err}",
                     path = path.display()
                 );
-                std::process::exit(2);
+                std::process::exit(1);
             }
         },
         "json" => match serde_json::from_reader::<_, Schema>(config) {
@@ -103,12 +71,12 @@ fn assert_schema(path: &Path) -> Schema {
                     "Could not parse `{path}` due to {err}",
                     path = path.display()
                 );
-                std::process::exit(2);
+                std::process::exit(1);
             }
         },
         _ => {
             eprintln!("Extension {extension} not supported");
-            std::process::exit(2);
+            std::process::exit(1);
         }
     }
 }

@@ -4,7 +4,9 @@ use crate::prelude::get_dialoguer_theme;
 use dialoguer::{Input, MultiSelect};
 #[cfg(feature = "full")]
 use gutenberg::models::nft::{Burn, Dynamic, MintCap, Orderbook};
-use gutenberg::models::nft::{MintPolicies, NftData, RequestPolicies};
+use gutenberg::models::nft::{
+    FieldType, MintPolicies, NftData, RequestPolicies,
+};
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 #[cfg(feature = "full")]
@@ -71,8 +73,8 @@ impl FromPrompt for MintCap {
             .interact()
             .unwrap();
 
-        let limit = match SUPPLY_OPTIONS[supply_index] {
-            "Limited" => Some(
+        let mint_cap = match SUPPLY_OPTIONS[supply_index] {
+            "Limited" => MintCap::limited(
                 Input::with_theme(&theme)
                     .with_prompt("What is the supply limit of the Collection?")
                     .validate_with(super::positive_integer_validator)
@@ -81,10 +83,10 @@ impl FromPrompt for MintCap {
                     .parse::<u64>()
                     .unwrap(),
             ),
-            _ => None,
+            _ => MintCap::unlimited(),
         };
 
-        Ok(MintCap::new(limit))
+        Ok(mint_cap)
     }
 }
 
@@ -129,12 +131,19 @@ impl FromPrompt for NftData {
         #[cfg(feature = "full")]
         let nft_data = NftData::new(
             type_name,
-            Burn::from_prompt(())?,
+            Some(Burn::from_prompt(())?),
             Dynamic::from_prompt(())?,
             MintCap::from_prompt(())?,
             MintPolicies::from_prompt(())?,
             RequestPolicies::default(),
-            Orderbook::Protected,
+            Some(Orderbook::Protected),
+            vec![
+                ("name", FieldType::String),
+                ("description", FieldType::String),
+                ("url", FieldType::Url),
+                ("attributes", FieldType::Attributes),
+            ]
+            .into(),
         );
         #[cfg(not(feature = "full"))]
         let nft_data = NftData::new(

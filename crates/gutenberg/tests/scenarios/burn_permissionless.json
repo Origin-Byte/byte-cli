@@ -1,0 +1,11 @@
+{
+  "packageName": "burn_permissionless",
+  "nft": {
+    "typeName": "Joystick",
+    "burn": "permissionless",
+    "mintCap": "unlimited",
+    "requestPolicies": {
+      "withdraw": false
+    }
+  }
+}

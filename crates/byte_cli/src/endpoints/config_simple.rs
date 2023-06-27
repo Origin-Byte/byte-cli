@@ -8,14 +8,14 @@ use gutenberg::models::{
 use gutenberg::{
     models::{
         collection::CollectionData,
-        nft::{MintPolicies, NftData, RequestPolicies},
+        nft::{FieldType, MintPolicies, NftData, RequestPolicies},
     },
     Schema,
 };
 
 #[cfg(feature = "full")]
 pub async fn init_schema(
-    name: &String,
+    name: String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     use crate::models::FromPrompt;
 
@@ -31,7 +31,7 @@ pub async fn init_schema(
     royalties.add_beneficiary_vecs(&[sender_string], &[10000]);
 
     let collection_data = CollectionData::new(
-        name.clone(),
+        Some(name.clone()),
         None,
         None,
         None,
@@ -43,29 +43,36 @@ pub async fn init_schema(
 
     let nft_data = NftData::new(
         nft_type,
-        Burn::Permissionless,
+        Some(Burn::Permissionless),
         Dynamic::new(false),
         MintCap::from_prompt(())?,
         MintPolicies::new(true, true),
         RequestPolicies::new(true, false, false),
-        Orderbook::Unprotected,
+        Some(Orderbook::Unprotected),
+        vec![
+            ("name", FieldType::String),
+            ("description", FieldType::String),
+            ("url", FieldType::Url),
+            ("attributes", FieldType::Attributes),
+        ]
+        .into(),
     );
 
-    Ok((Schema::new(collection_data, nft_data), project))
+    Ok((Schema::new(name, collection_data, nft_data), project))
 }
 
 #[cfg(not(feature = "full"))]
 pub async fn init_schema(
-    name: &str,
+    name: &String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     let keystore = rust_sdk::utils::get_keystore().await?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
 
     let nft_type = name.to_case(Case::Pascal);
-    let project = Project::new(name.to_owned(), sender);
+    let project = Project::new(name.clone(), sender);
 
     let collection_data = CollectionData::new(
-        name.to_lowercase(),
+        Some(name.clone()),
         None,
         None,
         None,
@@ -79,5 +86,8 @@ pub async fn init_schema(
         RequestPolicies::new(true, false, false),
     );
 
-    Ok((Schema::new(collection_data, nft_data), project))
+    Ok((
+        Schema::new(name.clone(), collection_data, nft_data),
+        project,
+    ))
 }

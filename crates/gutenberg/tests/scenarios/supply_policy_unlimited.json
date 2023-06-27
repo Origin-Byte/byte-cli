@@ -1,0 +1,7 @@
+{
+  "packageName": "supply_policy_unlimited",
+  "nft": {
+    "typeName": "Joystick",
+    "mintCap": "unlimited"
+  }
+}

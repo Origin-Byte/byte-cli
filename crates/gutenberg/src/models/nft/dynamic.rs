@@ -2,7 +2,9 @@ use std::fmt::{self, Display};
 
 use serde::{Deserialize, Serialize};
 
-use crate::models::collection::CollectionData;
+use crate::models::write_move_fn;
+
+use super::Fields;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(transparent)]
@@ -37,76 +39,39 @@ impl Dynamic {
         self.0
     }
 
-    pub fn write_move_defs(&self, type_name: &str) -> String {
-        let mut code = String::new();
-
+    pub fn write_move_defs(&self, fields: &Fields, type_name: &str) -> String {
         if !self.0 {
-            return code;
+            return String::new();
         }
 
-        code.push_str(&format!(
-            "
-
-    public fun set_metadata(
-        _delegated_witness: ob_permissions::witness::Witness<{type_name}>,
-        nft: &mut {type_name},
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {{
-        nft.url = sui::url::new_unsafe_from_bytes(url);
-        nft.attributes = nft_protocol::attributes::from_vec(attribute_keys, attribute_values);
-    }}
-
-    public entry fun set_metadata_as_publisher(
-        publisher: &sui::package::Publisher,
-        nft: &mut {type_name},
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-    ) {{
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
-    }}
-
-    public entry fun set_metadata_in_kiosk(
-        publisher: &sui::package::Publisher,
-        kiosk: &mut sui::kiosk::Kiosk,
-        nft_id: sui::object::ID,
-        url: vector<u8>,
-        attribute_keys: vector<std::ascii::String>,
-        attribute_values: vector<std::ascii::String>,
-        policy: &ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::borrow_request::BORROW_REQ>>,
-        ctx: &mut sui::tx_context::TxContext,
-    ) {{
-        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
-        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<{type_name}>(kiosk, nft_id, std::option::none(), ctx);
-
-        let nft: &mut {type_name} = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
-        set_metadata(delegated_witness, nft, url, attribute_keys, attribute_values);
-
-        ob_kiosk::ob_kiosk::return_nft<Witness, {type_name}>(kiosk, borrow, policy);
-    }}"
-        ));
-
-        code
+        fields
+            .iter()
+            .map(|field| {
+                let field_name = field.name();
+                write_move_field_setter(
+                    type_name,
+                    field_name,
+                    field.params().collect(),
+                    field.param_types().collect(),
+                    field
+                        .write_move_init()
+                        .unwrap_or_else(|| field_name.to_string()),
+                )
+            })
+            .collect()
     }
 
     pub fn write_move_tests(
         &self,
+        fields: &Fields,
         type_name: &str,
-        collection_data: &CollectionData,
+        witness_name: &str,
+        requires_collection: bool,
     ) -> String {
-        let mut code = String::new();
-
         if !self.is_dynamic() {
-            return code;
+            return String::new();
         }
 
-        let witness = collection_data.witness_name();
-        let supply = collection_data.supply();
-
-        let requires_collection = supply.requires_collection();
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
@@ -127,12 +92,55 @@ impl Dynamic {
             )
             .unwrap_or_default();
 
-        code.push_str(&format!("
+        let fields_str: String = fields
+            .test_params()
+            .map(|param| {
+                format!(
+                    "
+            {param},"
+                )
+            })
+            .collect();
+
+        let setters_str: String = fields
+            .iter()
+            .map(|field| {
+                let field_name = field.name();
+                let field_init: String = field
+                    .test_params()
+                    .map(|init| {
+                        format!(
+                            "
+            {init},"
+                        )
+                    })
+                    .collect();
+
+                format!(
+                    "
+
+        set_{field_name}_in_kiosk_as_publisher(
+            &publisher,
+            &mut kiosk,
+            nft_id,{field_init}
+            &borrow_policy,
+            sui::test_scenario::ctx(&mut scenario),
+        );"
+                )
+            })
+            .collect();
+
+        // Nothing to test if there are no setters
+        if setters_str.is_empty() {
+            return String::new();
+        }
+
+        format!("
 
     #[test]
     fun it_sets_metadata() {{
         let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
+        init({witness_name} {{}}, sui::test_scenario::ctx(&mut scenario));
 
         sui::test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -149,38 +157,158 @@ impl Dynamic {
         let borrow_policy: ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::borrow_request::BORROW_REQ>> =
             sui::test_scenario::take_shared(&mut scenario);
 
-        let nft = mint(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
+        let nft = mint({fields_str}
             &mut mint_cap,{collection_param_str}
-            sui::test_scenario::ctx(&mut scenario)
+            sui::test_scenario::ctx(&mut scenario),
         );
         let nft_id = sui::object::id(&nft);
 
         let (kiosk, _) = ob_kiosk::ob_kiosk::new(sui::test_scenario::ctx(&mut scenario));
-        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));
-
-        set_metadata_in_kiosk(
-            &publisher,
-            &mut kiosk,
-            nft_id,
-            b\"https://docs.originbyte.io/\",
-            vector[std::ascii::string(b\"reveal\")],
-            vector[std::ascii::string(b\"revealed\")],
-            &borrow_policy,
-            sui::test_scenario::ctx(&mut scenario)
-        );
+        ob_kiosk::ob_kiosk::deposit(&mut kiosk, nft, sui::test_scenario::ctx(&mut scenario));{setters_str}
 
         sui::test_scenario::return_to_address(CREATOR, mint_cap);
         sui::test_scenario::return_to_address(CREATOR, publisher);
         sui::test_scenario::return_shared(borrow_policy);{collection_return_str}
         sui::transfer::public_share_object(kiosk);
         sui::test_scenario::end(scenario);
-    }}"));
-
-        code
+    }}")
     }
+}
+
+fn write_move_field_setter(
+    type_name: &str,
+    field_name: &str,
+    params: Vec<String>,
+    param_types: Vec<&str>,
+    init_str: String,
+) -> String {
+    let params: Vec<_> = params.iter().map(String::as_str).collect();
+    let set_params_str = params.join(", ");
+
+    let delegated_witness_param_type_str =
+        format!("ob_permissions::witness::Witness<{type_name}>");
+    let nft_param_type_str = format!("&mut {type_name}");
+
+    let mut field_str = String::new();
+
+    let mut set_params = Vec::new();
+    set_params.extend_from_slice(&["_delegated_witness", "nft"]);
+    set_params.extend_from_slice(params.as_slice());
+
+    let mut set_param_types = Vec::new();
+    set_param_types.push(delegated_witness_param_type_str.as_str());
+    set_param_types.push(nft_param_type_str.as_str());
+    set_param_types.extend_from_slice(param_types.as_slice());
+
+    field_str.push_str(&write_move_fn(
+        &format!("set_{field_name}"),
+        &set_params,
+        &set_param_types,
+        true,
+        false,
+        None,
+        || {
+            format!(
+                "
+        nft.{field_name} = {init_str};"
+            )
+        },
+    ));
+
+    let mut set_params = Vec::new();
+    set_params.extend_from_slice(&["publisher", "nft"]);
+    set_params.extend_from_slice(params.as_slice());
+
+    let mut set_param_types = Vec::new();
+    set_param_types.extend_from_slice(&[
+        "&sui::package::Publisher",
+        nft_param_type_str.as_str(),
+    ]);
+    set_param_types.extend_from_slice(param_types.as_slice());
+
+    field_str.push_str(&write_move_fn(
+        &format!("set_{field_name}_as_publisher"),
+        &set_params,
+        &set_param_types,
+        true,
+        true,
+        None,
+        || {
+            format!("
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        set_{field_name}(delegated_witness, nft, {set_params_str});")
+        },
+    ));
+
+    let mut set_params = Vec::new();
+    set_params.extend_from_slice(&["delegated_witness", "kiosk", "nft_id"]);
+    set_params.extend_from_slice(params.as_slice());
+    set_params.extend_from_slice(&["policy", "ctx"]);
+
+    let mut set_param_types = Vec::new();
+    set_param_types.extend_from_slice(&[
+        delegated_witness_param_type_str.as_str(),
+        "&mut sui::kiosk::Kiosk",
+        "sui::object::ID",
+    ]);
+    set_param_types.extend_from_slice(param_types.as_slice());
+    let policy_param_str =
+        format!("&ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::borrow_request::BORROW_REQ>>");
+    set_param_types.extend_from_slice(&[
+        policy_param_str.as_str(),
+        "&mut sui::tx_context::TxContext",
+    ]);
+
+    field_str.push_str(&write_move_fn(
+        &format!("set_{field_name}_in_kiosk"),
+        &set_params,
+        &set_param_types,
+        true,
+        false,
+        None,
+        || {
+            format!("
+        let borrow = ob_kiosk::ob_kiosk::borrow_nft_mut<{type_name}>(kiosk, nft_id, std::option::none(), ctx);
+
+        let nft: &mut {type_name} = ob_request::borrow_request::borrow_nft_ref_mut(delegated_witness, &mut borrow);
+        set_{field_name}(delegated_witness, nft, {set_params_str});
+
+        ob_kiosk::ob_kiosk::return_nft<Witness, {type_name}>(kiosk, borrow, policy);")
+        },
+    ));
+
+    let mut set_params = Vec::new();
+    set_params.extend_from_slice(&["publisher", "kiosk", "nft_id"]);
+    set_params.extend(params);
+    set_params.extend_from_slice(&["policy", "ctx"]);
+
+    let mut set_param_types = Vec::new();
+    set_param_types.extend_from_slice(&[
+        "&sui::package::Publisher",
+        "&mut sui::kiosk::Kiosk",
+        "sui::object::ID",
+    ]);
+    set_param_types.extend_from_slice(param_types.as_slice());
+    let policy_param_str =
+        format!("&ob_request::request::Policy<ob_request::request::WithNft<{type_name}, ob_request::borrow_request::BORROW_REQ>>");
+    set_param_types.extend_from_slice(&[
+        policy_param_str.as_str(),
+        "&mut sui::tx_context::TxContext",
+    ]);
+
+    field_str.push_str(&write_move_fn(
+        &format!("set_{field_name}_in_kiosk_as_publisher"),
+        &set_params,
+        &set_param_types,
+        true,
+        true,
+        None,
+        || {
+            format!("
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        set_{field_name}_in_kiosk(delegated_witness, kiosk, nft_id, {set_params_str}, policy, ctx);")
+        },
+    ));
+
+    field_str
 }

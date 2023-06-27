@@ -10,6 +10,14 @@ pub enum Supply {
     Enforced(u64),
 }
 
+impl Default for Supply {
+    /// Untracked is a reasonable default as it does not introduce any
+    /// additional invariants that must be maintained by the user.
+    fn default() -> Self {
+        Supply::Untracked
+    }
+}
+
 impl Supply {
     pub fn untracked() -> Self {
         Supply::Untracked
@@ -48,7 +56,7 @@ impl Supply {
         )
     }
 
-    pub fn write_move_increment(&self) -> String {
+    pub fn write_move_increment() -> String {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(
@@ -58,7 +66,7 @@ impl Supply {
         nft_protocol::supply::increment(delegated_witness, supply, 1);".to_string()
     }
 
-    pub fn write_move_decrement(&self) -> String {
+    pub fn write_move_decrement() -> String {
         "
 
         let supply = nft_protocol::supply::borrow_domain_mut(

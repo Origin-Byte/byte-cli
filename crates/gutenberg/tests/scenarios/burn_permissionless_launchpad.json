@@ -1,0 +1,15 @@
+{
+  "packageName": "burn_permissionless_launchpad",
+  "nft": {
+    "typeName": "Joystick",
+    "burn": "permissionless",
+    "mintCap": "unlimited",
+    "mintPolicies": {
+      "launchpad": true,
+      "airdrop": true
+    },
+    "requestPolicies": {
+      "withdraw": false
+    }
+  }
+}

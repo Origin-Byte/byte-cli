@@ -2,6 +2,8 @@
 mod burn;
 #[cfg(feature = "full")]
 mod dynamic;
+mod fields;
+#[cfg(feature = "full")]
 mod mint_cap;
 mod minting;
 #[cfg(feature = "full")]
@@ -12,6 +14,7 @@ mod request;
 pub use burn::Burn;
 #[cfg(feature = "full")]
 pub use dynamic::Dynamic;
+pub use fields::{Field, FieldType, Fields};
 #[cfg(feature = "full")]
 pub use mint_cap::MintCap;
 pub use minting::MintPolicies;
@@ -20,6 +23,7 @@ pub use orderbook::Orderbook;
 pub use request::RequestPolicies;
 
 use super::collection::{CollectionData, Tags};
+use crate::normalize_type;
 use serde::{Deserialize, Serialize};
 
 // TODO: Merge `cfg(feature = "full")` and `cfg(not(feature = "full"))` definitions, requires manually
@@ -31,18 +35,24 @@ pub struct NftData {
     /// Type name of the NFT
     type_name: String,
     /// Burn policy for NFT
-    burn: Burn,
+    burn: Option<Burn>,
     /// Dynamic policies for NFT
+    #[serde(default)]
     dynamic: Dynamic,
     /// Mint capabilities issued for NFT
     mint_cap: MintCap,
     /// Additional mint functions to be generated for the NFT type such as
     /// Launchpad or Airdrop.
+    #[serde(default)]
     mint_policies: MintPolicies,
+    /// Additional request policies to be initialized for the NFT
     #[serde(default)]
     request_policies: RequestPolicies,
+    /// Orderbook to be initialized for the NFT
+    orderbook: Option<orderbook::Orderbook>,
+    /// NFT fields and types
     #[serde(default)]
-    orderbook: orderbook::Orderbook,
+    fields: Fields,
 }
 
 #[cfg(not(feature = "full"))]
@@ -58,7 +68,9 @@ pub struct NftData {
     // indicator of the integration problems that are solved by using
     // Gutenberg, therefore signifiying to the user the potential to save a ton
     // of time implementing integration boilerplate.
+    #[serde(default)]
     mint_policies: MintPolicies,
+    /// Additional request policies to be initialized for the NFT
     #[serde(default)]
     request_policies: RequestPolicies,
 }
@@ -68,12 +80,13 @@ impl NftData {
     /// Create new [`NftData`]
     pub fn new(
         type_name: String,
-        burn: Burn,
+        burn: Option<Burn>,
         dynamic: Dynamic,
         mint_cap: MintCap,
         mint_policies: MintPolicies,
         request_policies: RequestPolicies,
-        orderbook: orderbook::Orderbook,
+        orderbook: Option<orderbook::Orderbook>,
+        fields: Fields,
     ) -> Self {
         NftData {
             type_name,
@@ -83,7 +96,27 @@ impl NftData {
             mint_policies,
             request_policies,
             orderbook,
+            fields,
         }
+    }
+
+    /// Returns whether NFT requires transfer policy to be created
+    fn requires_transfer(&self) -> bool {
+        self.request_policies.has_transfer() || self.orderbook.is_some()
+    }
+
+    /// Returns whether NFT requires withdraw policy to be created
+    fn requires_withdraw(&self) -> bool {
+        self.request_policies.has_withdraw() || self.burn.is_some()
+    }
+
+    /// Returns whether NFT requires borrow policy to be created
+    fn requires_borrow(&self) -> bool {
+        self.request_policies.has_borrow() || self.dynamic.is_dynamic()
+    }
+
+    fn fields(&self) -> &Fields {
+        &self.fields
     }
 }
 
@@ -101,75 +134,113 @@ impl NftData {
             request_policies,
         }
     }
+
+    fn fields(&self) -> Fields {
+        // Non-full Gutenberg can only generate for standard set of fields
+        vec![
+            ("name", FieldType::String),
+            ("description", FieldType::String),
+            ("url", FieldType::Url),
+            ("attributes", FieldType::Attributes),
+        ]
+        .into()
+    }
 }
 
 impl NftData {
     /// Returns NFT type name
-    pub fn type_name(&self) -> &str {
-        &self.type_name
+    pub fn type_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        normalize_type(&self.type_name)
     }
 
-    /// Returns whether NFT requires withdraw policy to be created
-    pub fn requires_withdraw(&self) -> bool {
-        let requires_withdraw = self.request_policies.has_withdraw();
-        #[cfg(feature = "full")]
-        let requires_withdraw =
-            requires_withdraw || self.burn.is_permissionless();
-        requires_withdraw
+    pub fn module_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.type_name().to_lowercase()
     }
 
-    /// Returns whether NFT requires borrow policy to be created
-    pub fn requires_borrow(&self) -> bool {
-        let requires_borrow = self.request_policies.has_borrow();
-        #[cfg(feature = "full")]
-        let requires_borrow = requires_borrow || self.dynamic.is_dynamic();
-        requires_borrow
+    pub fn witness_name(&self) -> String {
+        // Since `NftData` can be deserialized from an untrusted source
+        // it's fields must be escaped when preparing for display.
+        self.type_name().to_uppercase()
     }
 
     fn write_move_struct(&self) -> String {
         let type_name = self.type_name();
+        let fields: String = self
+            .fields()
+            .iter()
+            .map(|field| {
+                format!(
+                    "
+        {name}: {field_type},",
+                    name = field.name(),
+                    field_type = field.field_type().write_move()
+                )
+            })
+            .collect();
 
         format!(
             "
 
     struct {type_name} has key, store {{
-        id: sui::object::UID,
-        name: std::string::String,
-        description: std::string::String,
-        url: sui::url::Url,
-        attributes: nft_protocol::attributes::Attributes,
+        id: sui::object::UID,{fields}
     }}"
         )
     }
 
+    #[cfg(not(feature = "full"))]
+    /// Write MintCap instantiation with supply always limited to 100
+    fn write_mint_cap_init(witness: &str, type_name: &str) -> String {
+        format!("
+
+        let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
+            &witness, collection_id, 100, ctx
+        );
+        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
+    }
+
     pub fn write_init_fn(&self, collection_data: &CollectionData) -> String {
-        let witness = collection_data.witness_name();
+        let witness_name = self.witness_name();
         let type_name = self.type_name();
 
-        let collection_init = collection_data.write_move_init(self);
+        let collection_init = collection_data.write_move_init(&type_name);
+        #[cfg(feature = "full")]
         let transfer_fns = self.write_move_transfer_fns();
+        #[cfg(not(feature = "full"))]
+        let transfer_fns = String::new();
 
         // Write MintCap instantiation
         //
         // If using non-full version of Gutenberg, a MintCap with supply
         // limited to 100 will always be instantiated
         #[cfg(feature = "full")]
-        let mint_cap_init = self.mint_cap.write_move_init(&witness, type_name);
+        let mint_cap_init =
+            self.mint_cap.write_move_init(&witness_name, &type_name);
         #[cfg(not(feature = "full"))]
-        let mint_cap_init = mint_cap::write_move_init(&witness, type_name);
+        let mint_cap_init =
+            Self::write_mint_cap_init(&witness_name, &type_name);
 
         let mut misc_init = String::new();
         misc_init.push_str(&self.write_move_display(collection_data.tags()));
+        #[cfg(feature = "full")]
         misc_init.push_str(
             &self.write_move_policies(collection_data.has_royalties()),
         );
         #[cfg(feature = "full")]
-        misc_init.push_str(&self.orderbook.write_move_init(type_name));
+        misc_init.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| orderbook.write_move_init(&type_name))
+                .unwrap_or_default(),
+        );
 
         format!(
             "
 
-    fun init(witness: {witness}, ctx: &mut sui::tx_context::TxContext) {{
+    fun init(witness: {witness_name}, ctx: &mut sui::tx_context::TxContext) {{
         let delegated_witness = ob_permissions::witness::from_witness(Witness {{}});{collection_init}{mint_cap_init}
 
         let publisher = sui::package::claim(witness, ctx);{misc_init}
@@ -180,108 +251,104 @@ impl NftData {
     }
 
     pub fn write_move_defs(&self, collection_data: &CollectionData) -> String {
+        let fields = self.fields();
+        #[cfg(not(feature = "full"))]
+        let fields = &fields;
+
         let type_name = self.type_name();
+        let requires_collection = collection_data.requires_collection();
 
         let mut defs_str = String::new();
         defs_str.push_str(&self.write_move_struct());
         defs_str.push_str(&self.write_init_fn(collection_data));
+        defs_str.push_str(&self.mint_policies.write_move_defs(
+            fields,
+            &type_name,
+            requires_collection,
+        ));
+        #[cfg(feature = "full")]
+        defs_str.push_str(&self.dynamic.write_move_defs(fields, &type_name));
+        #[cfg(feature = "full")]
         defs_str.push_str(
             &self
-                .mint_policies
-                .write_move_defs(type_name, collection_data),
+                .burn
+                .map(|burn| {
+                    burn.write_move_defs(
+                        fields,
+                        &type_name,
+                        requires_collection,
+                        self.mint_policies.has_launchpad(),
+                        !self.request_policies.has_withdraw(),
+                    )
+                })
+                .unwrap_or_default(),
         );
-        #[cfg(feature = "full")]
-        defs_str.push_str(&self.dynamic.write_move_defs(type_name));
-        #[cfg(feature = "full")]
-        defs_str
-            .push_str(&self.burn.write_move_defs(type_name, collection_data));
         defs_str
     }
 
     pub fn write_move_tests(&self, collection_data: &CollectionData) -> String {
+        let fields = self.fields();
+        #[cfg(not(feature = "full"))]
+        let fields = &fields;
+
         let type_name = self.type_name();
+        let witness_name = self.witness_name();
+        let requires_collection = collection_data.requires_collection();
 
         #[allow(unused_mut)]
         let mut tests_str = String::new();
-        tests_str.push_str(&self.write_mint_test(type_name, collection_data));
+        tests_str.push_str(&self.mint_policies.write_mint_tests(
+            fields,
+            &type_name,
+            &witness_name,
+            requires_collection,
+        ));
+        #[cfg(feature = "full")]
+        tests_str.push_str(&self.dynamic.write_move_tests(
+            fields,
+            &type_name,
+            &witness_name,
+            requires_collection,
+        ));
         #[cfg(feature = "full")]
         tests_str.push_str(
-            &self.dynamic.write_move_tests(type_name, collection_data),
+            &self
+                .burn
+                .map(|burn| {
+                    burn.write_move_tests(
+                        fields,
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                    )
+                })
+                .unwrap_or_default(),
         );
         #[cfg(feature = "full")]
-        tests_str
-            .push_str(&self.burn.write_move_tests(type_name, collection_data));
-        tests_str
-    }
-
-    fn write_mint_test(
-        &self,
-        type_name: &str,
-        collection_data: &CollectionData,
-    ) -> String {
-        let witness = collection_data.witness_name();
-
-        let requires_collection = collection_data.requires_collection();
-        let collection_take_str = requires_collection.then(|| format!("
-
-        let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
-            &scenario,
-        );")).unwrap_or_default();
-
-        let collection_param_str = requires_collection
-            .then_some(
-                "
-            &mut collection,",
-            )
-            .unwrap_or_default();
-
-        let collection_return_str = requires_collection
-            .then_some(
-                "
-        sui::test_scenario::return_shared(collection);",
-            )
-            .unwrap_or_default();
-
-        format!(
-            "
-
-    #[test]
-    fun it_mints_nft() {{
-        let scenario = sui::test_scenario::begin(CREATOR);
-        init({witness} {{}}, sui::test_scenario::ctx(&mut scenario));
-
-        sui::test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let mint_cap = sui::test_scenario::take_from_address<nft_protocol::mint_cap::MintCap<{type_name}>>(
-            &scenario,
-            CREATOR,
-        );{collection_take_str}
-
-        let warehouse = ob_launchpad::warehouse::new<{type_name}>(sui::test_scenario::ctx(&mut scenario));
-
-        mint_nft_to_warehouse(
-            std::string::utf8(b\"TEST NAME\"),
-            std::string::utf8(b\"TEST DESCRIPTION\"),
-            b\"https://originbyte.io/\",
-            vector[std::ascii::string(b\"avg_return\")],
-            vector[std::ascii::string(b\"24%\")],
-            &mut mint_cap,{collection_param_str}
-            &mut warehouse,
-            sui::test_scenario::ctx(&mut scenario)
+        tests_str.push_str(
+            &self
+                .orderbook
+                .map(|orderbook| {
+                    orderbook.write_move_tests(
+                        fields,
+                        &type_name,
+                        &witness_name,
+                        requires_collection,
+                        collection_data.has_royalties(),
+                    )
+                })
+                .unwrap_or_default(),
         );
-
-        sui::transfer::public_transfer(warehouse, CREATOR);
-        sui::test_scenario::return_to_address(CREATOR, mint_cap);{collection_return_str}
-        sui::test_scenario::end(scenario);
-    }}")
+        tests_str
     }
 
+    #[cfg(feature = "full")]
     fn write_move_policies(&self, has_royalties: bool) -> String {
         let type_name = self.type_name();
 
         let mut policies_str = String::new();
 
-        if self.request_policies.has_transfer() {
+        if self.requires_transfer() {
             let royalty_strategy_str = has_royalties.then_some("
         nft_protocol::royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);").unwrap_or_default();
 
@@ -330,10 +397,11 @@ impl NftData {
         policies_str
     }
 
+    #[cfg(feature = "full")]
     fn write_move_transfer_fns(&self) -> String {
         let mut code = String::new();
 
-        if self.request_policies.has_transfer() {
+        if self.requires_transfer() {
             code.push_str(
                 "
 

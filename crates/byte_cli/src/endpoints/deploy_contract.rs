@@ -89,7 +89,7 @@ pub fn generate_contract(
         )
     })?;
 
-    let module_name = schema.collection().name();
+    let module_name = schema.package_name();
 
     let main_toml_string =
         write_toml_string(module_name.as_str(), &version, main_registry)?;
