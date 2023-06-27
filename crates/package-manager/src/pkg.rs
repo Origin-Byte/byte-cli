@@ -52,7 +52,7 @@ impl PkgRegistry {
         dep_names: &[String],
         version: &Version,
     ) -> HashMap<String, GitPath> {
-        let deps = dep_names
+        dep_names
             .iter()
             .map(|dep_name| {
                 (
@@ -63,9 +63,7 @@ impl PkgRegistry {
                         .clone(),
                 )
             })
-            .collect::<HashMap<String, GitPath>>();
-
-        deps
+            .collect()
     }
 
     pub fn get_pkgs_to_update<'a>(
