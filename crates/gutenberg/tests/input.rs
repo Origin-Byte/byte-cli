@@ -1,11 +1,9 @@
 //! Unit tests on input validation for the Schema struct
 use gutenberg::{
     err::GutenError,
-    models::{
-        launchpad::{listing::Listing, market::Market},
-        Address,
-    },
+    models::launchpad::{listing::Listing, market::Market},
 };
+use package_manager::Address;
 
 // TODO:
 // Input name: fail on non alpha-numeric
@@ -20,12 +18,10 @@ use gutenberg::{
 #[test]
 fn input_listing() -> Result<(), GutenError> {
     let admin = Address::new(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
-            .to_string(),
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
     )?;
     let receiver = Address::new(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
-            .to_string(),
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
     )?;
 
     let mut markets = Vec::new();

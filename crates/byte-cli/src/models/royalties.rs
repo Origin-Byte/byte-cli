@@ -1,15 +1,13 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
+use package_manager::Address;
 
 use super::{address_validator, bps_validator, number_validator, FromPrompt};
 use crate::{consts::TX_SENDER_ADDRESS, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::models::{
-    collection::{RoyaltyPolicy, Share},
-    Address,
-};
+use gutenberg::models::collection::{RoyaltyPolicy, Share};
 
 impl FromPrompt for RoyaltyPolicy {
     type Param<'a> = &'a [Address];
@@ -112,7 +110,7 @@ Note: Shares remaining: {}, please make sure the end sum amounts to 100% (i.e. 1
         };
 
         beneficiaries.push(address.clone());
-        shares.insert(Share::new(Address::new(address)?, share));
+        shares.insert(Share::new(Address::new(&address)?, share));
     }
 
     Ok(shares)

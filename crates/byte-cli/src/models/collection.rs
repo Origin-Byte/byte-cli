@@ -7,10 +7,8 @@ use super::{
 use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::models::{
-    collection::{CollectionData, RoyaltyPolicy, Supply},
-    Address,
-};
+use gutenberg::models::collection::{CollectionData, RoyaltyPolicy, Supply};
+use package_manager::Address;
 
 impl FromPrompt for CollectionData {
     type Param<'a> = ();
@@ -76,7 +74,7 @@ impl FromPrompt for CollectionData {
                     ))
                     .validate_with(address_validator)
                     .interact()
-                    .map(Address::new)
+                    .map(|address| Address::new(&address))
                     .unwrap()?;
 
                 if creators.contains(&address) {

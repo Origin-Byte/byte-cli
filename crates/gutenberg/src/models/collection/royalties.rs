@@ -1,7 +1,6 @@
+use package_manager::Address;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, str::FromStr};
-
-use crate::models::Address;
 
 // TODO: Doesn't need to be enum anymore
 #[derive(Debug, Serialize, Deserialize, Clone)]

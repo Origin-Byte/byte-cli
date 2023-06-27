@@ -1,6 +1,6 @@
+use super::Address;
 use anyhow::{anyhow, Result};
 use convert_case::{Case, Casing};
-use gutenberg::models::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
@@ -240,13 +240,8 @@ impl GitPath {
 
 #[cfg(test)]
 mod test {
-    use crate::{package::PackageRegistry, version::Version};
-
-    use anyhow::Result;
-    use gutenberg::models::Address;
-    use std::{collections::HashMap, env, fs::File, str::FromStr};
-
-    use super::{GitPath, Package, PackageInfo, PackagePath};
+    use super::*;
+    use std::{env, fs::File, str::FromStr};
 
     const V1_REV: &str = "95d16538dc7688dd4c4a5e7c3348bf3addf9c310";
     const V1_2_REV: &str = "93f6cd0b8966354b1b00e7d798cbfddaa867a07b";
@@ -351,11 +346,11 @@ mod test {
         let file = File::open(current_dir)?;
         let registry: PackageRegistry = serde_json::from_reader(file)?;
 
-        let obj_v1 = Address::new(String::from("0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"))?;
+        let obj_v1 = Address::new("0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9")?;
         let v1 = registry.get_version_from_object_id(&obj_v1)?;
         assert_eq!(format!("{}", v1), "1.0.0");
 
-        let obj_v2 = Address::new(String::from("0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e"))?;
+        let obj_v2 = Address::new("0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e")?;
         let v2 = registry.get_version_from_object_id(&obj_v2)?;
         assert_eq!(format!("{}", v2), "1.2.0");
 
@@ -380,7 +375,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.0.0")?,
-                published_at: Some(Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?),
+                published_at: Some(Address::new("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40")?),
             },
             contract_ref: PackagePath {
                 path: GitPath {
@@ -388,7 +383,7 @@ mod test {
                     subdir: Some(String::from("contracts/permissions")),
                     rev: String::from("95d16538dc7688dd4c4a5e7c3348bf3addf9c310"),
                 },
-                object_id: Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?,
+                object_id: Address::new("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40")?,
             },
             // No need to add dependencies as they're not used in this function
             dependencies: HashMap::new(),
@@ -403,7 +398,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.2.0")?,
-                published_at: Some(Address::new(String::from("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8"))?),
+                published_at: Some(Address::new("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8")?),
             },
             contract_ref: PackagePath {
                 path: GitPath {
@@ -411,7 +406,7 @@ mod test {
                     subdir: Some(String::from("contracts/permissions")),
                     rev: String::from("93f6cd0b8966354b1b00e7d798cbfddaa867a07b"),
                 },
-                object_id: Address::new(String::from("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"))?,
+                object_id: Address::new("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40")?,
             },
             // No need to add dependencies as they're not used in this function
             dependencies: HashMap::new(),

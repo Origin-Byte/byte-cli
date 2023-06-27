@@ -1,6 +1,6 @@
+use super::Address;
 use anyhow::{anyhow, Result};
 use console::style;
-use gutenberg::models::Address;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -134,7 +134,7 @@ impl MoveToml {
         ext_dep_names: &[String],
         version: &Version,
     ) -> Result<Self> {
-        let empty_addr = Address::new(String::from("0x0"))?;
+        let empty_addr = Address::new("0x0")?;
 
         let mut dependencies =
             pkg_registry.get_packages_git(dep_names, version)?;

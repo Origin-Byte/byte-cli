@@ -1,9 +1,11 @@
-use thiserror::Error;
+use package_manager::AddressError;
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum GutenError {
     #[error("An IO error has occured")]
     IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    Address(#[from] AddressError),
     #[error("{0}")]
     UnsupportedCollectionInput(String),
     #[error("{0}")]

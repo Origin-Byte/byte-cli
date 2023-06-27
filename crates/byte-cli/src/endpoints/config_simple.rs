@@ -11,6 +11,7 @@ use gutenberg::{
     },
     Schema,
 };
+use package_manager::Address;
 
 pub async fn init_schema(
     name: &String,
@@ -19,7 +20,7 @@ pub async fn init_schema(
 
     let keystore = rust_sdk::utils::get_keystore().await?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
-    let sender_string = gutenberg::models::Address::new(sender.to_string())?;
+    let sender_string = Address::new(&sender.to_string())?;
 
     let nft_type = name.as_str().to_case(Case::Pascal);
 
