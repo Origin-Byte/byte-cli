@@ -28,20 +28,20 @@ pub fn parse_config(config_file: &Path) -> Result<Schema> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
             r#"Could not find configuration file "{}": {err}
-Call `byte_cli init-collection-config` to initialize the configuration file."#,
+Call `byte-cli init-collection-config` to initialize the configuration file."#,
             config_file.display()
         )
     })?;
 
     serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
-Call `byte_cli init-collection-config to initialize the configuration file again."#, config_file.display()))
+Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
 }
 
 pub fn parse_state(config_file: &Path) -> Result<Project> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
             r#"Could not find state file "{}": {err}
-Call `byte_cli init-collection-config` to initialize the configuration file."#,
+Call `byte-cli init-collection-config` to initialize the configuration file."#,
             config_file.display()
         )
     })?;

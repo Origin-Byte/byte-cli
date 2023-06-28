@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/gutenberg",
-    "crates/byte_cli",
+    "crates/byte-cli",
     "crates/rust-sdk",
     "crates/package-manager"
 ]
