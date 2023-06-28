@@ -4,7 +4,8 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-thiserror = "1.0"
+package-manager = { path = "../package-manager" }
+
 url = "2.4"
 hex = "0.4"
 deunicode = "1.3"

@@ -1,8 +1,6 @@
-use serde::{Deserialize, Serialize};
-
-use crate::models::Address;
-
 use super::market::Market;
+use package_manager::Address;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]

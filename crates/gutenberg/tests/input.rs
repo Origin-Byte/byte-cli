@@ -1,11 +1,6 @@
 //! Unit tests on input validation for the Schema struct
-use gutenberg::{
-    err::GutenError,
-    models::{
-        launchpad::{listing::Listing, market::Market},
-        Address,
-    },
-};
+use gutenberg::models::launchpad::{listing::Listing, market::Market};
+use package_manager::Address;
 
 // TODO:
 // Input name: fail on non alpha-numeric
@@ -18,15 +13,15 @@ use gutenberg::{
 // Listings > Markets > The token string field is currenly not being validated
 
 #[test]
-fn input_listing() -> Result<(), GutenError> {
+fn input_listing() {
     let admin = Address::new(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
-            .to_string(),
-    )?;
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
+    )
+    .unwrap();
     let receiver = Address::new(
-        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed"
-            .to_string(),
-    )?;
+        "0x1225dd576b9fa621fb2aab078f82b88bf6c5a9260dbac34f7b1010917bd795ed",
+    )
+    .unwrap();
 
     let mut markets = Vec::new();
 
@@ -57,6 +52,4 @@ fn input_listing() -> Result<(), GutenError> {
     assert_eq!(listing.receiver, receiver);
     assert_eq!(listing.markets[0], market_1);
     assert_eq!(listing.markets[1], market_2);
-
-    Ok(())
 }

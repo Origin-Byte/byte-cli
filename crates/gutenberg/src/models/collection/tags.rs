@@ -1,10 +1,5 @@
 use serde::{de::Visitor, Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
-use crate::err::GutenError;
+use std::fmt::{self, Display};
 
 #[derive(Debug, Clone)]
 pub enum Tag {
@@ -22,6 +17,22 @@ pub enum Tag {
 }
 
 impl Tag {
+    pub fn new(tag: &str) -> Self {
+        match tag {
+            "Art" => Tag::Art,
+            "ProfilePicture" => Tag::ProfilePicture,
+            "Collectible" => Tag::Collectible,
+            "GameAsset" => Tag::GameAsset,
+            "TokenisedAsset" => Tag::TokenisedAsset,
+            "DomainName" => Tag::DomainName,
+            "Music" => Tag::Music,
+            "Video" => Tag::Video,
+            "Ticket" => Tag::Ticket,
+            "License" => Tag::License,
+            tag => Tag::Custom(tag.to_string()),
+        }
+    }
+
     fn function_name(&self) -> &'static str {
         match self {
             Tag::Art => "art",
@@ -75,26 +86,6 @@ impl Display for Tag {
     }
 }
 
-impl FromStr for Tag {
-    type Err = ();
-
-    fn from_str(input: &str) -> Result<Tag, Self::Err> {
-        match input {
-            "Art" => Ok(Tag::Art),
-            "ProfilePicture" => Ok(Tag::ProfilePicture),
-            "Collectible" => Ok(Tag::Collectible),
-            "GameAsset" => Ok(Tag::GameAsset),
-            "TokenisedAsset" => Ok(Tag::TokenisedAsset),
-            "DomainName" => Ok(Tag::DomainName),
-            "Music" => Ok(Tag::Music),
-            "Video" => Ok(Tag::Video),
-            "Ticket" => Ok(Tag::Ticket),
-            "License" => Ok(Tag::License),
-            tag => Ok(Tag::Custom(tag.to_string())),
-        }
-    }
-}
-
 impl<'de> Deserialize<'de> for Tag {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -113,8 +104,7 @@ impl<'de> Deserialize<'de> for Tag {
             where
                 E: serde::de::Error,
             {
-                Tag::from_str(v)
-                    .map_err(|_err| E::custom("Could not parse tag"))
+                Ok(Tag::new(v))
             }
         }
 
@@ -139,7 +129,7 @@ impl Tags {
     pub fn new(tags: &[String]) -> Self {
         let tags = tags
             .iter()
-            .map(|string| Tag::from_str(string).unwrap())
+            .map(|string| Tag::new(string))
             .collect::<Vec<Tag>>();
 
         Tags(tags)
@@ -158,16 +148,5 @@ impl Tags {
         }
 
         code
-    }
-
-    pub fn push_tag(&mut self, tag_string: String) -> Result<(), GutenError> {
-        let tag = Tag::from_str(&tag_string).unwrap();
-        self.0.push(tag);
-
-        Ok(())
-    }
-
-    pub fn has_tags(&self) -> bool {
-        !self.0.is_empty()
     }
 }

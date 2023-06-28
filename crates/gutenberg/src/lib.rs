@@ -1,4 +1,3 @@
-pub mod err;
 pub mod models;
 mod schema;
 

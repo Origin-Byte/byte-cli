@@ -1,5 +1,11 @@
 #!/bin/bash
+
 cargo build --bin gutenberg --features="cli"
+if [[ ! $? -eq 0 ]]; then
+    echo "Could not build Gutenberg"
+    echo "FAIL"
+    exit 1
+fi
 
 tmp_dir=$(mktemp -d)
 

@@ -4,15 +4,13 @@
 //! by the caller.
 
 mod royalties;
-
 mod supply;
 mod tags;
 
-use super::Address;
 use crate::deunicode;
 
+use package_manager::Address;
 pub use royalties::{RoyaltyPolicy, Share};
-
 pub use supply::Supply;
 pub use tags::{Tag, Tags};
 

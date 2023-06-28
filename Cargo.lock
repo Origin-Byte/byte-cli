@@ -4262,12 +4262,12 @@ dependencies = [
  "clap 4.2.7",
  "deunicode 1.3.3",
  "hex",
+ "package-manager",
  "pretty_assertions",
  "regex",
  "serde 1.0.163",
  "serde_json",
  "serde_yaml 0.9.21",
- "thiserror",
  "url",
 ]
 
@@ -7388,11 +7388,10 @@ dependencies = [
  "anyhow",
  "console",
  "convert_case 0.6.0",
- "gutenberg",
  "regex",
  "serde 1.0.163",
  "serde_json",
- "serde_yaml 0.9.21",
+ "thiserror",
 ]
 
 [[package]]

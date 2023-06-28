@@ -1,7 +1,6 @@
+use package_manager::Address;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, str::FromStr};
-
-use crate::models::Address;
+use std::collections::BTreeSet;
 
 // TODO: Doesn't need to be enum anymore
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -49,20 +48,6 @@ impl Share {
         Share {
             address,
             share_bps: share,
-        }
-    }
-}
-
-impl FromStr for RoyaltyPolicy {
-    type Err = ();
-
-    fn from_str(input: &str) -> Result<RoyaltyPolicy, Self::Err> {
-        match input {
-            "proportional" => Ok(RoyaltyPolicy::Proportional {
-                shares: BTreeSet::default(),
-                collection_royalty_bps: u64::default(),
-            }),
-            _ => Err(()),
         }
     }
 }
