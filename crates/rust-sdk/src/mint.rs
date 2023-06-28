@@ -1,20 +1,15 @@
 use crate::{
     err::{self, RustSdkError},
     metadata::Metadata,
-    utils::{get_context, get_reference_gas_price, MoveType},
+    utils::{execute_tx, get_context, get_reference_gas_price, MoveType},
 };
 use anyhow::Result;
 use move_core_types::identifier::Identifier;
-use shared_crypto::intent::Intent;
 use std::{str::FromStr, sync::Arc};
-use sui_json_rpc_types::SuiExecutionStatus;
+use sui_json_rpc_types::{SuiExecutionStatus, SuiTransactionBlockResponse};
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockEffects};
-use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
-    types::{
-        base_types::{ObjectID, SuiAddress},
-        messages::Transaction,
-    },
+    types::base_types::{ObjectID, SuiAddress},
     wallet_context::WalletContext,
 };
 use sui_types::{
@@ -24,7 +19,7 @@ use sui_types::{
     parse_sui_type_tag,
 };
 use sui_types::{
-    crypto::Signature, messages::TransactionData,
+    messages::TransactionData,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 use tokio::task::JoinHandle;
@@ -47,7 +42,34 @@ pub async fn create_warehouse(
     gas_budget: u64,
 ) -> Result<ObjectID, RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
-    let keystore = &wallet_ctx.config.keystore;
+
+    let data = prepare_create_warehouse(
+        &wallet_ctx,
+        collection_type,
+        package_id,
+        gas_coin,
+        gas_budget,
+    )
+    .await?;
+
+    let response = execute_tx(&wallet_ctx, data).await?;
+
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+
+    assert!(effects.status.is_ok());
+
+    let warehouse_id = effects.created.first().unwrap().reference.object_id;
+
+    Ok(warehouse_id)
+}
+
+pub async fn prepare_create_warehouse(
+    wallet_ctx: &WalletContext,
+    collection_type: MoveType,
+    package_id: ObjectID,
+    gas_coin: ObjectRef,
+    gas_budget: u64,
+) -> Result<TransactionData, RustSdkError> {
     let sender = wallet_ctx.config.active_address.unwrap();
 
     let gas_price = get_reference_gas_price(&wallet_ctx).await?;
@@ -65,35 +87,13 @@ pub async fn create_warehouse(
         vec![],                                              // Call Arguments
     );
 
-    let data = TransactionData::new_programmable(
+    Ok(TransactionData::new_programmable(
         sender,
         vec![gas_coin], // Gas Objects
         builder.finish(),
         gas_budget,
         gas_price,
-    );
-
-    // Sign transaction.
-    let signatures: Vec<Signature> = vec![keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?];
-
-    let response = wallet_ctx
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    let warehouse_id = effects.created.first().unwrap().reference.object_id;
-
-    Ok(warehouse_id)
+    ))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -126,7 +126,7 @@ pub async fn handle_mint_nfts_to_warehouse(
 
 #[allow(clippy::too_many_arguments)]
 pub async fn mint_nfts_to_warehouse(
-    mut data: Vec<(u32, Metadata)>,
+    data: Vec<(u32, Metadata)>,
     wallet_ctx: Arc<WalletContext>,
     package_id: Arc<String>,
     module_name: Arc<String>,
@@ -136,6 +136,37 @@ pub async fn mint_nfts_to_warehouse(
     warehouse: Arc<String>,
     mint_cap: Arc<String>,
 ) -> Result<MintEffect, RustSdkError> {
+    let data = prepare_mint_nfts_to_warehouse(
+        data,
+        wallet_ctx.clone(),
+        package_id,
+        module_name,
+        gas_budget,
+        gas_coin,
+        sender,
+        warehouse.clone(),
+        mint_cap,
+    )
+    .await?;
+
+    // Execute the transaction.
+    let response = execute_tx(wallet_ctx, data).await?;
+
+    Ok(handle_mint_effects(response, warehouse)?)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn prepare_mint_nfts_to_warehouse(
+    mut data: Vec<(u32, Metadata)>,
+    wallet_ctx: Arc<WalletContext>,
+    package_id: Arc<String>,
+    module_name: Arc<String>,
+    gas_budget: u64,
+    gas_coin: Option<Arc<ObjectRef>>,
+    sender: SuiAddress,
+    warehouse: Arc<String>,
+    mint_cap: Arc<String>,
+) -> Result<TransactionData, RustSdkError> {
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
     let warehouse_id = ObjectID::from_str(warehouse.as_str())
@@ -195,31 +226,22 @@ pub async fn mint_nfts_to_warehouse(
 
     let pt = builder.finish();
 
-    let data = TransactionData::new_programmable(
+    Ok(TransactionData::new_programmable(
         sender, coins, pt, gas_budget, gas_price,
-    );
+    ))
+}
 
-    // Sign transaction.
-    let signatures: Vec<Signature> = vec![wallet_ctx
-        .config
-        .keystore
-        .sign_secure(&sender, &data, Intent::sui_transaction())?];
-
-    // Execute the transaction.
-    let response = wallet_ctx
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
+pub fn handle_mint_effects(
+    response: SuiTransactionBlockResponse,
+    warehouse_id: Arc<String>,
+) -> Result<MintEffect, RustSdkError> {
     let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
 
     match effects.status {
         SuiExecutionStatus::Success => {
             let obj_ids = effects.created;
             let warehouse_addr =
-                SuiAddress::from_str(warehouse.as_str()).unwrap();
+                SuiAddress::from_str(warehouse_id.as_str()).unwrap();
 
             let nfts = obj_ids
                 .iter()

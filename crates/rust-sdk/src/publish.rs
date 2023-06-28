@@ -5,14 +5,11 @@ use std::path::Path;
 use std::sync::mpsc::Sender;
 use sui_sdk::wallet_context::WalletContext;
 
-use shared_crypto::intent::Intent;
 use sui_json_rpc_types::SuiTransactionBlockResponse;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
-use sui_keys::keystore::AccountKeystore;
 use sui_move_build::BuildConfig;
-use sui_sdk::{types::messages::Transaction, SuiClient};
+use sui_sdk::SuiClient;
 use sui_types::base_types::{ObjectID, ObjectType, SuiAddress};
-use sui_types::crypto::Signature;
 use sui_types::{
     base_types::ObjectRef, messages::TransactionData,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
@@ -22,7 +19,7 @@ use move_package::BuildConfig as MoveBuildConfig;
 use sui_move::build::resolve_lock_file_path;
 
 use crate::consts::{PRICE_PUBLISH, RECIPIENT_ADDRESS};
-use crate::utils::get_context;
+use crate::utils::execute_tx;
 use crate::{collection_state::ObjectType as OBObjectType, err::RustSdkError};
 use std::str::FromStr;
 
@@ -32,77 +29,13 @@ pub async fn publish_contract(
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<SuiTransactionBlockResponse, RustSdkError> {
-    let build_config = MoveBuildConfig::default();
-
-    let context = get_context().await.unwrap();
-    let keystore = &context.config.keystore;
-    let sender = context.config.active_address.unwrap();
-
-    println!("{} Compiling contract", style("WIP").cyan().bold());
-
-    let (compiled_modules, dep_ids) = {
-        let compiled_modules_base_64 = BuildConfig::default();
-
-        let compiled_modules_base_64 = compiled_modules_base_64
-            .build(package_dir.to_path_buf())?
-            .get_package_base64(false);
-
-        let mods = compiled_modules_base_64
-            .into_iter()
-            .map(|data| data.to_vec().map_err(|e| anyhow::anyhow!(e)))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let dep_ids: Vec<ObjectID> =
-            get_dependencies(&build_config, package_dir)?;
-
-        (mods, dep_ids)
-    };
-
-    println!("{} Compiling contract", style("DONE").green().bold());
-    println!("{} Preparing transaction", style("WIP").cyan().bold());
-
-    let mut builder = ProgrammableTransactionBuilder::new();
-    let upgrade_cap = builder.publish_upgradeable(compiled_modules, dep_ids);
-
-    builder.transfer_arg(sender, upgrade_cap);
-
-    let data = TransactionData::new_programmable(
-        sender,
-        vec![gas_coin], // Gas Objects
-        builder.finish(),
-        gas_budget, // Gas Budget
-        1000,       // Gas Price
-    );
-
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature =
-        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
-
-    signatures.push(signature);
+    let data =
+        prepare_publish_contract(wallet_ctx, package_dir, gas_coin, gas_budget)
+            .await?;
 
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
-    // Execute the transaction.
-    println!(
-        "{} Sending and executing transaction.",
-        style("WIN").cyan().bold()
-    );
-
-    let response = wallet_ctx
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    println!(
-        "{} Sending and executing transaction.",
-        style("Done").cyan().bold()
-    );
-
-    Ok(response)
+    execute_tx(wallet_ctx, data).await
 }
 
 pub async fn publish_contract_and_pay(
@@ -111,11 +44,69 @@ pub async fn publish_contract_and_pay(
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<SuiTransactionBlockResponse, RustSdkError> {
-    let build_config = MoveBuildConfig::default();
+    let data = prepare_publish_contract_and_pay(
+        wallet_ctx,
+        package_dir,
+        gas_coin,
+        gas_budget,
+    )
+    .await?;
 
-    let context = get_context().await.unwrap();
-    let keystore = &context.config.keystore;
-    let sender = context.config.active_address.unwrap();
+    println!("{} Preparing transaction.", style("DONE").green().bold());
+
+    execute_tx(wallet_ctx, data).await
+}
+
+pub async fn prepare_publish_contract(
+    wallet_ctx: &WalletContext,
+    package_dir: &Path,
+    gas_coin: ObjectRef,
+    gas_budget: u64,
+) -> Result<TransactionData, RustSdkError> {
+    let sender = wallet_ctx.config.active_address.unwrap();
+
+    let builder = init_publish_pt(wallet_ctx, package_dir).await?;
+
+    Ok(TransactionData::new_programmable(
+        sender,
+        vec![gas_coin], // Gas Objects
+        builder.finish(),
+        gas_budget, // Gas Budget
+        1000,       // Gas Price
+    ))
+}
+
+pub async fn prepare_publish_contract_and_pay(
+    wallet_ctx: &WalletContext,
+    package_dir: &Path,
+    gas_coin: ObjectRef,
+    gas_budget: u64,
+) -> Result<TransactionData, RustSdkError> {
+    let sender = wallet_ctx.config.active_address.unwrap();
+
+    let mut builder = init_publish_pt(wallet_ctx, package_dir).await?;
+
+    let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS)?;
+    builder.pay_sui(
+        vec![ob_addr],       // recipients
+        vec![PRICE_PUBLISH], // amounts
+    )?;
+
+    Ok(TransactionData::new_programmable(
+        sender,
+        vec![gas_coin], // Gas Objects
+        builder.finish(),
+        gas_budget, // Gas Budget
+        1000,       // Gas Price
+    ))
+}
+
+async fn init_publish_pt(
+    wallet_ctx: &WalletContext,
+    package_dir: &Path,
+) -> Result<ProgrammableTransactionBuilder, RustSdkError> {
+    let build_config = MoveBuildConfig::default();
+    let sender = wallet_ctx.config.active_address.unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
 
@@ -145,50 +136,7 @@ pub async fn publish_contract_and_pay(
 
     builder.transfer_arg(sender, upgrade_cap);
 
-    let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS)?;
-
-    builder.pay_sui(
-        vec![ob_addr],       // recipients
-        vec![PRICE_PUBLISH], // amounts
-    )?;
-
-    let data = TransactionData::new_programmable(
-        sender,
-        vec![gas_coin], // Gas Objects
-        builder.finish(),
-        gas_budget, // Gas Budget
-        1000,       // Gas Price
-    );
-
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature =
-        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
-
-    signatures.push(signature);
-
-    println!("{} Preparing transaction.", style("DONE").green().bold());
-
-    // Execute the transaction.
-    println!(
-        "{} Sending and executing transaction.",
-        style("WIN").cyan().bold()
-    );
-
-    let response = wallet_ctx
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    println!(
-        "{} Sending and executing transaction.",
-        style("Done").cyan().bold()
-    );
-
-    Ok(response)
+    Ok(builder)
 }
 
 fn get_dependencies(
