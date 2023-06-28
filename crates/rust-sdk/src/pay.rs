@@ -27,7 +27,22 @@ use sui_types::{
 };
 
 pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
-    let context = get_context().await.unwrap();
+    let wallet_ctx = get_context().await.unwrap();
+
+    let data = prepare_pay(&wallet_ctx, amount, gas_budget).await?;
+    let response = execute_tx(&wallet_ctx, data).await?;
+
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+    assert!(effects.status.is_ok());
+
+    Ok(())
+}
+
+pub async fn prepare_pay(
+    wallet_ctx: &WalletContext,
+    amount: u64,
+    gas_budget: u64,
+) -> Result<TransactionData, RustSdkError> {
     let client = context.get_client().await?;
     let keystore = &context.config.keystore;
     let sender = context.config.active_address.unwrap();
@@ -38,7 +53,7 @@ pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
 
     let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS);
 
-    let data = client
+    Ok(client
         .transaction_builder()
         .pay_sui(
             sender,                    // signer
@@ -47,29 +62,5 @@ pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
             vec![amount],              // amounts
             gas_budget,
         )
-        .await?;
-
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature = context.config.keystore.sign_secure(
-        &sender,
-        &data,
-        Intent::sui_transaction(),
-    )?;
-
-    signatures.push(signature);
-
-    let response = context
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    Ok(())
+        .await?)
 }
