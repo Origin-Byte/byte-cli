@@ -46,6 +46,12 @@ impl Schema {
         &self.nft
     }
 
+    /// Disables features that should not be enabled in demo mode
+    pub fn enforce_demo(&mut self) {
+        self.nft.enforce_demo();
+        self.collection.enforce_demo();
+    }
+
     pub fn write_move_defs(&self) -> String {
         self.nft.write_move_defs(&self.collection)
     }

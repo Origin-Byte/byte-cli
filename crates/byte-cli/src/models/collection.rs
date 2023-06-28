@@ -7,9 +7,10 @@ use super::{
 use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
 
 use dialoguer::{Confirm, Input};
-#[cfg(feature = "full")]
-use gutenberg::models::collection::{RoyaltyPolicy, Supply};
-use gutenberg::models::{collection::CollectionData, Address};
+use gutenberg::models::{
+    collection::{CollectionData, RoyaltyPolicy, Supply},
+    Address,
+};
 
 impl FromPrompt for CollectionData {
     type Param<'a> = ();
@@ -89,31 +90,18 @@ impl FromPrompt for CollectionData {
         }
 
         let creators: Vec<Address> = creators.into_iter().collect();
+        let royalties = RoyaltyPolicy::from_prompt(creators.as_slice())?;
 
-        #[cfg(feature = "full")]
-        let collection_data = {
-            let royalties = RoyaltyPolicy::from_prompt(creators.as_slice())?;
-
-            CollectionData::new(
-                Some(name.to_lowercase()),
-                Some(description),
-                Some(symbol.to_uppercase()),
-                url,
-                creators,
-                // Use tracked supply as default as it is most compatible
-                Supply::tracked(),
-                Some(royalties),
-                // TODO: Tags
-                None,
-            )
-        };
-        #[cfg(not(feature = "full"))]
         let collection_data = CollectionData::new(
-            Some(name),
+            Some(name.to_lowercase()),
             Some(description),
             Some(symbol.to_uppercase()),
             url,
             creators,
+            // Use tracked supply as default as it is most compatible
+            Supply::tracked(),
+            Some(royalties),
+            // TODO: Tags
             None,
         );
 

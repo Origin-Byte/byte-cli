@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::write_move_fn;
+use crate::models::{collection::Supply, write_move_fn};
 
 use super::Fields;
 
@@ -178,14 +178,7 @@ impl MintPolicies {
             Some(type_name.to_string()),
             || {
                 let collection_increment_str = requires_collection
-                    .then(|| {
-                        #[cfg(feature = "full")]
-                        let supply_str = crate::models::collection::Supply::write_move_increment();
-                        #[cfg(not(feature = "full"))]
-                        let supply_str = "";
-
-                        supply_str
-                    })
+                    .then(Supply::write_move_increment)
                     .unwrap_or_default();
 
                 let fields_str: String = fields.iter().map(|field| {

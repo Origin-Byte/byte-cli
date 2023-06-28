@@ -20,13 +20,7 @@ There is an example configuration file, `template.json` which is aligned to the 
 To install the full version of gutenberg CLI on your computer you can call:
 
 ```
-cargo install --features="cli full" --path .
-```
-
-To install the demo version you can drop the `full` feature:
-
-```
-cargo install --no-default-features --features="cli" --path .
+cargo install --features="cli" --path .
 ```
 
 ### Generate contract

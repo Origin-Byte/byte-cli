@@ -1,11 +1,12 @@
 #!/bin/bash
+cargo build --bin gutenberg --features="cli"
+
 tmp_dir=$(mktemp -d)
 
 # Generate and compare full contracts
 #
 # Test full contracts first since they're the ones most likely to fail
 echo "Testing generated full contracts..."
-cargo build --bin gutenberg --no-default-features --features="cli full"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
@@ -49,13 +50,12 @@ done
 
 # Generate and compare demo contracts
 echo "Testing generated demo contracts..."
-cargo build --bin gutenberg --no-default-features --features="cli"
 
 for file in ./tests/scenarios/*.json; do
     echo "Testing scenario $file"
 
     rm -rf $tmp_dir/*
-    ../../target/debug/gutenberg $file $tmp_dir
+    ../../target/debug/gutenberg --demo $file $tmp_dir
 
     filename=$(basename -- "$file")
     filename="${filename%.*}"

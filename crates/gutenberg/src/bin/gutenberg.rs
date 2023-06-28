@@ -7,23 +7,29 @@ use std::path::Path;
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct Cli {
+    #[arg(short, long)]
+    demo: bool,
     input_config_path: String,
     output_dir: String,
 }
 
 fn main() {
     let Cli {
+        demo,
         input_config_path,
         output_dir,
     } = Cli::parse();
 
     let config_path_parsed = Path::new(&input_config_path);
     let output_dir_parsed = Path::new(&output_dir);
-    generate_contract(&config_path_parsed, &output_dir_parsed);
+    generate_contract(demo, &config_path_parsed, &output_dir_parsed);
 }
 
-fn generate_contract(config_path: &Path, output_dir: &Path) {
-    let schema = assert_schema(config_path);
+fn generate_contract(is_demo: bool, config_path: &Path, output_dir: &Path) {
+    let mut schema = assert_schema(config_path);
+    if is_demo {
+        schema.enforce_demo();
+    }
 
     // Create main contract directory
     let package_name = schema.package_name();

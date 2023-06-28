@@ -2,19 +2,15 @@ use super::{map_indices, FromPrompt};
 use crate::prelude::get_dialoguer_theme;
 
 use dialoguer::{Input, MultiSelect};
-#[cfg(feature = "full")]
-use gutenberg::models::nft::{Burn, Dynamic, MintCap, Orderbook};
 use gutenberg::models::nft::{
-    FieldType, MintPolicies, NftData, RequestPolicies,
+    Burn, Dynamic, FieldType, MintCap, MintPolicies, NftData, Orderbook,
+    RequestPolicies,
 };
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
-#[cfg(feature = "full")]
 const BURN_PERMISSIONS: [&str; 3] = ["None", "Permissioned", "Permissionless"];
-#[cfg(feature = "full")]
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 
-#[cfg(feature = "full")]
 impl FromPrompt for Burn {
     type Param<'a> = ();
 
@@ -36,7 +32,6 @@ impl FromPrompt for Burn {
     }
 }
 
-#[cfg(feature = "full")]
 impl FromPrompt for Dynamic {
     type Param<'a> = ();
 
@@ -55,7 +50,6 @@ impl FromPrompt for Dynamic {
     }
 }
 
-#[cfg(feature = "full")]
 impl FromPrompt for MintCap {
     type Param<'a> = ();
 
@@ -128,7 +122,6 @@ impl FromPrompt for NftData {
             .interact()
             .unwrap();
 
-        #[cfg(feature = "full")]
         let nft_data = NftData::new(
             type_name,
             Some(Burn::from_prompt(())?),
@@ -144,12 +137,6 @@ impl FromPrompt for NftData {
                 ("attributes", FieldType::Attributes),
             ]
             .into(),
-        );
-        #[cfg(not(feature = "full"))]
-        let nft_data = NftData::new(
-            type_name,
-            MintPolicies::from_prompt(())?,
-            RequestPolicies::default(),
         );
 
         Ok(nft_data)

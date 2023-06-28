@@ -22,15 +22,15 @@ impl Fields {
     }
 
     pub fn params(&self) -> impl Iterator<Item = String> + '_ {
-        self.iter().map(Field::params).flatten()
+        self.iter().flat_map(Field::params)
     }
 
     pub fn param_types(&self) -> impl Iterator<Item = &'static str> + '_ {
-        self.iter().map(Field::param_types).flatten()
+        self.iter().flat_map(Field::param_types)
     }
 
     pub fn test_params(&self) -> impl Iterator<Item = &'static str> + '_ {
-        self.iter().map(Field::test_params).flatten()
+        self.iter().flat_map(Field::test_params)
     }
 }
 
