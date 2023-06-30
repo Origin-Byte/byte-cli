@@ -30,6 +30,7 @@ async fn generate_contract_endpoint(input_data: web::Bytes) -> impl Responder {
 
     // Call generate_contract
     generate_contract(&input_dir, &output_dir);
+    generate_contract(&input_file_path, &output_dir);
 
     // Search for the .move file in the output directory
     let move_file_path = WalkDir::new(&output_dir)
