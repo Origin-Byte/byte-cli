@@ -18,19 +18,19 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && cargo install cargo-chef
 
-WORKDIR /app
+WORKDIR /workspace/crates/bytes-api
 
 # Stage 2: Preparing a list of dependencies using cargo-chef
 FROM chef AS planner
-WORKDIR /app
+WORKDIR /workspace
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
-WORKDIR /app
-COPY --from=planner /app/recipe.json recipe.json
+WORKDIR /workspace/crates/bytes-api
+COPY --from=planner recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-#RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
 RUN cargo build --release
@@ -40,7 +40,7 @@ RUN cargo install --path . --verbose
 FROM debian:bullseye-slim
 
 # Copy the binary from the builder to the final image
-COPY --from=builder /app/target/release/byte-api .
+COPY --from=builder /workspace/crates/bytes-api/target/release/byte-api .
 
 # Specify the command to run your application
 ENTRYPOINT ["/byte-api"]
