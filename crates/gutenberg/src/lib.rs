@@ -4,9 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod manifest;
 pub mod models;
 mod schema;
 
+pub use manifest::{generate_manifest, write_manifest};
 pub use schema::Schema;
 
 /// Used to return all files for loading contract
@@ -20,6 +22,10 @@ pub struct ContractFile {
 }
 
 impl ContractFile {
+    pub fn new(path: PathBuf, content: String) -> Self {
+        Self { path, content }
+    }
+
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -49,10 +55,6 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
     std::fs::create_dir_all(&sources_dir).unwrap();
 
     contract_dir
-}
-
-pub fn generate_move_toml(schema: &Schema) -> ContractFile {
-    schema.write_move_toml()
 }
 
 // Consume `Schema` since we are modifying it

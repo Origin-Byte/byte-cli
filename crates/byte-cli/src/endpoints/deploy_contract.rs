@@ -1,14 +1,9 @@
 use anyhow::{anyhow, Context};
 use console::style;
 use gutenberg::Schema;
-use package_manager::{
-    package::PackageRegistry,
-    toml::{self as move_toml, MoveToml},
-    version::Version,
-};
 use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
+use std::io::Write;
 use std::path::Path;
-use std::{io::Write, str::FromStr};
 use sui_sdk::rpc_types::{
     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
 };
@@ -53,9 +48,6 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 pub fn generate_contract(
     schema: Schema,
     output_dir: &Path,
-    main_registry: &PackageRegistry,
-    test_registry: &PackageRegistry,
-    version: Option<String>,
 ) -> Result<(), anyhow::Error> {
     println!("{} Generating contract", style("WIP").cyan().bold());
 
@@ -72,7 +64,7 @@ pub fn generate_contract(
     })?;
 
     let main_toml_path = contract_dir.join("flavours/Move-main.toml");
-    let mut mail_toml_file =
+    let mut main_toml_file =
         File::create(&main_toml_path).with_context(|| {
             format!(
                 r#"Could not create "{path}""#,
@@ -80,9 +72,10 @@ pub fn generate_contract(
             )
         })?;
 
-    mail_toml_file
+    main_toml_file
         .write_all(
-            write_toml_string(&package_name, &version, main_registry)?
+            gutenberg::generate_manifest(package_name.clone())
+                .to_string()?
                 .as_bytes(),
         )
         .with_context(|| {
@@ -104,7 +97,8 @@ pub fn generate_contract(
 
     test_toml_file
         .write_all(
-            write_toml_string(&package_name, &version, test_registry)?
+            gutenberg::generate_manifest(package_name)
+                .to_string()?
                 .as_bytes(),
         )
         .with_context(|| {
@@ -146,43 +140,6 @@ pub async fn publish_contract(
     .await?;
 
     Ok(response)
-}
-
-pub fn write_toml_string(
-    module_name: &str,
-    version: &Option<String>,
-    registry: &PackageRegistry,
-) -> Result<String, anyhow::Error> {
-    let mut move_toml = match version {
-        Some(version) => MoveToml::get_toml(
-            module_name,
-            registry,
-            &[
-                String::from("NftProtocol"),
-                String::from("Launchpad"),
-                String::from("LiquidityLayerV1"),
-            ],
-            &[String::from("Sui"), String::from("Originmate")],
-            &Version::from_str(version.as_str())?,
-        )?,
-        None => MoveToml::get_toml_latest(
-            module_name,
-            registry,
-            &[
-                String::from("NftProtocol"),
-                String::from("Launchpad"),
-                String::from("LiquidityLayerV1"),
-            ],
-            &[String::from("Sui"), String::from("Originmate")],
-        )?,
-    };
-
-    move_toml.sanitize_output();
-
-    let mut toml_string = toml::to_string_pretty(&move_toml)?;
-    toml_string = move_toml::add_vertical_spacing(toml_string.as_str());
-
-    Ok(toml_string)
 }
 
 pub async fn process_effects(

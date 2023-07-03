@@ -114,28 +114,16 @@ async fn run() -> Result<()> {
             )
             .await?
         }
-        Commands::GenerateContract {
-            name,
-            project_dir,
-            version,
-        } => {
+        Commands::GenerateContract { name, project_dir } => {
             // Input
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
             let contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
-            let (main_registry, test_registry) = io::get_program_registries()?;
-
             // Logic
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
-            deploy_contract::generate_contract(
-                schema,
-                contract_dir.as_path(),
-                &main_registry,
-                &test_registry,
-                version,
-            )?;
+            deploy_contract::generate_contract(schema, contract_dir.as_path())?;
         }
         Commands::DeployContract {
             name,

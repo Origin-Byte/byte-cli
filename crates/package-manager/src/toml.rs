@@ -1,5 +1,5 @@
 use super::Address;
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use console::style;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -15,12 +15,24 @@ use crate::{
 
 #[derive(Deserialize, Debug, Serialize)]
 pub struct MoveToml {
-    pub package: Package,
-    pub dependencies: HashMap<String, GitPath>,
-    pub addresses: HashMap<String, Address>,
+    package: Package,
+    dependencies: HashMap<String, GitPath>,
+    addresses: HashMap<String, Address>,
 }
 
 impl MoveToml {
+    pub fn new(
+        package: Package,
+        dependencies: HashMap<String, GitPath>,
+        addresses: HashMap<String, Address>,
+    ) -> Self {
+        Self {
+            package,
+            dependencies,
+            addresses,
+        }
+    }
+
     pub fn sanitize_output(&mut self) {
         self.dependencies
             .iter_mut()
@@ -30,7 +42,7 @@ impl MoveToml {
     pub fn pkg_info_list<'a>(
         &self,
         pkg_registry: &'a PackageRegistry,
-    ) -> Result<&'a BTreeMap<Version, PackageInfo>> {
+    ) -> Result<&'a BTreeMap<Version, PackageInfo>, anyhow::Error> {
         let name = self.package.name();
         pkg_registry.0.get(&name).ok_or_else(|| {
             anyhow!("Could not find package '{name}' in Package Registry")
@@ -40,7 +52,7 @@ impl MoveToml {
     pub fn pkg_info<'a>(
         &self,
         pkg_registry: &'a PackageRegistry,
-    ) -> Result<&'a PackageInfo> {
+    ) -> Result<&'a PackageInfo, anyhow::Error> {
         let version = self.package.version();
         let info_list = self.pkg_info_list(pkg_registry)?;
 
@@ -128,7 +140,7 @@ impl MoveToml {
         dep_names: &[String],
         ext_dep_names: &[String],
         version: &Version,
-    ) -> Result<Self> {
+    ) -> Result<Self, anyhow::Error> {
         let empty_addr = Address::new("0x0")?;
 
         let mut dependencies =
@@ -137,7 +149,7 @@ impl MoveToml {
         // Inserts Sui and Originmate
         ext_dep_names
             .iter()
-            .try_for_each::<_, Result<()>>(|dep_name| {
+            .try_for_each::<_, Result<(), anyhow::Error>>(|dep_name| {
                 let ext_dep = pkg_registry
                     .get_ext_dep_from_protocol(dep_name.as_str(), version)?;
 
@@ -164,7 +176,7 @@ impl MoveToml {
         pkg_registry: &PackageRegistry,
         dep_names: &[String],
         ext_dep_names: &[String],
-    ) -> Result<Self> {
+    ) -> Result<Self, anyhow::Error> {
         // Oath of honor --> Monolitic release (for now)
         let version =
             pkg_registry.get_latest_version(&String::from("NftProtocol"))?;
@@ -186,6 +198,17 @@ impl MoveToml {
         );
 
         dependency
+    }
+
+    pub fn to_value(&self) -> Result<toml::Value, toml::ser::Error> {
+        toml::Value::try_from(self)
+    }
+
+    pub fn to_string(&self) -> Result<String, toml::ser::Error> {
+        let mut toml_string = toml::to_string_pretty(self)?;
+        toml_string = add_vertical_spacing(toml_string.as_str());
+
+        Ok(toml_string)
     }
 }
 
@@ -243,7 +266,7 @@ pub fn get_contract_ref(
     }
 }
 
-/// This function is here because Toml serialiser seems to be
+/// This function is here because Toml serializer seems to be
 /// failing to add a vertical space between the tables `package` and `dependencies`
 pub fn add_vertical_spacing(input: &str) -> String {
     let re = Regex::new(r"(?m)^(published-at.*)")

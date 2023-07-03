@@ -122,16 +122,4 @@ impl Schema {
             content,
         }
     }
-
-    pub fn write_move_toml(&self) -> ContractFile {
-        let content = format!(
-            include_str!("../templates/Move.toml"),
-            package_name = self.package_name(),
-        );
-
-        ContractFile {
-            path: PathBuf::from("Move.toml"),
-            content,
-        }
-    }
 }

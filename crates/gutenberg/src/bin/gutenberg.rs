@@ -2,7 +2,7 @@ use clap::Parser;
 use gutenberg::Schema;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::io::Write;
+use std::io;
 use std::path::Path;
 
 #[derive(Parser)]
@@ -23,17 +23,28 @@ fn main() {
 
     let config_path_parsed = Path::new(&input_config_path);
     let output_dir_parsed = Path::new(&output_dir);
-    generate_contract(demo, &config_path_parsed, &output_dir_parsed);
+
+    if let Err(err) =
+        generate_contract(demo, &config_path_parsed, &output_dir_parsed)
+    {
+        eprintln!("{err}");
+    }
 }
 
-fn generate_contract(is_demo: bool, config_path: &Path, output_dir: &Path) {
+fn generate_contract(
+    is_demo: bool,
+    config_path: &Path,
+    output_dir: &Path,
+) -> Result<(), io::Error> {
     let schema = assert_schema(config_path);
     let contract_dir = gutenberg::generate_contract_dir(&schema, output_dir);
 
-    gutenberg::generate_move_toml(&schema).write_to_file(&contract_dir);
-    gutenberg::generate_contract(&schema, is_demo)
+    gutenberg::write_manifest(schema.package_name(), &contract_dir)?;
+    gutenberg::generate_contract(schema, is_demo)
         .into_iter()
-        .for_each(|file| file.write_to_file(&contract_dir).unwrap())
+        .try_for_each(|file| file.write_to_file(&contract_dir))?;
+
+    Ok(())
 }
 
 /// Asserts that the config file has correct schema

@@ -45,7 +45,6 @@ pub enum Commands {
     /// Generates contract for later deployment
     GenerateContract {
         name: String,
-        version: Option<String>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
     },

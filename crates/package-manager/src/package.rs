@@ -245,6 +245,10 @@ pub struct GitPath {
 }
 
 impl GitPath {
+    pub fn new(git: String, subdir: Option<String>, rev: String) -> Self {
+        Self { git, subdir, rev }
+    }
+
     pub fn sanitize_subdir(&mut self) {
         if let Some(inner) = &mut self.subdir {
             if inner.is_empty() {
