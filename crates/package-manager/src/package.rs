@@ -61,7 +61,7 @@ impl PackageRegistry {
         &self,
         dep_names: &[String],
         version: &Version,
-    ) -> Result<HashMap<String, GitPath>> {
+    ) -> Result<BTreeMap<String, GitPath>> {
         dep_names
             .iter()
             .map(|dep_name| {

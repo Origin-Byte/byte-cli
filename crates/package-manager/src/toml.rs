@@ -3,10 +3,7 @@ use anyhow::anyhow;
 use console::style;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, HashMap},
-    str::FromStr,
-};
+use std::{collections::BTreeMap, str::FromStr};
 
 use crate::{
     package::{GitPath, Package, PackageInfo, PackagePath, PackageRegistry},
@@ -16,15 +13,15 @@ use crate::{
 #[derive(Deserialize, Debug, Serialize)]
 pub struct MoveToml {
     package: Package,
-    dependencies: HashMap<String, GitPath>,
-    addresses: HashMap<String, Address>,
+    dependencies: BTreeMap<String, GitPath>,
+    addresses: BTreeMap<String, Address>,
 }
 
 impl MoveToml {
     pub fn new(
         package: Package,
-        dependencies: HashMap<String, GitPath>,
-        addresses: HashMap<String, Address>,
+        dependencies: BTreeMap<String, GitPath>,
+        addresses: BTreeMap<String, Address>,
     ) -> Self {
         Self {
             package,
@@ -165,7 +162,7 @@ impl MoveToml {
                 Some(empty_addr.clone()),
             ),
             dependencies,
-            addresses: HashMap::from([(String::from(name), empty_addr)]),
+            addresses: BTreeMap::from([(String::from(name), empty_addr)]),
         };
 
         Ok(toml)

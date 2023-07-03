@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fs::File,
     io::{self, Write},
     path::Path,
@@ -15,7 +15,7 @@ use package_manager::{
 pub fn generate_manifest(package_name: String) -> MoveToml {
     MoveToml::new(
         Package::new(package_name.clone(), Version::new(0, 0, 0), None),
-        HashMap::from([
+        BTreeMap::from([
             (
                 "Launchpad".to_string(),
                 GitPath::new(
@@ -44,7 +44,7 @@ pub fn generate_manifest(package_name: String) -> MoveToml {
                 ),
             ),
         ]),
-        HashMap::from([(package_name, Address::zero())]),
+        BTreeMap::from([(package_name, Address::zero())]),
     )
 }
 
