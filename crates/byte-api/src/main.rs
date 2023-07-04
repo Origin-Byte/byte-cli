@@ -4,7 +4,7 @@ use std::path::Path;
 use tempfile::tempdir;
 use walkdir::WalkDir;
 use std::fs;
-use gutenberg::Schema;
+use gutenberg::{Schema, generate_contract_with_path};
 use crate::fs::File;
 use std::ffi::OsStr;
 
@@ -29,8 +29,7 @@ async fn generate_contract_endpoint(input_data: web::Bytes) -> impl Responder {
     f.write_all(&input_data).unwrap();
 
     // Call generate_contract
-    generate_contract(&input_dir, &output_dir);
-    generate_contract(&input_file_path, &output_dir);
+    generate_contract_with_path(false, &input_file_path, &output_dir);
 
     // Search for the .move file in the output directory
     let move_file_path = WalkDir::new(&output_dir)
@@ -50,64 +49,6 @@ async fn generate_contract_endpoint(input_data: web::Bytes) -> impl Responder {
     return HttpResponse::Ok()
         .header("Content-Disposition", format!("attachment; filename={}", move_file_path.file_name().unwrap().to_string_lossy()))
         .body(move_file_data);
-}
-
-fn generate_contract(config_path: &Path, output_dir: &Path) {
-    let schema = assert_schema(config_path);
-
-    // Create main contract directory
-    let package_name = schema.package_name();
-    let contract_dir = output_dir.join(&package_name);
-    let sources_dir = contract_dir.join("sources");
-
-    // Create directories
-    std::fs::create_dir_all(&sources_dir).unwrap();
-
-    // Create `Move.toml`
-    let move_file = File::create(contract_dir.join("Move.toml")).unwrap();
-    schema
-        .write_move_toml(move_file)
-        .expect("Could not write `Move.toml`");
-
-    let module_name = schema.nft().module_name();
-    let module_file =
-        File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
-    schema
-        .write_move(module_file)
-        .expect("Could not write Move module");
-}
-
-fn assert_schema(path: &Path) -> Schema {
-    let config = File::open(path).unwrap();
-    let extension =
-        path.extension().and_then(OsStr::to_str).unwrap_or_default();
-
-    match extension {
-        "yaml" => match serde_yaml::from_reader::<_, Schema>(config) {
-            Ok(schema) => schema,
-            Err(err) => {
-                eprintln!(
-                    "Could not parse `{path}` due to {err}",
-                    path = path.display()
-                );
-                std::process::exit(1);
-            }
-        },
-        "json" => match serde_json::from_reader::<_, Schema>(config) {
-            Ok(schema) => schema,
-            Err(err) => {
-                eprintln!(
-                    "Could not parse `{path}` due to {err}",
-                    path = path.display()
-                );
-                std::process::exit(1);
-            }
-        },
-        _ => {
-            eprintln!("Extension {extension} not supported");
-            std::process::exit(1);
-        }
-    }
 }
 
 #[actix_web::main]
