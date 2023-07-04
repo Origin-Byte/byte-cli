@@ -8,9 +8,19 @@ use serde::{
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct Version {
-    pub major: u8,
-    pub minor: u8,
-    pub patch: u8,
+    major: u8,
+    minor: u8,
+    patch: u8,
+}
+
+impl Version {
+    pub fn new(major: u8, minor: u8, patch: u8) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
 }
 
 impl FromStr for Version {

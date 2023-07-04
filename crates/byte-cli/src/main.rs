@@ -4,10 +4,10 @@ pub mod endpoints;
 pub mod err;
 pub mod io;
 pub mod models;
-pub mod prelude;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use cli::{Cli, Commands};
 use console::style;
 use dialoguer::Confirm;
 use io::LocalWrite;
@@ -22,7 +22,6 @@ use std::{
 };
 use sui_sdk::types::base_types::ObjectID;
 
-use crate::prelude::*;
 use byte_cli::io::LocalRead;
 use byte_cli::SchemaBuilder;
 use endpoints::*;
@@ -115,29 +114,16 @@ async fn run() -> Result<()> {
             )
             .await?
         }
-        Commands::GenerateContract {
-            name,
-            project_dir,
-            version,
-        } => {
+        Commands::GenerateContract { name, project_dir } => {
             // Input
             let schema_path =
                 io::get_schema_filepath(name.as_str(), &project_dir);
             let contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
-            let (main_registry, test_registry) = io::get_program_registries()?;
-
             // Logic
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
-
-            deploy_contract::generate_contract(
-                &schema,
-                contract_dir.as_path(),
-                &main_registry,
-                &test_registry,
-                version,
-            )?;
+            deploy_contract::generate_contract(schema, contract_dir.as_path())?;
         }
         Commands::DeployContract {
             name,
@@ -152,7 +138,7 @@ async fn run() -> Result<()> {
                 io::get_contract_path(name.as_str(), &project_dir);
 
             // Logic
-            let theme = get_dialoguer_theme();
+            let theme = cli::get_dialoguer_theme();
 
             let agreed = Confirm::with_theme(&theme)
                 .with_prompt(format!(

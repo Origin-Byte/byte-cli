@@ -16,7 +16,7 @@ pub enum AddressError {
 pub struct Address(String);
 
 impl Address {
-    pub fn new(address: &str) -> Result<Address, AddressError> {
+    pub fn new(address: &str) -> Result<Self, AddressError> {
         // Extract byte string and pad to 64 bytes
         let hexa_str = address.strip_prefix("0x").unwrap_or(&address);
 
@@ -34,6 +34,10 @@ impl Address {
         (length <= 64)
             .then_some(Address(address))
             .ok_or(AddressError::InvalidLength(length))
+    }
+
+    pub fn zero() -> Self {
+        Address("0".to_string())
     }
 
     pub fn as_string(&self) -> &String {

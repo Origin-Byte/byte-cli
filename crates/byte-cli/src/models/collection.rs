@@ -4,7 +4,7 @@ use super::{
     address_validator, name_validator, positive_integer_validator,
     symbol_validator, url_validator, FromPrompt,
 };
-use crate::{consts::MAX_SYMBOL_LENGTH, prelude::get_dialoguer_theme};
+use crate::{cli::get_dialoguer_theme, consts::MAX_SYMBOL_LENGTH};
 
 use dialoguer::{Confirm, Input};
 use gutenberg::models::collection::{CollectionData, RoyaltyPolicy, Supply};

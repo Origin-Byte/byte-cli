@@ -1,5 +1,5 @@
 use super::{map_indices, FromPrompt};
-use crate::prelude::get_dialoguer_theme;
+use crate::cli::get_dialoguer_theme;
 
 use dialoguer::{Input, MultiSelect};
 use gutenberg::models::nft::{

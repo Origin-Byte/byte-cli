@@ -1,21 +1,20 @@
 [package]
-name = "domain_display_symbol"
-version = "0.0.0"
-
+name = 'domain_display_symbol'
+version = '0.0.0'
 [dependencies.Launchpad]
-git = "https://github.com/Origin-Byte/nft-protocol.git"
-subdir = "contracts/launchpad"
-rev = "v1.2.0-mainnet"
-
-[dependencies.NftProtocol]
-git = "https://github.com/Origin-Byte/nft-protocol.git"
-subdir = "contracts/nft_protocol"
-rev = "v1.2.0-mainnet"
+git = 'https://github.com/Origin-Byte/nft-protocol.git'
+subdir = 'contracts/launchpad'
+rev = 'v1.3.0-mainnet'
 
 [dependencies.LiquidityLayerV1]
-git = "https://github.com/Origin-Byte/nft-protocol.git"
-subdir = "contracts/liquidity_layer_v1"
-rev = "v1.2.0-mainnet"
+git = 'https://github.com/Origin-Byte/nft-protocol.git'
+subdir = 'contracts/liquidity_layer_v1'
+rev = 'v1.3.0-mainnet'
+
+[dependencies.NftProtocol]
+git = 'https://github.com/Origin-Byte/nft-protocol.git'
+subdir = 'contracts/nft_protocol'
+rev = 'v1.3.0-mainnet'
 
 [addresses]
-domain_display_symbol = "0x0"
+domain_display_symbol = '0x0'

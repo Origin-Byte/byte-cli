@@ -61,7 +61,7 @@ impl PackageRegistry {
         &self,
         dep_names: &[String],
         version: &Version,
-    ) -> Result<HashMap<String, GitPath>> {
+    ) -> Result<BTreeMap<String, GitPath>> {
         dep_names
             .iter()
             .map(|dep_name| {
@@ -245,6 +245,10 @@ pub struct GitPath {
 }
 
 impl GitPath {
+    pub fn new(git: String, subdir: Option<String>, rev: String) -> Self {
+        Self { git, subdir, rev }
+    }
+
     pub fn sanitize_subdir(&mut self) {
         if let Some(inner) = &mut self.subdir {
             if inner.is_empty() {

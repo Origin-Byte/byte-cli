@@ -3,9 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::err::CliError;
 use crate::models::effects::{MintEffects, Minted};
 use crate::models::project::Project;
-use crate::prelude::CliError;
 use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
