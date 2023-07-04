@@ -34,7 +34,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
 RUN cargo build --release --bin byte-api
-RUN cargo install --path /app/crates/byte-api --verbose
+#RUN cargo install --path /app/crates/byte-api --verbose
 
 # Create the final minimal image
 FROM debian:bullseye-slim
