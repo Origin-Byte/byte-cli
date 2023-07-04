@@ -1,8 +1,5 @@
 use clap::Parser;
-use gutenberg::Schema;
-use std::ffi::OsStr;
-use std::fs::File;
-use std::io;
+use gutenberg::{generate_contract_with_path};
 use std::path::Path;
 
 #[derive(Parser)]

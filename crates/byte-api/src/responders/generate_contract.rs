@@ -1,68 +1,51 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use actix_multipart::Multipart;
-use futures::StreamExt;
+use actix_web::{web, post, HttpResponse, Responder};
+use gutenberg::generate_contract_with_path;
+use tempfile::tempdir;
+use walkdir::WalkDir;
 use std::io::Write;
-use std::fs::read_dir;
+use std::fs::{self};
 
-async fn generate_contract_endpoint(mut payload: Multipart) -> impl Responder {
+#[post("/generate-contract")]
+pub async fn generate_contract_endpoint(input_data: web::Bytes) -> impl Responder {
     // Create temporary directories
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempdir().unwrap();
     let input_dir = temp_dir.path().join("input");
     let output_dir = temp_dir.path().join("output");
-    std::fs::create_dir_all(&input_dir).unwrap();
-    std::fs::create_dir_all(&output_dir).unwrap();
+    fs::create_dir_all(&input_dir).unwrap();
+    fs::create_dir_all(&output_dir).unwrap();
 
-    // Handle the uploaded file
-    while let Ok(Some(mut field)) = payload.try_next().await {
-        let content_disposition = field.content_disposition().unwrap();
-        let filename = content_disposition.get_filename().unwrap();
-        let filepath = input_dir.join(filename);
-        let mut f = web::block(|| std::fs::File::create(filepath)).await.unwrap();
+    // Write the JSON data to a file in the input directory
+    let input_file_path = input_dir.join("input.json");
+    let mut f = fs::File::create(&input_file_path).unwrap();
+    f.write_all(&input_data).unwrap();
 
-        // Write the uploaded file data to a file in the input directory
-        while let Some(chunk) = field.next().await {
-            let data = chunk.unwrap();
-            f = web::block(move || f.write_all(&data).map(|_| f)).await.unwrap();
-        }
+    // Call generate_contract
+    let result = generate_contract_with_path(false, &input_file_path, &output_dir);
 
-        // Call generate_contract
-        generate_contract(&input_dir, &output_dir);
-
-        // Read the output file(s) and return them in the response
-        for entry in read_dir(output_dir).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_file() {
-                let file_data = std::fs::read(path).unwrap();
-                return HttpResponse::Ok().body(file_data);
-            }
-        }
+    if result.is_err() {
+        return HttpResponse::InternalServerError().body("Failed to generate contract");
     }
 
-    HttpResponse::InternalServerError().finish()
-}
+    // Search for the .move file in the output directory
+    let move_file_path = WalkDir::new(&output_dir)
+        .into_iter()
+        .filter_map(Result::ok)
+        .find(|entry| entry.file_name().to_string_lossy().ends_with(".move"))
+        .map(|entry| entry.into_path());
 
-fn generate_contract(config_path: &Path, output_dir: &Path) {
-    let schema = assert_schema(config_path);
+    // Check if the .move file was found
+    let move_file_path = match move_file_path {
+        Some(path) => path,
+        None => return HttpResponse::InternalServerError().body("Failed to generate .move file"),
+    };
 
-    // Create main contract directory
-    let package_name = schema.package_name();
-    let contract_dir = output_dir.join(&package_name);
-    let sources_dir = contract_dir.join("sources");
+    // Read the .move file and return it in the response
+    let move_file_data = match fs::read(&move_file_path) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to read .move file"),
+    };
 
-    // Create directories
-    std::fs::create_dir_all(&sources_dir).unwrap();
-
-    // Create `Move.toml`
-    let move_file = File::create(contract_dir.join("Move.toml")).unwrap();
-    schema
-        .write_move_toml(move_file)
-        .expect("Could not write `Move.toml`");
-
-    let module_name = schema.nft().module_name();
-    let module_file =
-        File::create(sources_dir.join(format!("{module_name}.move"))).unwrap();
-    schema
-        .write_move(module_file)
-        .expect("Could not write Move module");
+    return HttpResponse::Ok()
+        .header("Content-Disposition", format!("attachment; filename={}", move_file_path.file_name().unwrap().to_string_lossy()))
+        .body(move_file_data);
 }
