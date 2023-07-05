@@ -10,7 +10,7 @@ use serde::{
     de::{MapAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
-use sui_types::messages::CallArg;
+use sui_types::transaction::CallArg;
 use url::Url;
 
 #[derive(Debug)]

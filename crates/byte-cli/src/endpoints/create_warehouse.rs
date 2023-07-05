@@ -5,7 +5,6 @@ use package_manager::toml::MoveToml;
 use package_manager::Network;
 use rust_sdk::{coin, utils::MoveType};
 use std::str::FromStr;
-use std::sync::Arc;
 use sui_sdk::types::base_types::ObjectID;
 use terminal_link::Link;
 
@@ -25,7 +24,10 @@ pub async fn create_warehouse(
     let contract_id = state.package_id.as_ref().unwrap().to_string();
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
-    let wallet_ctx = Arc::new(get_context().await.unwrap());
+    let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
+
     let network_string = wallet_ctx.config.active_env.as_ref().unwrap();
     let net = Network::from_str(network_string.as_str())
         .map_err(|_| anyhow!("Invalid network string"))?;
@@ -47,8 +49,9 @@ pub async fn create_warehouse(
             .as_string(),
     )?;
 
-    let gas_coin =
-        rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
+    let gas_coin = rust_sdk::utils::get_coin_ref(
+        &coin::get_max_coin(&client, sender).await?,
+    );
 
     let warehouse_object_id = mint::create_warehouse(
         collection_type,

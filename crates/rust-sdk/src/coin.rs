@@ -1,7 +1,8 @@
-use crate::utils::{execute_tx, get_reference_gas_price};
+use crate::utils::{execute_tx, get_reference_gas_price, CloneClient};
 use crate::{err::RustSdkError, utils::get_context};
 use anyhow::{anyhow, Result};
 use std::fmt::Write;
+use std::ops::Deref;
 use std::{
     fmt::{Display, Formatter},
     str::FromStr,
@@ -12,16 +13,17 @@ use sui_sdk::{
     wallet_context::WalletContext,
     SuiClient,
 };
+use sui_types::transaction::{
+    CallArg, ObjectArg, ProgrammableTransaction, TransactionData,
+};
+use sui_types::SUI_FRAMEWORK_PACKAGE_ID;
 use sui_types::{
     base_types::ObjectRef,
     coin,
     gas_coin::MIST_PER_SUI,
-    messages::{CallArg, ObjectArg, ProgrammableTransaction},
-    TypeTag, SUI_FRAMEWORK_OBJECT_ID,
-};
-use sui_types::{
-    messages::TransactionData,
+    // messages::{CallArg, ObjectArg, ProgrammableTransaction, TransactionData},
     programmable_transaction_builder::ProgrammableTransactionBuilder,
+    TypeTag,
 };
 
 pub struct CoinList(Vec<(ObjectID, u64, f64)>);
@@ -118,8 +120,10 @@ pub async fn combine(
     gas_id: ObjectID,
 ) -> Result<(), RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
 
-    let data = prepare_combine(&wallet_ctx, gas_budget, gas_id).await?;
+    let data = prepare_combine(&client, sender, gas_budget, gas_id).await?;
     let response = execute_tx(&wallet_ctx, data).await?;
 
     let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
@@ -128,18 +132,19 @@ pub async fn combine(
     Ok(())
 }
 
-pub async fn prepare_combine(
-    wallet_ctx: &WalletContext,
+pub async fn prepare_combine<C>(
+    client: C,
+    sender: SuiAddress,
     gas_budget: u64,
     gas_id: ObjectID,
-) -> Result<TransactionData, RustSdkError> {
-    let client = wallet_ctx.get_client().await?;
-    let sender = wallet_ctx.config.active_address.unwrap();
-
-    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
+) -> Result<TransactionData, RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let gas_price = get_reference_gas_price(client.clone_client()).await?;
 
     let (main_coin, gas_coin, coins_to_merge) =
-        separate_gas_and_max_coin(&client, sender, gas_id).await?;
+        separate_gas_and_max_coin(client, sender, gas_id).await?;
 
     let pt =
         merge_coins(sender, &main_coin, &coins_to_merge, gas_budget).await?;
@@ -156,12 +161,15 @@ pub async fn prepare_combine(
     ))
 }
 
-pub async fn select_coin(
-    client: &SuiClient,
-    signer: SuiAddress,
+pub async fn select_coin<C>(
+    client: C,
+    sender: SuiAddress,
     coin_id: ObjectID,
-) -> Result<Coin, RustSdkError> {
-    let mut coins = get_coins(client, signer).await?;
+) -> Result<Coin, RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let mut coins = get_coins(client.clone_client(), sender).await?;
 
     let index = coins
         .iter()
@@ -172,11 +180,14 @@ pub async fn select_coin(
     Ok(coin_obj)
 }
 
-pub async fn select_biggest_coin(
-    client: &SuiClient,
-    signer: SuiAddress,
-) -> Result<Coin, RustSdkError> {
-    let mut coins = get_coins(client, signer).await?;
+pub async fn select_biggest_coin<C>(
+    client: C,
+    sender: SuiAddress,
+) -> Result<Coin, RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let mut coins = get_coins(client, sender).await?;
 
     let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
 
@@ -186,12 +197,15 @@ pub async fn select_biggest_coin(
     Ok(coin_obj)
 }
 
-pub async fn separate_gas_and_max_coin(
-    client: &SuiClient,
-    signer: SuiAddress,
+pub async fn separate_gas_and_max_coin<C>(
+    client: C,
+    sender: SuiAddress,
     gas_id: ObjectID,
-) -> Result<(Coin, Coin, Vec<Coin>), RustSdkError> {
-    let mut coins = get_coins(client, signer).await?;
+) -> Result<(Coin, Coin, Vec<Coin>), RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let mut coins = get_coins(client, sender).await?;
 
     let gas_index = coins
         .iter()
@@ -208,12 +222,15 @@ pub async fn separate_gas_and_max_coin(
     Ok((max_coin, gas_coin, coins))
 }
 
-pub async fn separate_gas_coin(
-    client: &SuiClient,
-    signer: SuiAddress,
+pub async fn separate_gas_coin<C>(
+    client: C,
+    sender: SuiAddress,
     gas_id: ObjectID,
-) -> Result<(Coin, Vec<Coin>), RustSdkError> {
-    let mut coins = get_coins(client, signer).await?;
+) -> Result<(Coin, Vec<Coin>), RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let mut coins = get_coins(client, sender).await?;
 
     let gas_index = coins
         .iter()
@@ -225,12 +242,11 @@ pub async fn separate_gas_coin(
     Ok((gas_obj, coins))
 }
 
-pub async fn list_coins() -> Result<CoinList> {
-    let context = get_context().await.unwrap();
-    let client = context.get_client().await?;
-    let sender = context.config.active_address.unwrap();
-
-    let coins = get_coins(&client, sender).await?;
+pub async fn list_coins<C>(client: C, sender: SuiAddress) -> Result<CoinList>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
+    let coins = get_coins(client, sender).await?;
 
     let list = coins
         .iter()
@@ -247,8 +263,8 @@ pub async fn list_coins() -> Result<CoinList> {
 }
 
 pub async fn get_coins(
-    client: &SuiClient,
-    signer: SuiAddress,
+    client: impl Deref<Target = SuiClient>,
+    sender: SuiAddress,
 ) -> Result<Vec<Coin>, RustSdkError> {
     let mut coins: Vec<Coin> = vec![];
     let mut cursor = None;
@@ -256,7 +272,7 @@ pub async fn get_coins(
     loop {
         let coin_page = client
             .coin_read_api()
-            .get_coins(signer, Some("0x2::sui::SUI".into()), cursor, None)
+            .get_coins(sender, Some("0x2::sui::SUI".into()), cursor, None)
             .await?;
 
         let Page {
@@ -278,12 +294,10 @@ pub async fn get_coins(
 }
 
 pub async fn get_max_coin(
-    wallet_ctx: &WalletContext,
+    client: impl Deref<Target = SuiClient>,
+    sender: SuiAddress,
 ) -> Result<Coin, RustSdkError> {
-    let client = wallet_ctx.get_client().await?;
-    let sender = wallet_ctx.config.active_address.unwrap();
-
-    let mut coins = get_coins(&client, sender).await?;
+    let mut coins = get_coins(client, sender).await?;
 
     let max_balance = coins.iter().map(|c| c.balance).max().unwrap();
     let index = coins.iter().position(|c| c.balance == max_balance).unwrap();
@@ -292,6 +306,7 @@ pub async fn get_max_coin(
     Ok(coin_obj)
 }
 
+// TODO: Fix
 pub async fn merge_coins(
     _signer: SuiAddress,
     main_coin: &Coin,
@@ -323,7 +338,7 @@ pub async fn merge_coins(
 
     coins_to_merge_args.iter().try_for_each(|coin| {
         builder.move_call(
-            SUI_FRAMEWORK_OBJECT_ID,              // Package ID
+            SUI_FRAMEWORK_PACKAGE_ID,             // Package ID
             coin::PAY_MODULE_NAME.to_owned(),     // Module Name
             coin::PAY_JOIN_FUNC_NAME.to_owned(),  // Function Name
             type_args.clone(),                    // Type Arguments
