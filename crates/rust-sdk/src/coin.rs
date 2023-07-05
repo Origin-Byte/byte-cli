@@ -8,9 +8,7 @@ use std::{
 };
 use sui_json_rpc_types::{Coin, Page, SuiTransactionBlockEffects};
 use sui_sdk::{
-    types::{
-        base_types::{ObjectID, SuiAddress},
-    },
+    types::base_types::{ObjectID, SuiAddress},
     wallet_context::WalletContext,
     SuiClient,
 };
