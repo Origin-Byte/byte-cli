@@ -1,6 +1,6 @@
 use actix_web::{get, App, HttpResponse, HttpServer, Responder};
 
-use crate::responders::generate_contract::generate_contract_endpoint;
+use crate::responders::generate_contract::generate_contract;
 mod responders;
 
 // Define a handler for the root path ("/")
@@ -21,7 +21,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
         .service(index)
-        .service(generate_contract_endpoint)
+        .service(generate_contract)
     })
     .bind(("0.0.0.0", port))? // Bind to the desired host and port
     .run()

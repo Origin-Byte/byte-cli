@@ -3,10 +3,9 @@ use gutenberg::generate_contract_with_path;
 use tempfile::tempdir;
 use walkdir::WalkDir;
 use std::io::Write;
-use std::fs::{self};
 
 #[post("/generate-contract")]
-pub async fn generate_contract_endpoint(input_data: web::Bytes) -> impl Responder {
+pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
     // Create temporary directories
     let temp_dir = tempdir().unwrap();
     let input_dir = temp_dir.path().join("input");
