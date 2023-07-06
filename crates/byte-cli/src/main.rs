@@ -6,13 +6,18 @@ pub mod io;
 pub mod models;
 
 use anyhow::{anyhow, Result};
+use byte_cli::io::LocalRead;
+use byte_cli::SchemaBuilder;
 use clap::Parser;
 use cli::{Cli, Commands};
 use console::style;
 use dialoguer::Confirm;
+use endpoints::*;
 use io::LocalWrite;
-use package_manager::Network;
+use package_manager::toml::{self as move_toml, MoveToml};
+use package_manager::{self, Network};
 use rust_sdk::utils::get_context;
+use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use std::env;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -22,12 +27,6 @@ use std::{
     path::PathBuf,
 };
 use sui_sdk::types::base_types::ObjectID;
-
-use byte_cli::io::LocalRead;
-use byte_cli::SchemaBuilder;
-use endpoints::*;
-use package_manager::toml::{self as move_toml, MoveToml};
-use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -314,7 +313,7 @@ async fn run() -> Result<()> {
                 Network::Mainnet
             };
 
-            let registry = io::get_program_registry(&network)?;
+            let registry = get_program_registry(&network)?;
 
             // Logic
             let toml_string: String =

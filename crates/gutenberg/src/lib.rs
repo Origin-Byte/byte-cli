@@ -7,6 +7,7 @@ use std::{
 
 mod manifest;
 mod schema;
+mod write_move;
 
 pub use manifest::{generate_manifest, write_manifest};
 pub use schema::Schema;

@@ -154,19 +154,6 @@ pub fn get_toml_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "contract", Some("Move.toml"))
 }
 
-pub fn get_pakage_registry_paths() -> (TempDir, PathBuf, PathBuf) {
-    let temp_dir =
-        TempDir::new().expect("Failed to create temporary directory");
-
-    let mut registry_main_path = temp_dir.path().to_path_buf();
-    registry_main_path.push("registry-main.json");
-
-    let mut registry_test_path = temp_dir.path().to_path_buf();
-    registry_test_path.push("registry-test.json");
-
-    (temp_dir, registry_main_path, registry_test_path)
-}
-
 pub fn get_build_info_path(
     name: &str,
     path_opt: &Option<String>,
@@ -229,38 +216,5 @@ pub fn write_json(
     let ser = &mut serde_json::Serializer::with_formatter(file, formatter);
     vec.serialize(ser).map_err(|err| {
         anyhow!(r#"Could not write file "{}": {err}"#, output_file.display())
-    })
-}
-
-pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
-    let (temp_dir, mainnet_path, testnet_path) = get_pakage_registry_paths();
-
-    let url = "https://github.com/Origin-Byte/program-registry";
-
-    let repo = match Repository::clone(url, temp_dir.path()) {
-        Ok(repo) => repo,
-        Err(e) => return Err(anyhow!("failed to clone: {}", e)),
-    };
-
-    if !repo.is_empty()? {
-        println!("Fetched Program Registry successfully");
-    } else {
-        return Err(anyhow!(
-            "Something went wrong while accessing the Program Registry"
-        ));
-    }
-
-    let main_registry = PackageRegistry::read_json(&mainnet_path)?;
-    let test_registry = PackageRegistry::read_json(&testnet_path)?;
-
-    Ok((main_registry, test_registry))
-}
-
-pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
-    let (main_registry, test_registry) = get_program_registries()?;
-
-    Ok(match network {
-        Network::Mainnet => main_registry,
-        Network::Testnet => test_registry,
     })
 }

@@ -4496,6 +4496,7 @@ checksum = "92620684d99f750bae383ecb3be3748142d6095760afd5cbcf2261e9a279d780"
 name = "gutenberg"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "clap 4.3.11",
  "deunicode 1.3.3",
  "gutenberg-types",
@@ -7746,10 +7747,13 @@ dependencies = [
  "anyhow",
  "console",
  "convert_case 0.6.0",
+ "git2",
  "gutenberg-types",
  "regex",
  "serde 1.0.166",
  "serde_json",
+ "serde_yaml 0.9.22",
+ "tempfile",
  "thiserror",
  "toml 0.5.11",
 ]
