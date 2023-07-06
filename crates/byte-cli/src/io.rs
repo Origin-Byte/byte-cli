@@ -10,7 +10,6 @@ use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
 
-use gutenberg::Schema;
 use package_manager::{
     info::BuildInfo, package::PackageRegistry, toml::MoveToml, Network,
 };
@@ -19,7 +18,6 @@ use serde::{de::DeserializeOwned, Serialize};
 use tempfile::TempDir;
 use uploader::writer::Storage;
 
-impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for MoveToml {}
@@ -29,7 +27,6 @@ impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}
 impl LocalRead for MintEffects {}
 impl LocalRead for Minted {}
-impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
 impl LocalWrite for SchemaBuilder {}

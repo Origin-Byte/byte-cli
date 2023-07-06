@@ -4,7 +4,6 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-gutenberg = { path = "../gutenberg" }
 rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }

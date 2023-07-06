@@ -2,10 +2,6 @@ use super::{map_indices, FromPrompt};
 use crate::cli::get_dialoguer_theme;
 
 use dialoguer::{Input, MultiSelect};
-use gutenberg::models::nft::{
-    Burn, Dynamic, FieldType, MintCap, MintPolicies, NftData, Orderbook,
-    RequestPolicies,
-};
 
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 const BURN_PERMISSIONS: [&str; 2] = ["Permissioned", "Permissionless"];

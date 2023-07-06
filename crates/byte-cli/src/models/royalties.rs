@@ -7,7 +7,6 @@ use super::{address_validator, bps_validator, number_validator, FromPrompt};
 use crate::{cli::get_dialoguer_theme, consts::TX_SENDER_ADDRESS};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::models::collection::{RoyaltyPolicy, Share};
 
 impl FromPrompt for RoyaltyPolicy {
     type Param<'a> = &'a [Address];

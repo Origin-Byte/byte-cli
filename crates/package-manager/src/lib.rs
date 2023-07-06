@@ -3,13 +3,10 @@ use std::{
     str::FromStr,
 };
 
-mod address;
 pub mod info;
 pub mod package;
 pub mod toml;
 pub mod version;
-
-pub use address::{Address, AddressError};
 
 pub const OB_PACKAGES: [&str; 12] = [
     "Pseudorandom",

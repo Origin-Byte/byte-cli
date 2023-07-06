@@ -7,7 +7,6 @@ use super::{
 use crate::{cli::get_dialoguer_theme, consts::MAX_SYMBOL_LENGTH};
 
 use dialoguer::{Confirm, Input};
-use gutenberg::models::collection::{CollectionData, RoyaltyPolicy, Supply};
 use package_manager::Address;
 
 impl FromPrompt for CollectionData {

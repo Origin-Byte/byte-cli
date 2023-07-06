@@ -1,4 +1,3 @@
-use gutenberg::models::{collection::CollectionData, nft::NftData};
 use serde::{Deserialize, Serialize};
 
 pub mod cli;

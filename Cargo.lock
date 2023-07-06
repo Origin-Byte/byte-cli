@@ -2094,7 +2094,6 @@ dependencies = [
  "dotenv",
  "git2",
  "glob",
- "gutenberg",
  "hex",
  "indicatif 0.16.2",
  "move-package",
@@ -4504,6 +4503,21 @@ dependencies = [
  "serde 1.0.166",
  "serde_json",
  "serde_yaml 0.9.22",
+ "url",
+]
+
+[[package]]
+name = "gutenberg-types"
+version = "0.2.0"
+dependencies = [
+ "clap 4.3.11",
+ "deunicode 1.3.3",
+ "pretty_assertions",
+ "regex",
+ "serde 1.0.166",
+ "serde_json",
+ "serde_yaml 0.9.22",
+ "thiserror",
  "url",
 ]
 
@@ -7730,6 +7744,7 @@ dependencies = [
  "anyhow",
  "console",
  "convert_case 0.6.0",
+ "gutenberg-types",
  "regex",
  "serde 1.0.166",
  "serde_json",
