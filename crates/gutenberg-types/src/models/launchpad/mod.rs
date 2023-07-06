@@ -28,17 +28,4 @@ impl Launchpad {
     pub fn add_listing(&mut self, listing: Listing) {
         self.listings.0.push(listing);
     }
-
-    // TODO: To deprecate. The creation of listins will be done at runtime
-    // in atomic transactions instead of being bundled up in the init funciton
-    pub fn write_init_listings(&self) -> String {
-        let code = self
-            .listings
-            .0
-            .iter()
-            .map(Listing::write_init)
-            .collect::<Vec<_>>();
-
-        code.join("\n")
-    }
 }

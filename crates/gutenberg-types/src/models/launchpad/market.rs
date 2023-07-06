@@ -30,39 +30,4 @@ impl Market {
             Market::DutchAuction { .. } => "dutch_auction",
         }
     }
-
-    pub fn init(&self) -> String {
-        match self {
-            Market::FixedPrice {
-                token,
-                price,
-                is_whitelisted,
-            } => format!(
-                "
-        nft_protocol::fixed_price::create_market_on_listing<{token}>(
-            &mut listing,
-            venue_id,
-            {is_whitelisted},
-            {price},
-            ctx,
-        );
-",
-            ),
-            Market::DutchAuction {
-                token,
-                reserve_price,
-                is_whitelisted,
-            } => format!(
-                "
-        nft_protocol::dutch_auction::create_market_on_listing<{token}>(
-            &mut listing,
-            venue_id,
-            {is_whitelisted},
-            {reserve_price},
-            ctx,
-        );
-",
-            ),
-        }
-    }
 }

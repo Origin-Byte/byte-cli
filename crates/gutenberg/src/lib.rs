@@ -1,3 +1,13 @@
+mod manifest;
+mod models;
+mod schema;
+mod write_move;
+
+use gutenberg_types::{
+    models::{collection::CollectionData, nft::Fields},
+    Schema,
+};
+pub use manifest::{generate_manifest, write_manifest};
 use std::{
     ffi::OsStr,
     fs::File,
@@ -5,12 +15,86 @@ use std::{
     path::{Path, PathBuf},
 };
 
-mod manifest;
-mod schema;
-mod write_move;
+pub trait MoveInit {
+    fn write_move_init(&self, args: Option<InitArgs>) -> String;
+}
 
-pub use manifest::{generate_manifest, write_manifest};
-pub use schema::Schema;
+pub trait MoveDefs {
+    fn write_move_defs(&self, args: DefArgs) -> String;
+}
+
+pub enum InitArgs<'a> {
+    MintCap {
+        witness: &'a str,
+        type_name: &'a str,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+    CollectionData {
+        type_name: &'a str,
+    },
+    Orderbook {
+        type_name: &'a str,
+    },
+}
+
+pub enum DefArgs<'a> {
+    Burn {
+        fields: &'a Fields,
+        type_name: &'a str,
+        requires_collection: bool,
+        requires_listing: bool,
+        requires_confirm: bool,
+    },
+    Dynamic {
+        fields: &'a Fields,
+        type_name: &'a str,
+    },
+    MintPolicies {
+        fields: &'a Fields,
+        type_name: &'a str,
+        requires_collection: bool,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+}
+
+pub trait MoveTests {
+    fn write_move_tests(&self, args: TestArgs) -> String;
+}
+
+pub enum TestArgs<'a> {
+    Burn {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    Dynamic {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    MintPolicies {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    Orderbook {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+        requires_royalties: bool,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+}
 
 /// Used to return all files for loading contract
 ///

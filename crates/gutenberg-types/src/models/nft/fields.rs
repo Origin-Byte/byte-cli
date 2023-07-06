@@ -95,15 +95,6 @@ impl Field {
         }
         .into_iter()
     }
-
-    pub fn write_move_init(&self) -> Option<String> {
-        let field_name = self.name();
-        match self.field_type() {
-            FieldType::String => None,
-            FieldType::Url => Some(format!("sui::url::new_unsafe_from_bytes({field_name})")),
-            FieldType::Attributes => Some(format!("nft_protocol::attributes::from_vec({field_name}_keys, {field_name}_values)")),
-        }
-    }
 }
 
 impl From<(&str, FieldType)> for Field {
@@ -121,16 +112,6 @@ pub enum FieldType {
     String,
     Url,
     Attributes,
-}
-
-impl FieldType {
-    pub fn write_move(&self) -> &str {
-        match self {
-            FieldType::String => "std::string::String",
-            FieldType::Url => "sui::url::Url",
-            FieldType::Attributes => "nft_protocol::attributes::Attributes",
-        }
-    }
 }
 
 impl<'de> Deserialize<'de> for Field {

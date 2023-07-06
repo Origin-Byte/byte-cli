@@ -1,32 +1,8 @@
-use super::market::Market;
-use super::Address;
-use serde::{Deserialize, Serialize};
+use crate::{InitArgs, MoveInit};
+use gutenberg_types::models::launchpad::listing::Listing;
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-#[serde(transparent)]
-pub struct Listings(pub Vec<Listing>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Listing {
-    pub admin: Address,
-    pub receiver: Address,
-    pub markets: Vec<Market>,
-}
-
-impl Listing {
-    pub fn new(
-        admin: Address,
-        receiver: Address,
-        markets: Vec<Market>,
-    ) -> Self {
-        Self {
-            admin,
-            receiver,
-            markets,
-        }
-    }
-
-    pub fn write_init(&self) -> String {
+impl MoveInit for Listing {
+    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
         let mut string = String::new();
 
         string.push_str(&format!(
@@ -45,17 +21,11 @@ impl Listing {
         ));
 
         for market in self.markets.iter() {
-            string.push_str(&market.init());
+            string.push_str(&market.write_move_init(None));
         }
 
         string.push_str(self.share());
 
         string
-    }
-
-    fn share(&self) -> &'static str {
-        "
-        transfer::share_object(listing);
-"
     }
 }

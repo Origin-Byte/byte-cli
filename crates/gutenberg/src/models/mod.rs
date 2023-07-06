@@ -1,4 +1,3 @@
-pub mod address;
 pub mod collection;
 pub mod launchpad;
 pub mod nft;

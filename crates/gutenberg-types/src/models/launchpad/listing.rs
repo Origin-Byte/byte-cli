@@ -26,34 +26,7 @@ impl Listing {
         }
     }
 
-    pub fn write_init(&self) -> String {
-        let mut string = String::new();
-
-        string.push_str(&format!(
-            "
-        let listing = nft_protocol::listing::new(
-            @{admin},
-            @{receiver},
-            ctx,
-        );
-
-        let venue_id =
-            nft_protocol::listing::create_venue(&mut listing, ctx);
-",
-            admin = self.admin,
-            receiver = self.receiver,
-        ));
-
-        for market in self.markets.iter() {
-            string.push_str(&market.init());
-        }
-
-        string.push_str(self.share());
-
-        string
-    }
-
-    fn share(&self) -> &'static str {
+    pub fn share(&self) -> &'static str {
         "
         transfer::share_object(listing);
 "

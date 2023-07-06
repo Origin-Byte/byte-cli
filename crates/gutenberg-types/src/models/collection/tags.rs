@@ -33,7 +33,7 @@ impl Tag {
         }
     }
 
-    fn function_name(&self) -> &'static str {
+    pub fn function_name(&self) -> &'static str {
         match self {
             Tag::Art => "art",
             Tag::ProfilePicture => "profile_picture",
@@ -46,22 +46,6 @@ impl Tag {
             Tag::Ticket => "ticket",
             Tag::License => "license",
             Tag::Custom(_) => "",
-        }
-    }
-
-    pub fn write_move(&self) -> String {
-        match self {
-            Tag::Custom(tag) => format!(
-                "
-        std::vector::push_back(&mut tags, std::string::utf8(b\"{tag}\"));"
-            ),
-            tag => {
-                let function_name = tag.function_name();
-                format!(
-                    "
-        std::vector::push_back(&mut tags, nft_protocol::tags::{function_name}());"
-                )
-            }
         }
     }
 }
@@ -123,7 +107,7 @@ impl Serialize for Tag {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
-pub struct Tags(Vec<Tag>);
+pub struct Tags(pub Vec<Tag>);
 
 impl Tags {
     pub fn new(tags: &[String]) -> Self {
@@ -133,20 +117,5 @@ impl Tags {
             .collect::<Vec<Tag>>();
 
         Tags(tags)
-    }
-
-    /// Generates Move code to push tags to a Move `vector` structure
-    pub fn write_move_init(&self) -> String {
-        let mut code = String::from(
-            "
-
-        let tags = std::vector::empty();",
-        );
-
-        for tag in self.0.iter() {
-            code.push_str(&tag.write_move());
-        }
-
-        code
     }
 }

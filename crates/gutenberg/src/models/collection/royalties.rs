@@ -1,13 +1,10 @@
-use super::Address;
+use crate::{InitArgs, MoveInit};
+use gutenberg_types::models::collection::RoyaltyPolicy;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-pub trait MoveInit {
-    fn write_move_init(&self) -> String;
-}
-
 impl MoveInit for RoyaltyPolicy {
-    fn write_move_init(&self) -> String {
+    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
         match self {
             RoyaltyPolicy::Proportional {
                 shares,

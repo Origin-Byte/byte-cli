@@ -1,42 +1,28 @@
-use std::fmt;
+use crate::{InitArgs, MoveInit};
+use gutenberg_types::models::nft::MintCap;
 
-use serde::{
-    de::{self, Deserialize, Visitor},
-    Serialize,
-};
+// TODO!
+// impl MintCap {
+//     /// Write MintCap instantiation with supply always limited to 100
+//     pub fn write_move_demo_init(
+//         &self,
+//         witness: &str,
+//         type_name: &str,
+//     ) -> String {
+//         format!("
 
-#[derive(Debug, Clone)]
-pub struct MintCap {
-    supply: Option<u64>,
-}
+//         let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
+//             &witness, collection_id, 100, ctx
+//         );
+//         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
+//     }
+// }
 
-impl MintCap {
-    pub fn limited(supply: u64) -> Self {
-        Self {
-            supply: Some(supply),
-        }
-    }
-
-    pub fn unlimited() -> Self {
-        Self { supply: None }
-    }
-
-    /// Write MintCap instantiation with supply always limited to 100
-    pub fn write_move_demo_init(
-        &self,
-        witness: &str,
-        type_name: &str,
-    ) -> String {
-        format!("
-
-        let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
-            &witness, collection_id, 100, ctx
-        );
-        sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
-    }
-
+impl MoveInit for MintCap {
     /// Write MintCap instantiation
-    pub fn write_move_init(&self, witness: &str, type_name: &str) -> String {
+    fn write_move_init(&self, args: Option<InitArgs>) -> String {
+        let (witness, type_name) = init_args(args);
+
         let mint_cap_str = match self.supply {
             Some(supply) => format!("
 
@@ -56,64 +42,12 @@ impl MintCap {
     }
 }
 
-impl<'de> Deserialize<'de> for MintCap {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct MintCapVisitor {}
+fn init_args(args: Option<InitArgs>) -> (&str, &str) {
+    // Add err handling
+    let args = args.unwrap();
 
-        impl<'de> Visitor<'de> for MintCapVisitor {
-            type Value = MintCap;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                write!(formatter, "u64 integer or \"unlimited\"")
-            }
-
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                match s {
-                    "unlimited" => Ok(MintCap::unlimited()),
-                    _ => Err(E::invalid_value(
-                        de::Unexpected::Str(s),
-                        &"u64 integer or \"unlimited\"",
-                    )),
-                }
-            }
-
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(MintCap::limited(v))
-            }
-
-            // TODO: Not sure if this is something that we should assume for
-            // the user as its quite consequential
-            //
-            // fn visit_none<E>(self) -> Result<Self::Value, E>
-            // where
-            //     E: de::Error,
-            // {
-            //     println!("Expected u64 integer or \"unlimited\" for `nft.mintCap`, assuming \"unlimited\"");
-            //     Ok(MintCap::unlimited())
-            // }
-        }
-
-        deserializer.deserialize_any(MintCapVisitor {})
-    }
-}
-
-impl Serialize for MintCap {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self.supply {
-            Some(supply) => serializer.serialize_u64(supply),
-            None => serializer.serialize_str("unlimited"),
-        }
+    match args {
+        InitArgs::MintCap { witness, type_name } => (witness, type_name),
+        _ => panic!("Incorrect InitArgs variant"),
     }
 }
