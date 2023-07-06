@@ -12,8 +12,8 @@ serde = { version = "1.0", features = ["derive"] }
 
 # CLI dependencies
 clap = { version = "4.2", features = ["derive"], optional = true }
-serde_json = { version = "1.0" , optional = true  }
-serde_yaml = { version = "0.9" , optional = true  }
+serde_json = { version = "1.0", optional = true }
+serde_yaml = { version = "0.9", optional = true }
 
 [features]
 # Compile with CLI support
