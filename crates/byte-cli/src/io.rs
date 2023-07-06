@@ -1,23 +1,27 @@
-use std::{
-    fs::{self, File},
-    path::{Path, PathBuf},
+use crate::{
+    err::CliError,
+    models::{
+        effects::{MintEffects, Minted},
+        project::Project,
+    },
+    SchemaBuilder,
 };
-
-use crate::err::CliError;
-use crate::models::effects::{MintEffects, Minted};
-use crate::models::project::Project;
-use crate::SchemaBuilder;
 use anyhow::{anyhow, Result};
 use git2::Repository;
-
+use gutenberg_types::Schema;
 use package_manager::{
     info::BuildInfo, package::PackageRegistry, toml::MoveToml, Network,
 };
 use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use serde::{de::DeserializeOwned, Serialize};
+use std::{
+    fs::{self, File},
+    path::{Path, PathBuf},
+};
 use tempfile::TempDir;
 use uploader::writer::Storage;
 
+impl LocalRead for Schema {}
 impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for MoveToml {}
@@ -27,6 +31,7 @@ impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}
 impl LocalRead for MintEffects {}
 impl LocalRead for Minted {}
+impl LocalWrite for Schema {}
 impl LocalWrite for Project {}
 impl LocalWrite for Storage {}
 impl LocalWrite for SchemaBuilder {}

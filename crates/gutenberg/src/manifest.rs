@@ -5,11 +5,11 @@ use std::{
     path::Path,
 };
 
+use gutenberg_types::models::address::Address;
 use package_manager::{
     package::{GitPath, Package},
     toml::MoveToml,
     version::Version,
-    Address,
 };
 
 pub fn generate_manifest(package_name: String) -> MoveToml {

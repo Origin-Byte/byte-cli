@@ -1,13 +1,14 @@
-use std::collections::BTreeSet;
-
 use super::{
     address_validator, name_validator, positive_integer_validator,
     symbol_validator, url_validator, FromPrompt,
 };
 use crate::{cli::get_dialoguer_theme, consts::MAX_SYMBOL_LENGTH};
-
 use dialoguer::{Confirm, Input};
-use package_manager::Address;
+use gutenberg_types::models::{
+    address::Address,
+    collection::{CollectionData, RoyaltyPolicy, Supply},
+};
+use std::collections::BTreeSet;
 
 impl FromPrompt for CollectionData {
     type Param<'a> = ();

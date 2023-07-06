@@ -1,23 +1,25 @@
-use crate::io::{LocalRead, LocalWrite};
-use crate::models::effects::{MintEffects, MintError, Minted};
+use crate::{
+    io::{LocalRead, LocalWrite},
+    models::{
+        effects::{MintEffects, MintError, Minted},
+        project::Project,
+    },
+};
 use anyhow::{anyhow, Result};
 use chrono::Local;
 use console::style;
-use gutenberg::Schema;
+use gutenberg_types::Schema;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_sdk::metadata::{Metadata, StorableMetadata};
 use rust_sdk::mint::MintEffect;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use terminal_link::Link;
-
 use rust_sdk::{
     mint,
     utils::{get_active_address, get_context},
 };
-
-use crate::models::project::Project;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use terminal_link::Link;
 
 pub async fn mint_nfts(
     schema: &Schema,

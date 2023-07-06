@@ -1,12 +1,11 @@
 use std::{
+    ffi::OsStr,
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
-    ffi::OsStr
 };
 
 mod manifest;
-pub mod models;
 mod schema;
 
 pub use manifest::{generate_manifest, write_manifest};
@@ -122,7 +121,6 @@ fn assert_schema(path: &Path) -> Schema {
         }
     }
 }
-
 
 /// Normalizes text into valid type name
 pub fn normalize_type(type_name: &str) -> String {

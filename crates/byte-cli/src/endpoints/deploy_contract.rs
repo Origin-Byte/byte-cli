@@ -1,23 +1,20 @@
+use crate::models::project::{
+    AdminObjects, CollectionObjects, MintCap, Project,
+};
 use anyhow::{anyhow, Context};
 use console::style;
-use gutenberg::Schema;
+use gutenberg_types::Schema;
 use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
+use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
+use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
+use std::sync::mpsc::channel;
 use sui_sdk::rpc_types::{
     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
 };
 use terminal_link::Link;
-
-use std::sync::mpsc::channel;
 use tokio::task::JoinSet;
-
-use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
-use std::fs::{self, File};
-
-use crate::models::project::{
-    AdminObjects, CollectionObjects, MintCap, Project,
-};
 
 pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {

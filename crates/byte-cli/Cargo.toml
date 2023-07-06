@@ -7,6 +7,7 @@ edition = "2021"
 rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }
+gutenberg-types = { path = "../gutenberg-types" }
 
 sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "2d985a342263ae224966e871b24beeafe11d782a" }
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "2d985a342263ae224966e871b24beeafe11d782a" }

@@ -1,6 +1,4 @@
 //! Unit tests on input validation for the Schema struct
-use gutenberg::models::launchpad::{listing::Listing, market::Market};
-use package_manager::Address;
 
 // TODO:
 // Input name: fail on non alpha-numeric
@@ -11,6 +9,11 @@ use package_manager::Address;
 // Input sanitation from the CLI >> avoid code injection
 // Input creators: empty vectors
 // Listings > Markets > The token string field is currenly not being validated
+
+use gutenberg_types::models::{
+    collection::Address,
+    launchpad::{listing::Listing, market::Market},
+};
 
 #[test]
 fn input_listing() {

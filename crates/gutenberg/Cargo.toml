@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 package-manager = { path = "../package-manager" }
+gutenberg-types = { path = "../gutenberg-types" }
 
 url = "2.4"
 deunicode = "1.3"

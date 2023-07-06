@@ -1,19 +1,16 @@
-use anyhow::{anyhow, Result};
-use console::style;
-use gutenberg::Schema;
-use package_manager::toml::MoveToml;
-use package_manager::Network;
-use rust_sdk::{coin, utils::MoveType};
-use std::str::FromStr;
-use sui_sdk::types::base_types::ObjectID;
-use terminal_link::Link;
-
-use rust_sdk::{mint, utils::get_context};
-
 use crate::{
     io,
     models::project::{CollectionObjects, Project},
 };
+use anyhow::{anyhow, Result};
+use console::style;
+use gutenberg_types::Schema;
+use package_manager::{toml::MoveToml, Network};
+use rust_sdk::{coin, utils::MoveType};
+use rust_sdk::{mint, utils::get_context};
+use std::str::FromStr;
+use sui_sdk::types::base_types::ObjectID;
+use terminal_link::Link;
 
 pub async fn create_warehouse(
     schema: &Schema,

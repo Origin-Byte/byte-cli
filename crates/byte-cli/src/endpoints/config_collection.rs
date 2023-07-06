@@ -1,8 +1,7 @@
 use crate::models::{project::Project, FromPrompt};
-
 use byte_cli::SchemaBuilder;
 use console::style;
-use gutenberg::models::{collection::CollectionData, nft::NftData};
+use gutenberg_types::models::{collection::CollectionData, nft::NftData};
 
 pub async fn init_collection_config(
     mut builder: SchemaBuilder,

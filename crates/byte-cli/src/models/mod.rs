@@ -1,15 +1,14 @@
-use dialoguer::{theme::ColorfulTheme, MultiSelect};
-
-use crate::{
-    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
-    err::CliError,
-};
-
 pub mod collection;
 pub mod effects;
 pub mod nft;
 pub mod project;
 pub mod royalties;
+
+use crate::{
+    consts::{MAX_SYMBOL_LENGTH, TX_SENDER_ADDRESS},
+    err::CliError,
+};
+use dialoguer::{theme::ColorfulTheme, MultiSelect};
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {

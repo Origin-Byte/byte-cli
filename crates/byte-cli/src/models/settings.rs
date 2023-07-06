@@ -1,14 +1,12 @@
-use std::collections::BTreeSet;
-
+use super::{map_indices, number_validator, FromPrompt};
+use crate::{consts::FEATURE_OPTIONS, prelude::get_dialoguer_theme};
 use dialoguer::{Input, MultiSelect, Select};
 use gutenberg::{
     models::collection::{Orderbook, RequestPolicies, RoyaltyPolicy},
     models::nft::MintPolicies,
     schema::SchemaBuilder,
 };
-
-use super::{map_indices, number_validator, FromPrompt};
-use crate::{consts::FEATURE_OPTIONS, prelude::get_dialoguer_theme};
+use std::collections::BTreeSet;
 
 impl FromPrompt for Settings {
     fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>

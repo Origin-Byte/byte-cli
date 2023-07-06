@@ -4,8 +4,8 @@
 //! by the caller.
 use std::path::PathBuf;
 
-use crate::models::{collection::CollectionData, nft::NftData};
 use crate::{normalize_type, ContractFile};
+use gutenberg_types::models::{collection::CollectionData, nft::NftData};
 use serde::{Deserialize, Serialize};
 
 /// Struct that acts as an intermediate data structure representing the yaml
