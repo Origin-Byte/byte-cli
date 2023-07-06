@@ -1,5 +1,5 @@
-use super::Address;
 use convert_case::{Case, Casing};
+use gutenberg_types::models::address::Address;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 

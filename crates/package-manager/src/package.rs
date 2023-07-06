@@ -1,6 +1,6 @@
-use super::Address;
 use anyhow::{anyhow, Result};
 use convert_case::{Case, Casing};
+use gutenberg_types::models::address::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 

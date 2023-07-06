@@ -2,8 +2,8 @@ pub mod listing;
 pub mod market;
 pub mod marketplace;
 
+use super::address::Address;
 use serde::{Deserialize, Serialize};
-pub use super::address::Address;
 
 use self::{
     listing::{Listing, Listings},
