@@ -1,16 +1,17 @@
 mod manifest;
 mod models;
 mod schema;
-mod write_move;
 
+use anyhow::{anyhow, Result};
 use gutenberg_types::{
     models::{collection::CollectionData, nft::Fields},
     Schema,
 };
+use manifest::write_toml_string;
 pub use manifest::{generate_manifest, write_manifest};
 use std::{
     ffi::OsStr,
-    fs::File,
+    fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
 };
@@ -230,4 +231,71 @@ pub fn normalize_type(type_name: &str) -> String {
 /// De-unicodes and removes all unknown characters
 pub fn deunicode(unicode: &str) -> String {
     deunicode::deunicode_with_tofu(unicode, "")
+}
+
+// TODO:
+pub fn generate_contract(
+    schema: &Schema,
+    contract_dir: &Path,
+    version: Option<String>,
+) -> Result<()> {
+    let (main_registry, test_registry) =
+        package_manager::get_program_registries()?;
+
+    let sources_dir = &contract_dir.join("sources");
+    let _ = fs::remove_dir_all(sources_dir);
+    fs::create_dir_all(sources_dir).map_err(|err| {
+        anyhow!(
+            r#"Could not create directory "{}": {err}"#,
+            sources_dir.display()
+        )
+    })?;
+
+    // Write Move.toml
+    // Create the directory if it doesn't exist
+    fs::create_dir_all(contract_dir.join("flavours/"))?;
+
+    let main_toml_path = &contract_dir.join("flavours/Move-main.toml");
+    let mut mail_toml_file = File::create(main_toml_path).map_err(|err| {
+        anyhow!(
+            r#"Could not create Move.toml "{}": {err}"#,
+            main_toml_path.display()
+        )
+    })?;
+
+    // Write Move-test.toml
+    let test_toml_path = &contract_dir.join("flavours/Move-test.toml");
+    let mut test_toml_file = File::create(test_toml_path).map_err(|err| {
+        anyhow!(
+            r#"Could not create Move-test.toml "{}": {err}"#,
+            test_toml_path.display()
+        )
+    })?;
+
+    let module_name = schema.package_name();
+
+    let main_toml_string =
+        write_toml_string(module_name.as_str(), &version, &main_registry)?;
+
+    let test_toml_string =
+        write_toml_string(module_name.as_str(), &version, &test_registry)?;
+
+    // Output
+    mail_toml_file.write_all(main_toml_string.as_bytes())?;
+    test_toml_file.write_all(test_toml_string.as_bytes())?;
+
+    // Copy Main Move.toml
+    fs::copy(main_toml_path, contract_dir.join("Move.toml"))?;
+
+    // Write Move contract
+    let move_path = &sources_dir.join(format!("{module_name}.move"));
+    let mut move_file = File::create(move_path).map_err(|err| {
+        anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
+    })?;
+
+    write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
+        anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
+    })?;
+
+    Ok(())
 }

@@ -1,6 +1,5 @@
 use crate::{InitArgs, MoveInit};
-use gutenberg_types::models::collection::{RoyaltyPolicy, Supply};
-use serde::{Deserialize, Serialize};
+use gutenberg_types::models::collection::Supply;
 
 impl MoveInit for Supply {
     fn write_move_init(&self, _args: InitArgs) -> String {

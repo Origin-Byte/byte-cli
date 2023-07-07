@@ -1,7 +1,5 @@
 use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::collection::RoyaltyPolicy;
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
 
 impl MoveInit for RoyaltyPolicy {
     fn write_move_init(&self, _args: InitArgs) -> String {
