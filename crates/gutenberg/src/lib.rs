@@ -8,7 +8,7 @@ use gutenberg_types::{
     Schema,
 };
 use manifest::write_toml_string;
-pub use manifest::{generate_manifest, write_manifest};
+pub use manifest::{write_manifest};
 use std::{
     ffi::OsStr,
     fs::{self, File},
@@ -289,13 +289,19 @@ pub fn generate_contract(
 
     // Write Move contract
     let move_path = &sources_dir.join(format!("{module_name}.move"));
-    let mut move_file = File::create(move_path).map_err(|err| {
-        anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
-    })?;
 
-    write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
-        anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
-    })?;
+
+    // let mut move_file = File::create(move_path).map_err(|err| {
+    //     anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
+    // })?;
+
+    // write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
+    //     anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
+    // })?;
+
+    // Maybe add
+    // let mut files = Vec::new();
+    // files.push(schema.write_move());
 
     Ok(())
 }
