@@ -3,7 +3,7 @@ use gutenberg_types::models::collection::{RoyaltyPolicy, Supply};
 use serde::{Deserialize, Serialize};
 
 impl MoveInit for Supply {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         let supply = match self {
             Supply::Untracked => return String::new(),
             Supply::Tracked => u64::MAX,

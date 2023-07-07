@@ -2,10 +2,7 @@ use crate::{
     models::collection::supply::write_move_decrement, DefArgs, MoveDefs,
     MoveTests, TestArgs,
 };
-use gutenberg_types::models::{
-    collection::Supply,
-    nft::{Burn, Fields},
-};
+use gutenberg_types::models::nft::{Burn, Fields};
 
 impl MoveDefs for Burn {
     fn write_move_defs(&self, args: DefArgs) -> String {

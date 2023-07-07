@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     /// The named address that the module is published under
-    package_name: String,
+    pub package_name: String,
     #[serde(default)]
-    collection: CollectionData,
-    nft: NftData,
+    pub collection: CollectionData,
+    pub nft: NftData,
 }
 
 impl Schema {

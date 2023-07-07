@@ -2,7 +2,7 @@ use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::collection::{Tag, Tags};
 
 impl MoveInit for Tag {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         match self {
             Tag::Custom(tag) => format!(
                 "
@@ -21,7 +21,7 @@ impl MoveInit for Tag {
 
 impl MoveInit for Tags {
     /// Generates Move code to push tags to a Move `vector` structure
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         let mut code = String::from(
             "
 
@@ -29,7 +29,7 @@ impl MoveInit for Tags {
         );
 
         for tag in self.0.iter() {
-            code.push_str(&tag.write_move_init(None));
+            code.push_str(&tag.write_move_init(InitArgs::None));
         }
 
         code

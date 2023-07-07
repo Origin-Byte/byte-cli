@@ -2,7 +2,7 @@ use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::launchpad::listing::Listing;
 
 impl MoveInit for Listing {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         let mut string = String::new();
 
         string.push_str(&format!(
@@ -21,7 +21,7 @@ impl MoveInit for Listing {
         ));
 
         for market in self.markets.iter() {
-            string.push_str(&market.write_move_init(None));
+            string.push_str(&market.write_move_init(InitArgs::None));
         }
 
         string.push_str(self.share());

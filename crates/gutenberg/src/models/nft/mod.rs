@@ -15,14 +15,14 @@ use gutenberg_types::models::{
 // implementing derives
 
 impl MoveInit for NftData {
-    fn write_move_init(&self, args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, args: InitArgs) -> String {
         let collection_data = init_args(args);
 
         let witness = &self.witness_name();
         let type_name = &self.type_name();
 
         let collection_init = collection_data
-            .write_move_init(Some(InitArgs::CollectionData { type_name }));
+            .write_move_init(InitArgs::CollectionData { type_name });
 
         let transfer_fns = write_move_transfer_fns(self);
 
@@ -33,7 +33,7 @@ impl MoveInit for NftData {
 
         let mint_cap_init = self
             .mint_cap
-            .write_move_init(Some(InitArgs::MintCap { witness, type_name }));
+            .write_move_init(InitArgs::MintCap { witness, type_name });
 
         let mut misc_init = String::new();
         misc_init.push_str(&write_move_display(self, collection_data.tags()));
@@ -77,7 +77,7 @@ impl MoveDefs for NftData {
         let mut defs_str = String::new();
         defs_str.push_str(&write_move_struct(self));
         defs_str.push_str(
-            &self.write_move_init(Some(InitArgs::NftData { collection_data })),
+            &self.write_move_init(InitArgs::NftData { collection_data }),
         );
         defs_str.push_str(&self.mint_policies.write_move_defs(
             DefArgs::MintPolicies {
@@ -179,7 +179,7 @@ fn write_move_struct(data: &NftData) -> String {
                 "
     {name}: {field_type},",
                 name = field.name(),
-                field_type = field.field_type().write_move_init(None)
+                field_type = field.field_type().write_move_init(InitArgs::None)
             )
         })
         .collect();
@@ -284,7 +284,7 @@ fn write_move_display(data: &NftData, tags: &Option<Tags>) -> String {
     let type_name = data.type_name();
 
     let tags_str = tags.as_ref().map(|tags| {
-        let tags_str = tags.write_move_init(None);
+        let tags_str = tags.write_move_init(InitArgs::None);
         format!("{tags_str}
 
     sui::display::add(&mut display, std::string::utf8(b\"tags\"), ob_utils::display::from_vec(tags));")
@@ -317,10 +317,7 @@ fn test_args(args: TestArgs) -> &CollectionData {
     }
 }
 
-fn init_args(args: Option<InitArgs>) -> &CollectionData {
-    // Add err handling
-    let args = args.unwrap();
-
+fn init_args(args: InitArgs) -> &CollectionData {
     match args {
         InitArgs::NftData { collection_data } => collection_data,
         _ => panic!("Incorrect InitArgs variant"),

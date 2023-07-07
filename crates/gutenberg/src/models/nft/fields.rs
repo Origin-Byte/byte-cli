@@ -2,8 +2,7 @@ use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::nft::{Field, FieldType};
 
 impl MoveInit for Field {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
-        let field_name = self.name();
+    fn write_move_init(&self, _args: InitArgs) -> String {
         match self.field_type() {
             FieldType::String => String::from(""), // TODO: This was changed from None, double check correctness
             FieldType::Url => String::from("sui::url::new_unsafe_from_bytes({field_name})"),
@@ -13,7 +12,7 @@ impl MoveInit for Field {
 }
 
 impl MoveInit for FieldType {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         match self {
             FieldType::String => String::from("std::string::String"),
             FieldType::Url => String::from("sui::url::Url"),

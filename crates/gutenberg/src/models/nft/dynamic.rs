@@ -1,5 +1,5 @@
-use crate::MoveInit;
 use crate::{models::write_move_fn, DefArgs, MoveDefs, MoveTests, TestArgs};
+use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::nft::{Dynamic, Fields};
 
 impl MoveDefs for Dynamic {
@@ -19,7 +19,7 @@ impl MoveDefs for Dynamic {
                     field_name,
                     field.params().collect(),
                     field.param_types().collect(),
-                    field.write_move_init(None), // .unwrap_or_else(|| field_name.to_string()), # TODO: Double check
+                    field.write_move_init(InitArgs::None), // .unwrap_or_else(|| field_name.to_string()), # TODO: Double check
                 )
             })
             .collect()

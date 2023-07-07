@@ -1,26 +1,11 @@
 use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::nft::MintCap;
 
-// TODO!
-// impl MintCap {
-//     /// Write MintCap instantiation with supply always limited to 100
-//     pub fn write_move_demo_init(
-//         &self,
-//         witness: &str,
-//         type_name: &str,
-//     ) -> String {
-//         format!("
-
-//         let mint_cap = nft_protocol::mint_cap::new_limited<{witness}, {type_name}>(
-//             &witness, collection_id, 100, ctx
-//         );
-//         sui::transfer::public_transfer(mint_cap, sui::tx_context::sender(ctx));")
-//     }
-// }
-
+// TODO: Reinstantiate write_move_demo_init when the time comes, but perhaps as
+// a wrapper method that fixes the supply param to 100
 impl MoveInit for MintCap {
     /// Write MintCap instantiation
-    fn write_move_init(&self, args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, args: InitArgs) -> String {
         let (witness, type_name) = init_args(args);
 
         let mint_cap_str = match self.supply {
@@ -42,10 +27,7 @@ impl MoveInit for MintCap {
     }
 }
 
-fn init_args(args: Option<InitArgs>) -> (&str, &str) {
-    // Add err handling
-    let args = args.unwrap();
-
+fn init_args(args: InitArgs) -> (&str, &str) {
     match args {
         InitArgs::MintCap { witness, type_name } => (witness, type_name),
         _ => panic!("Incorrect InitArgs variant"),

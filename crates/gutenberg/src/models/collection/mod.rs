@@ -11,7 +11,7 @@ use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::collection::CollectionData;
 
 impl MoveInit for CollectionData {
-    fn write_move_init(&self, args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, args: InitArgs) -> String {
         let type_name = init_args(args);
 
         let mut domains_str = String::new();
@@ -30,11 +30,11 @@ impl MoveInit for CollectionData {
         domains_str.push_str(
             write_move_collection_url(self).unwrap_or_default().as_str(),
         );
-        domains_str.push_str(write_move_domain(&self.supply()));
+        domains_str.push_str(&self.supply.write_move_init(InitArgs::None));
         domains_str.push_str(
             self.royalties
                 .as_ref()
-                .map(|royalties| royalties.write_move_init(None))
+                .map(|royalties| royalties.write_move_init(InitArgs::None))
                 .unwrap_or_default()
                 .as_str(),
         );
@@ -130,10 +130,7 @@ fn write_move_creators(data: &CollectionData) -> String {
     code
 }
 
-fn init_args(args: Option<InitArgs>) -> &str {
-    // TODO: add err handling
-    let args = args.unwrap();
-
+fn init_args(args: InitArgs) -> &str {
     match args {
         InitArgs::CollectionData { type_name } => type_name,
         _ => panic!("Incorrect InitArgs variant"),

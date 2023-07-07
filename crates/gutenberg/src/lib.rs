@@ -16,11 +16,15 @@ use std::{
 };
 
 pub trait MoveInit {
-    fn write_move_init(&self, args: Option<InitArgs>) -> String;
+    fn write_move_init(&self, args: InitArgs) -> String;
 }
 
 pub trait MoveDefs {
     fn write_move_defs(&self, args: DefArgs) -> String;
+}
+
+pub trait WriteMove {
+    fn write_move(&self) -> ContractFile;
 }
 
 pub enum InitArgs<'a> {
@@ -37,6 +41,7 @@ pub enum InitArgs<'a> {
     Orderbook {
         type_name: &'a str,
     },
+    None,
 }
 
 pub enum DefArgs<'a> {
@@ -59,6 +64,7 @@ pub enum DefArgs<'a> {
     NftData {
         collection_data: &'a CollectionData,
     },
+    None,
 }
 
 pub trait MoveTests {
@@ -94,6 +100,7 @@ pub enum TestArgs<'a> {
     NftData {
         collection_data: &'a CollectionData,
     },
+    None,
 }
 
 /// Used to return all files for loading contract

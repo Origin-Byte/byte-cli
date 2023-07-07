@@ -2,7 +2,7 @@ use crate::{InitArgs, MoveInit, MoveTests, TestArgs};
 use gutenberg_types::models::nft::{Fields, Orderbook};
 
 impl MoveInit for Orderbook {
-    fn write_move_init(&self, args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, args: InitArgs) -> String {
         let type_name = init_args(args);
 
         match self {
@@ -191,10 +191,7 @@ fn test_args(args: TestArgs) -> (&Fields, &str, &str, bool, bool) {
     }
 }
 
-fn init_args(args: Option<InitArgs>) -> &str {
-    // TODO: add err handling
-    let args = args.unwrap();
-
+fn init_args(args: InitArgs) -> &str {
     match args {
         InitArgs::Orderbook { type_name } => type_name,
         _ => panic!("Incorrect InitArgs variant"),

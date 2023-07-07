@@ -2,7 +2,7 @@ use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::launchpad::market::Market;
 
 impl MoveInit for Market {
-    fn write_move_init(&self, _args: Option<InitArgs>) -> String {
+    fn write_move_init(&self, _args: InitArgs) -> String {
         match self {
             Market::FixedPrice {
                 token,

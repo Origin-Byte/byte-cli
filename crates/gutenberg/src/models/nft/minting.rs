@@ -1,6 +1,6 @@
 use crate::models::collection;
-use crate::MoveInit;
 use crate::{models::write_move_fn, DefArgs, MoveDefs, MoveTests, TestArgs};
+use crate::{InitArgs, MoveInit};
 use gutenberg_types::models::nft::{Fields, MintPolicies};
 
 impl MoveDefs for MintPolicies {
@@ -35,9 +35,6 @@ impl MoveDefs for MintPolicies {
         let mut nft_param_types = base_param_types.clone();
         nft_param_types.push("&mut sui::tx_context::TxContext");
 
-        // Mint NFT to Warehouse
-        //
-        // TODO: Mint NFT to Listing
         if self.launchpad {
             let mut params = base_params.clone();
             params.push("warehouse");
@@ -147,10 +144,12 @@ impl MoveDefs for MintPolicies {
 
                 let fields_str: String = fields.iter().map(|field| {
                     let field_name = field.name();
-                    let init = field
-                        .write_move_init(None)
-                        .map(|init| format!("{field_name}: {init}"))
-                        .unwrap_or_else(|| field_name.to_string());
+                    let mut init = field
+                        .write_move_init(InitArgs::None);
+
+                    init =  if init != "" {
+                        format!("{field_name}: {init}")
+                    } else { field_name.to_string()};
 
                     format!("
             {init},")
