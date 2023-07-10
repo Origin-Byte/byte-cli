@@ -15,12 +15,10 @@ pub fn write_manifest(
     package_name: String,
     contract_dir: &Path,
     main_registry: &PackageRegistry,
+    version: Option<Version>,
 ) -> Result<()> {
-    let manifest = write_toml_string(
-        package_name.as_str(),
-        &Some(String::from("1.3.0")),
-        &main_registry,
-    )?;
+    let manifest =
+        write_toml_string(package_name.as_str(), &version, &main_registry)?;
 
     let path = contract_dir.join("Move.toml");
     let mut file = File::create(path)?;
@@ -34,20 +32,13 @@ pub fn write_manifest_with_flavours(
     contract_dir: &Path,
     main_registry: &PackageRegistry,
     test_registry: &PackageRegistry,
+    version: Option<Version>,
 ) -> Result<()> {
-    let v = Version::from_str("1.3.0")?;
+    let main_toml_string =
+        write_toml_string(package_name.as_str(), &version, &main_registry)?;
 
-    let main_toml_string = write_toml_string(
-        package_name.as_str(),
-        &Some(String::from("1.3.0")),
-        &main_registry,
-    )?;
-
-    let test_toml_string = write_toml_string(
-        package_name.as_str(),
-        &Some(String::from("1.3.0")),
-        &test_registry,
-    )?;
+    let test_toml_string =
+        write_toml_string(package_name.as_str(), &version, &test_registry)?;
 
     let flavours_path = contract_dir.join("flavours/");
     fs::create_dir_all(&flavours_path).with_context(|| {
@@ -56,8 +47,6 @@ pub fn write_manifest_with_flavours(
             path = flavours_path.display()
         )
     })?;
-
-    let path = contract_dir.join("Move.toml");
 
     let main_toml_path = contract_dir.join("flavours/Move-main.toml");
     let mut main_toml_file =
@@ -87,7 +76,7 @@ pub fn write_manifest_with_flavours(
 
 pub fn write_toml_string(
     module_name: &str,
-    version: &Option<String>,
+    version: &Option<Version>,
     registry: &PackageRegistry,
 ) -> Result<String> {
     let mut move_toml = match version {
@@ -100,7 +89,7 @@ pub fn write_toml_string(
                 String::from("LiquidityLayerV1"),
             ],
             &[String::from("Sui"), String::from("Originmate")],
-            &Version::from_str(version.as_str())?,
+            version,
         )?,
         None => MoveToml::get_toml_latest(
             module_name,

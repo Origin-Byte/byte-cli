@@ -1,5 +1,5 @@
 use clap::Parser;
-use gutenberg::{generate_contract_with_path};
+use gutenberg::generate_project;
 use std::path::Path;
 
 #[derive(Parser)]
@@ -21,9 +21,12 @@ fn main() {
     let config_path_parsed = Path::new(&input_config_path);
     let output_dir_parsed = Path::new(&output_dir);
 
-    if let Err(err) =
-        generate_contract_with_path(demo, &config_path_parsed, &output_dir_parsed)
-    {
+    if let Err(err) = generate_project(
+        demo,
+        &config_path_parsed,
+        &output_dir_parsed,
+        Some(String::from("1.3.0")), // version
+    ) {
         eprintln!("{err}");
     }
 }

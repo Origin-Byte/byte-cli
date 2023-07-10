@@ -7,13 +7,17 @@ use gutenberg_types::{
     models::{collection::CollectionData, nft::Fields},
     Schema,
 };
-use manifest::write_toml_string;
-pub use manifest::{write_manifest};
+pub use manifest::write_manifest;
+use manifest::write_manifest_with_flavours;
+use package_manager::{
+    get_program_registry, package::PackageRegistry, version::Version, Network,
+};
 use std::{
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 pub trait MoveInit {
@@ -152,7 +156,7 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
 
 // Consume `Schema` since we are modifying it
 pub fn generate_contract_with_schema(
-    mut schema: Schema,
+    schema: &mut Schema,
     is_demo: bool,
 ) -> Vec<ContractFile> {
     if is_demo {
@@ -165,16 +169,22 @@ pub fn generate_contract_with_schema(
     files
 }
 
-pub fn generate_contract_with_path(
+pub fn generate_project(
     is_demo: bool,
     config_path: &Path,
     output_dir: &Path,
-) -> Result<(), io::Error> {
-    let schema = assert_schema(config_path);
+    version: Option<String>,
+) -> Result<()> {
+    let mut schema = assert_schema(config_path);
     let contract_dir = generate_contract_dir(&schema, output_dir);
 
-    write_manifest(schema.package_name(), &contract_dir)?;
-    generate_contract_with_schema(schema, is_demo)
+    let registry = get_program_registry(&Network::Mainnet)?;
+
+    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
+
+    write_manifest(schema.package_name(), &contract_dir, &registry, version)?;
+
+    generate_contract_with_schema(&mut schema, is_demo)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
@@ -233,12 +243,14 @@ pub fn deunicode(unicode: &str) -> String {
     deunicode::deunicode_with_tofu(unicode, "")
 }
 
-// TODO:
-pub fn generate_contract(
-    schema: &Schema,
+pub fn generate_project_with_flavors(
+    is_demo: bool,
+    schema: &mut Schema,
     contract_dir: &Path,
     version: Option<String>,
 ) -> Result<()> {
+    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
+
     let (main_registry, test_registry) =
         package_manager::get_program_registries()?;
 
@@ -251,57 +263,18 @@ pub fn generate_contract(
         )
     })?;
 
-    // Write Move.toml
-    // Create the directory if it doesn't exist
-    fs::create_dir_all(contract_dir.join("flavours/"))?;
-
-    let main_toml_path = &contract_dir.join("flavours/Move-main.toml");
-    let mut mail_toml_file = File::create(main_toml_path).map_err(|err| {
-        anyhow!(
-            r#"Could not create Move.toml "{}": {err}"#,
-            main_toml_path.display()
-        )
-    })?;
-
-    // Write Move-test.toml
-    let test_toml_path = &contract_dir.join("flavours/Move-test.toml");
-    let mut test_toml_file = File::create(test_toml_path).map_err(|err| {
-        anyhow!(
-            r#"Could not create Move-test.toml "{}": {err}"#,
-            test_toml_path.display()
-        )
-    })?;
-
-    let module_name = schema.package_name();
-
-    let main_toml_string =
-        write_toml_string(module_name.as_str(), &version, &main_registry)?;
-
-    let test_toml_string =
-        write_toml_string(module_name.as_str(), &version, &test_registry)?;
-
-    // Output
-    mail_toml_file.write_all(main_toml_string.as_bytes())?;
-    test_toml_file.write_all(test_toml_string.as_bytes())?;
-
-    // Copy Main Move.toml
-    fs::copy(main_toml_path, contract_dir.join("Move.toml"))?;
+    write_manifest_with_flavours(
+        schema.package_name(),
+        &contract_dir,
+        &main_registry,
+        &test_registry,
+        version,
+    )?;
 
     // Write Move contract
-    let move_path = &sources_dir.join(format!("{module_name}.move"));
-
-
-    // let mut move_file = File::create(move_path).map_err(|err| {
-    //     anyhow!(r#"Could not create "{}": {err}"#, move_path.display())
-    // })?;
-
-    // write!(&mut move_file, "{}", schema.write_move()).with_context(|| {
-    //     anyhow!(r#"Could not write Move contract "{}""#, move_path.display())
-    // })?;
-
-    // Maybe add
-    // let mut files = Vec::new();
-    // files.push(schema.write_move());
+    generate_contract_with_schema(schema, is_demo)
+        .into_iter()
+        .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
     Ok(())
 }
