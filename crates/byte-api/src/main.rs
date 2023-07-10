@@ -2,6 +2,7 @@ use actix_web::{get, App, HttpResponse, HttpServer, Responder};
 
 use crate::responders::generate_contract::generate_contract;
 mod responders;
+mod io;
 
 // Define a handler for the root path ("/")
 #[get("/")]

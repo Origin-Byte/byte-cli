@@ -1,26 +1,63 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use gutenberg::generate_contract_with_path;
-use std::{fs, io::Write};
+use anyhow::{anyhow, Result};
+use gutenberg_types::Schema;
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::Path,
+};
 use tempfile::tempdir;
 use walkdir::WalkDir;
 
+use crate::io;
+
 #[post("/generate-contract")]
-pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let input_dir = temp_dir.path().join("input");
-    let output_dir = temp_dir.path().join("output");
-    fs::create_dir_all(&input_dir).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
+pub async fn generate_contract(
+    name: web::Bytes,
+    project_dir: web::Bytes,
+    input_data: web::Bytes,
+) -> impl Responder {
+    // Convert Bytes into &str
+    let name = match std::str::from_utf8(name.as_ref()) {
+        Ok(name) => name,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .body("Invalid UTF-8 argument: 'name'");
+        }
+    };
 
-    // Write the JSON data to a file in the input directory
-    let input_file_path = input_dir.join("input.json");
-    let mut f = fs::File::create(&input_file_path).unwrap();
-    f.write_all(&input_data).unwrap();
+    let project_dir = match std::str::from_utf8(project_dir.as_ref()) {
+        Ok(project_dir) => project_dir,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .body("Invalid UTF-8 argument: 'project_name'");
+        }
+    };
 
-    // Call generate_contract
-    let result =
-        generate_contract_with_path(false, &input_file_path, &output_dir);
+    // Input
+    let schema_path =
+        io::get_schema_filepath(name, &Some(String::from(project_dir)));
+    let contract_dir =
+        io::get_contract_path(name, &Some(String::from(project_dir)));
+
+    // Logic
+    let schema_res = parse_config(schema_path.as_path());
+
+    if schema_res.is_err() {
+        return HttpResponse::InternalServerError()
+            .body("Failed to parse contract schema");
+    }
+
+    let mut schema = schema_res.unwrap();
+
+    let result = gutenberg::generate_project_with_flavors(
+        false,
+        &mut schema,
+        &contract_dir,
+        Some(String::from("1.3.0")),
+    );
+
+    ////////////////////////////////
 
     if result.is_err() {
         return HttpResponse::InternalServerError()
@@ -28,7 +65,7 @@ pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
     }
 
     // Search for the .move file in the output directory
-    let move_file_path = WalkDir::new(&output_dir)
+    let move_file_path = WalkDir::new(project_dir)
         .into_iter()
         .filter_map(Result::ok)
         .find(|entry| entry.file_name().to_string_lossy().ends_with(".move"))
@@ -61,4 +98,17 @@ pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
             ),
         ))
         .body(move_file_data);
+}
+
+pub fn parse_config(config_file: &Path) -> Result<Schema> {
+    let file = File::open(config_file).map_err(|err| {
+        anyhow!(
+            r#"Could not find configuration file "{}": {err}
+Call `byte-cli init-collection-config` to initialize the configuration file."#,
+            config_file.display()
+        )
+    })?;
+
+    serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
+Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
 }

@@ -2069,8 +2069,12 @@ name = "byte-api"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
+ "dirs 5.0.1",
  "futures",
  "gutenberg",
+ "gutenberg-types",
+ "package-manager",
  "serde 1.0.166",
  "serde_json",
  "serde_yaml 0.9.22",
