@@ -2,6 +2,7 @@
 members = [
     "crates/gutenberg",
     "crates/byte-cli",
+    "crates/byte-api",
     "crates/rust-sdk",
     "crates/package-manager"
 ]

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use console::style;
-use gutenberg::Schema;
+use gutenberg::{Schema, generate_contract_with_schema };
 use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
 use std::io::Write;
 use std::path::Path;
@@ -113,7 +113,7 @@ pub fn generate_contract(
 
     // TODO: Implement license check
     let is_demo = false;
-    gutenberg::generate_contract(schema, is_demo)
+    gutenberg::generate_contract_with_schema(schema, is_demo)
         .into_iter()
         .for_each(|file| file.write_to_file(&contract_dir).unwrap());
 

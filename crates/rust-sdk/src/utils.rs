@@ -1,12 +1,17 @@
+use std::ops::Deref;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
+use console::style;
+use shared_crypto::intent::Intent;
 use sui_config::{sui_config_dir, SUI_CLIENT_CONFIG};
-use sui_json_rpc_types::Coin;
+use sui_json_rpc_types::{Coin, SuiTransactionBlockResponse};
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
 use sui_sdk::wallet_context::WalletContext;
 use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
+use sui_types::crypto::Signature;
+use sui_types::messages::{Transaction, TransactionData};
 
 use crate::err::RustSdkError;
 
@@ -85,4 +90,45 @@ impl MoveType {
 
 pub fn get_object_id(obj_id_str: &str) -> ObjectID {
     ObjectID::from_str(obj_id_str).expect("Could not parse object ID")
+}
+
+pub async fn execute_tx(
+    // This way it works with both Arc<WalletContext> and &WalletContext
+    wallet_ctx: impl Deref<Target = WalletContext>,
+    tx_data: TransactionData,
+) -> Result<SuiTransactionBlockResponse, RustSdkError> {
+    let keystore = &wallet_ctx.config.keystore;
+    let sender = wallet_ctx.config.active_address.unwrap();
+
+    // Sign transaction.
+    let mut signatures: Vec<Signature> = vec![];
+
+    let signature =
+        keystore.sign_secure(&sender, &tx_data, Intent::sui_transaction())?;
+
+    signatures.push(signature);
+
+    // Execute the transaction.
+    println!(
+        "{} Sending and executing transaction.",
+        style("WIN").cyan().bold()
+    );
+
+    let response = wallet_ctx
+        .execute_transaction_block(
+            Transaction::from_data(
+                tx_data,
+                Intent::sui_transaction(),
+                signatures,
+            )
+            .verify()?,
+        )
+        .await?;
+
+    println!(
+        "{} Sending and executing transaction.",
+        style("Done").cyan().bold()
+    );
+
+    Ok(response)
 }

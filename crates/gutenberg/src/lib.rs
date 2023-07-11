@@ -2,6 +2,7 @@ use std::{
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
+    ffi::OsStr
 };
 
 mod manifest;
@@ -58,7 +59,7 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
 }
 
 // Consume `Schema` since we are modifying it
-pub fn generate_contract(
+pub fn generate_contract_with_schema(
     mut schema: Schema,
     is_demo: bool,
 ) -> Vec<ContractFile> {
@@ -71,6 +72,57 @@ pub fn generate_contract(
 
     files
 }
+
+pub fn generate_contract_with_path(
+    is_demo: bool,
+    config_path: &Path,
+    output_dir: &Path,
+) -> Result<(), io::Error> {
+    let schema = assert_schema(config_path);
+    let contract_dir = generate_contract_dir(&schema, output_dir);
+
+    write_manifest(schema.package_name(), &contract_dir)?;
+    generate_contract_with_schema(schema, is_demo)
+        .into_iter()
+        .try_for_each(|file| file.write_to_file(&contract_dir))?;
+
+    Ok(())
+}
+
+/// Asserts that the config file has correct schema
+fn assert_schema(path: &Path) -> Schema {
+    let config = File::open(path).unwrap();
+    let extension =
+        path.extension().and_then(OsStr::to_str).unwrap_or_default();
+
+    match extension {
+        "yaml" => match serde_yaml::from_reader::<_, Schema>(config) {
+            Ok(schema) => schema,
+            Err(err) => {
+                eprintln!(
+                    "Could not parse `{path}` due to {err}",
+                    path = path.display()
+                );
+                std::process::exit(1);
+            }
+        },
+        "json" => match serde_json::from_reader::<_, Schema>(config) {
+            Ok(schema) => schema,
+            Err(err) => {
+                eprintln!(
+                    "Could not parse `{path}` due to {err}",
+                    path = path.display()
+                );
+                std::process::exit(1);
+            }
+        },
+        _ => {
+            eprintln!("Extension {extension} not supported");
+            std::process::exit(1);
+        }
+    }
+}
+
 
 /// Normalizes text into valid type name
 pub fn normalize_type(type_name: &str) -> String {

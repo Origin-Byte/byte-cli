@@ -1,19 +1,14 @@
-use crate::utils::get_reference_gas_price;
+use crate::utils::{execute_tx, get_reference_gas_price};
 use crate::{err::RustSdkError, utils::get_context};
 use anyhow::{anyhow, Result};
-use shared_crypto::intent::Intent;
 use std::fmt::Write;
 use std::{
     fmt::{Display, Formatter},
     str::FromStr,
 };
 use sui_json_rpc_types::{Coin, Page, SuiTransactionBlockEffects};
-use sui_keys::keystore::AccountKeystore;
 use sui_sdk::{
-    types::{
-        base_types::{ObjectID, SuiAddress},
-        messages::Transaction,
-    },
+    types::base_types::{ObjectID, SuiAddress},
     wallet_context::WalletContext,
     SuiClient,
 };
@@ -25,7 +20,7 @@ use sui_types::{
     TypeTag, SUI_FRAMEWORK_OBJECT_ID,
 };
 use sui_types::{
-    crypto::Signature, messages::TransactionData,
+    messages::TransactionData,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 
@@ -63,10 +58,31 @@ pub async fn split(
     gas_budget: u64,
     gas_id: Option<ObjectID>,
 ) -> Result<(), RustSdkError> {
-    let context = get_context().await.unwrap();
-    let client = context.get_client().await?;
-    let keystore = &context.config.keystore;
-    let sender = context.config.active_address.unwrap();
+    let wallet_ctx = get_context().await.unwrap();
+
+    let data =
+        prepare_split(&wallet_ctx, coin_id, amount, count, gas_budget, gas_id)
+            .await?;
+
+    let response = execute_tx(&wallet_ctx, data).await?;
+
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+
+    assert!(effects.status.is_ok());
+
+    Ok(())
+}
+
+pub async fn prepare_split(
+    wallet_ctx: &WalletContext,
+    coin_id: ObjectID,
+    amount: Option<u64>,
+    count: u64,
+    gas_budget: u64,
+    gas_id: Option<ObjectID>,
+) -> Result<TransactionData, RustSdkError> {
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
 
     let coin = select_coin(&client, sender, coin_id).await?;
 
@@ -85,7 +101,7 @@ pub async fn split(
 
     let split_amounts = vec![split_amount; count as usize];
 
-    let data = client
+    Ok(client
         .transaction_builder()
         .split_coin(
             sender,
@@ -94,40 +110,33 @@ pub async fn split(
             gas_id,
             gas_budget,
         )
-        .await?;
-
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature =
-        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
-
-    signatures.push(signature);
-
-    let response = context
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    Ok(())
+        .await?)
 }
 
 pub async fn combine(
     gas_budget: u64,
     gas_id: ObjectID,
 ) -> Result<(), RustSdkError> {
-    let context = get_context().await.unwrap();
-    let client = context.get_client().await?;
-    let keystore = &context.config.keystore;
-    let sender = context.config.active_address.unwrap();
+    let wallet_ctx = get_context().await.unwrap();
 
-    let gas_price = get_reference_gas_price(&context).await?;
+    let data = prepare_combine(&wallet_ctx, gas_budget, gas_id).await?;
+    let response = execute_tx(&wallet_ctx, data).await?;
+
+    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
+    assert!(effects.status.is_ok());
+
+    Ok(())
+}
+
+pub async fn prepare_combine(
+    wallet_ctx: &WalletContext,
+    gas_budget: u64,
+    gas_id: ObjectID,
+) -> Result<TransactionData, RustSdkError> {
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
+
+    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
 
     let (main_coin, gas_coin, coins_to_merge) =
         separate_gas_and_max_coin(&client, sender, gas_id).await?;
@@ -138,34 +147,13 @@ pub async fn combine(
     let gas_coin_ref =
         (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest);
 
-    let data = TransactionData::new_programmable(
+    Ok(TransactionData::new_programmable(
         sender,
         vec![gas_coin_ref], // Gas Objects
         pt,
         gas_budget,
         gas_price,
-    );
-
-    // Sign transaction.
-    let mut signatures: Vec<Signature> = vec![];
-
-    let signature =
-        keystore.sign_secure(&sender, &data, Intent::sui_transaction())?;
-
-    signatures.push(signature);
-
-    let response = context
-        .execute_transaction_block(
-            Transaction::from_data(data, Intent::sui_transaction(), signatures)
-                .verify()?,
-        )
-        .await?;
-
-    let SuiTransactionBlockEffects::V1(effects) = response.effects.unwrap();
-
-    assert!(effects.status.is_ok());
-
-    Ok(())
+    ))
 }
 
 pub async fn select_coin(
