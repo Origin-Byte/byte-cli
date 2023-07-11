@@ -1,7 +1,6 @@
 pub mod collection;
 pub mod effects;
 pub mod nft;
-pub mod project;
 pub mod royalties;
 
 use crate::{

@@ -1,9 +1,6 @@
 use crate::{
     err::CliError,
-    models::{
-        effects::{MintEffects, Minted},
-        project::Project,
-    },
+    models::effects::{MintEffects, Minted},
     SchemaBuilder,
 };
 use anyhow::{anyhow, Result};

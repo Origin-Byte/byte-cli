@@ -3,10 +3,8 @@ use anyhow::{anyhow, Result};
 use gutenberg_types::Schema;
 use std::{
     fs::{self, File},
-    io::Write,
     path::Path,
 };
-use tempfile::tempdir;
 use walkdir::WalkDir;
 
 use crate::io;
@@ -15,7 +13,6 @@ use crate::io;
 pub async fn generate_contract(
     name: web::Bytes,
     project_dir: web::Bytes,
-    input_data: web::Bytes,
 ) -> impl Responder {
     // Convert Bytes into &str
     let name = match std::str::from_utf8(name.as_ref()) {
@@ -56,8 +53,6 @@ pub async fn generate_contract(
         &contract_dir,
         Some(String::from("1.3.0")),
     );
-
-    ////////////////////////////////
 
     if result.is_err() {
         return HttpResponse::InternalServerError()
