@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use console::style;
-use gutenberg::{Schema, generate_contract_with_schema };
+use gutenberg::Schema;
 use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
 use std::io::Write;
 use std::path::Path;
@@ -127,12 +127,14 @@ pub async fn publish_contract(
     contract_dir: &Path,
 ) -> Result<SuiTransactionBlockResponse, anyhow::Error> {
     let wallet_ctx = rust_sdk::utils::get_context().await?;
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
 
-    let gas_coin =
-        rust_sdk::utils::get_coin_ref(&coin::get_max_coin(&wallet_ctx).await?);
+    let gas_coin = rust_sdk::utils::get_coin_ref(
+        &coin::get_max_coin(&client, sender).await?,
+    );
 
     let response = publish::publish_contract_and_pay(
-        &wallet_ctx,
         contract_dir,
         gas_coin,
         gas_budget as u64,

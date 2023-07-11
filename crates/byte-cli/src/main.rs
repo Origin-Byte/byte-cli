@@ -12,6 +12,7 @@ use console::style;
 use dialoguer::Confirm;
 use io::LocalWrite;
 use package_manager::Network;
+use rust_sdk::utils::get_context;
 use std::env;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -244,7 +245,11 @@ async fn run() -> Result<()> {
             state.write_json(&project_path)?;
         }
         Commands::ListCoins {} => {
-            let coin_list = coin::list_coins().await?;
+            let wallet_ctx = get_context().await.unwrap();
+            let client = wallet_ctx.get_client().await?;
+            let sender = wallet_ctx.config.active_address.unwrap();
+
+            let coin_list = coin::list_coins(&client, sender).await?;
 
             println!("{}", coin_list);
         }
@@ -255,6 +260,10 @@ async fn run() -> Result<()> {
             count,
             gas_id,
         } => {
+            let wallet_ctx = get_context().await.unwrap();
+            let client = wallet_ctx.get_client().await?;
+            let sender = wallet_ctx.config.active_address.unwrap();
+
             let gas_id = match gas_id {
                 Some(gas_id) => Some(
                     ObjectID::from_str(gas_id.as_str()).map_err(|err| {
@@ -272,10 +281,14 @@ async fn run() -> Result<()> {
             coin::split(coin_id, amount, count, gas_budget as u64, gas_id)
                 .await?;
 
-            let coin_list = coin::list_coins().await?;
+            let coin_list = coin::list_coins(&client, sender).await?;
             println!("{}", coin_list);
         }
         Commands::CombineCoins { gas_budget, gas_id } => {
+            let wallet_ctx = get_context().await.unwrap();
+            let client = wallet_ctx.get_client().await?;
+            let sender = wallet_ctx.config.active_address.unwrap();
+
             let gas_id =
                 ObjectID::from_str(gas_id.as_str()).map_err(|err| {
                     anyhow!(r#"Unable to parse gas-id object: {err}"#)
@@ -283,7 +296,7 @@ async fn run() -> Result<()> {
 
             coin::combine(gas_budget as u64, gas_id).await?;
 
-            let coin_list = coin::list_coins().await?;
+            let coin_list = coin::list_coins(&client, sender).await?;
             println!("{}", coin_list);
         }
         Commands::CheckDependencies {

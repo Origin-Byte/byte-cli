@@ -3,7 +3,6 @@ use console::style;
 use std::env;
 use std::path::Path;
 use std::sync::mpsc::Sender;
-use sui_sdk::wallet_context::WalletContext;
 
 use sui_json_rpc_types::SuiTransactionBlockResponse;
 use sui_json_rpc_types::{OwnedObjectRef, SuiObjectDataOptions};
@@ -11,41 +10,46 @@ use sui_move_build::BuildConfig;
 use sui_sdk::SuiClient;
 use sui_types::base_types::{ObjectID, ObjectType, SuiAddress};
 use sui_types::{
-    base_types::ObjectRef, messages::TransactionData,
+    base_types::ObjectRef,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
+    transaction::TransactionData,
 };
 
 use move_package::BuildConfig as MoveBuildConfig;
 use sui_move::build::resolve_lock_file_path;
 
 use crate::consts::{PRICE_PUBLISH, RECIPIENT_ADDRESS};
-use crate::utils::execute_tx;
+use crate::utils::{execute_tx, get_context};
 use crate::{collection_state::ObjectType as OBObjectType, err::RustSdkError};
 use std::str::FromStr;
 
 pub async fn publish_contract(
-    wallet_ctx: &WalletContext,
+    sender: SuiAddress,
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<SuiTransactionBlockResponse, RustSdkError> {
+    let wallet_ctx = get_context().await.unwrap();
+
     let data =
-        prepare_publish_contract(wallet_ctx, package_dir, gas_coin, gas_budget)
+        prepare_publish_contract(sender, package_dir, gas_coin, gas_budget)
             .await?;
 
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
-    execute_tx(wallet_ctx, data).await
+    execute_tx(&wallet_ctx, data).await
 }
 
 pub async fn publish_contract_and_pay(
-    wallet_ctx: &WalletContext,
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<SuiTransactionBlockResponse, RustSdkError> {
+    let wallet_ctx = get_context().await.unwrap();
+    let sender = wallet_ctx.config.active_address.unwrap();
+
     let data = prepare_publish_contract_and_pay(
-        wallet_ctx,
+        sender,
         package_dir,
         gas_coin,
         gas_budget,
@@ -54,18 +58,16 @@ pub async fn publish_contract_and_pay(
 
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
-    execute_tx(wallet_ctx, data).await
+    execute_tx(&wallet_ctx, data).await
 }
 
 pub async fn prepare_publish_contract(
-    wallet_ctx: &WalletContext,
+    sender: SuiAddress,
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<TransactionData, RustSdkError> {
-    let sender = wallet_ctx.config.active_address.unwrap();
-
-    let builder = init_publish_pt(wallet_ctx, package_dir).await?;
+    let builder = init_publish_pt(sender, package_dir).await?;
 
     Ok(TransactionData::new_programmable(
         sender,
@@ -77,14 +79,12 @@ pub async fn prepare_publish_contract(
 }
 
 pub async fn prepare_publish_contract_and_pay(
-    wallet_ctx: &WalletContext,
+    sender: SuiAddress,
     package_dir: &Path,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<TransactionData, RustSdkError> {
-    let sender = wallet_ctx.config.active_address.unwrap();
-
-    let mut builder = init_publish_pt(wallet_ctx, package_dir).await?;
+    let mut builder = init_publish_pt(sender, package_dir).await?;
 
     let ob_addr = SuiAddress::from_str(RECIPIENT_ADDRESS)?;
     builder.pay_sui(
@@ -102,11 +102,10 @@ pub async fn prepare_publish_contract_and_pay(
 }
 
 async fn init_publish_pt(
-    wallet_ctx: &WalletContext,
+    sender: SuiAddress,
     package_dir: &Path,
 ) -> Result<ProgrammableTransactionBuilder, RustSdkError> {
     let build_config = MoveBuildConfig::default();
-    let sender = wallet_ctx.config.active_address.unwrap();
 
     println!("{} Compiling contract", style("WIP").cyan().bold());
 

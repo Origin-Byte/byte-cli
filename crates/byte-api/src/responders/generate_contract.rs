@@ -1,8 +1,8 @@
-use actix_web::{web, post, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use gutenberg::generate_contract_with_path;
+use std::{fs, io::Write};
 use tempfile::tempdir;
 use walkdir::WalkDir;
-use std::io::Write;
 
 #[post("/generate-contract")]
 pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
@@ -19,10 +19,12 @@ pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
     f.write_all(&input_data).unwrap();
 
     // Call generate_contract
-    let result = generate_contract_with_path(false, &input_file_path, &output_dir);
+    let result =
+        generate_contract_with_path(false, &input_file_path, &output_dir);
 
     if result.is_err() {
-        return HttpResponse::InternalServerError().body("Failed to generate contract");
+        return HttpResponse::InternalServerError()
+            .body("Failed to generate contract");
     }
 
     // Search for the .move file in the output directory
@@ -35,16 +37,28 @@ pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
     // Check if the .move file was found
     let move_file_path = match move_file_path {
         Some(path) => path,
-        None => return HttpResponse::InternalServerError().body("Failed to generate .move file"),
+        None => {
+            return HttpResponse::InternalServerError()
+                .body("Failed to generate .move file")
+        }
     };
 
     // Read the .move file and return it in the response
     let move_file_data = match fs::read(&move_file_path) {
         Ok(data) => data,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to read .move file"),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .body("Failed to read .move file")
+        }
     };
 
     return HttpResponse::Ok()
-        .header("Content-Disposition", format!("attachment; filename={}", move_file_path.file_name().unwrap().to_string_lossy()))
+        .append_header((
+            "Content-Disposition",
+            format!(
+                "attachment; filename={}",
+                move_file_path.file_name().unwrap().to_string_lossy()
+            ),
+        ))
         .body(move_file_data);
 }

@@ -1,26 +1,27 @@
 use crate::{
     err::{self, RustSdkError},
     metadata::Metadata,
-    utils::{execute_tx, get_context, get_reference_gas_price, MoveType},
+    utils::{
+        execute_tx, gas_objects, get_context, get_reference_gas_price,
+        CloneClient, MoveType,
+    },
 };
 use anyhow::Result;
 use move_core_types::identifier::Identifier;
-use std::{str::FromStr, sync::Arc};
+use std::{ops::Deref, str::FromStr, sync::Arc};
 use sui_json_rpc_types::{SuiExecutionStatus, SuiTransactionBlockResponse};
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockEffects};
 use sui_sdk::{
     types::base_types::{ObjectID, SuiAddress},
     wallet_context::WalletContext,
+    SuiClient,
 };
 use sui_types::{
     base_types::ObjectRef,
-    messages::{CallArg, ObjectArg},
     object::Owner,
     parse_sui_type_tag,
-};
-use sui_types::{
-    messages::TransactionData,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
+    transaction::{CallArg, ObjectArg, TransactionData},
 };
 use tokio::task::JoinHandle;
 
@@ -42,9 +43,12 @@ pub async fn create_warehouse(
     gas_budget: u64,
 ) -> Result<ObjectID, RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
 
     let data = prepare_create_warehouse(
-        &wallet_ctx,
+        &client,
+        sender,
         collection_type,
         package_id,
         gas_coin,
@@ -64,15 +68,14 @@ pub async fn create_warehouse(
 }
 
 pub async fn prepare_create_warehouse(
-    wallet_ctx: &WalletContext,
+    client: impl Deref<Target = SuiClient>,
+    sender: SuiAddress,
     collection_type: MoveType,
     package_id: ObjectID,
     gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<TransactionData, RustSdkError> {
-    let sender = wallet_ctx.config.active_address.unwrap();
-
-    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
+    let gas_price = get_reference_gas_price(client).await?;
 
     let collection_type = collection_type.write_type();
     let module = Identifier::from_str("warehouse")?;
@@ -136,9 +139,11 @@ pub async fn mint_nfts_to_warehouse(
     warehouse: Arc<String>,
     mint_cap: Arc<String>,
 ) -> Result<MintEffect, RustSdkError> {
+    let client = wallet_ctx.get_client().await?;
+
     let data = prepare_mint_nfts_to_warehouse(
         data,
-        wallet_ctx.clone(),
+        &client, // TODO: Should this be Arc instead?
         package_id,
         module_name,
         gas_budget,
@@ -156,9 +161,9 @@ pub async fn mint_nfts_to_warehouse(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn prepare_mint_nfts_to_warehouse(
+pub async fn prepare_mint_nfts_to_warehouse<C>(
     mut data: Vec<(u32, Metadata)>,
-    wallet_ctx: Arc<WalletContext>,
+    client: C,
     package_id: Arc<String>,
     module_name: Arc<String>,
     gas_budget: u64,
@@ -166,7 +171,10 @@ pub async fn prepare_mint_nfts_to_warehouse(
     sender: SuiAddress,
     warehouse: Arc<String>,
     mint_cap: Arc<String>,
-) -> Result<TransactionData, RustSdkError> {
+) -> Result<TransactionData, RustSdkError>
+where
+    C: Deref<Target = SuiClient> + CloneClient,
+{
     let package_id = ObjectID::from_str(package_id.as_str())
         .map_err(|err| err::object_id(err, package_id.as_str()))?;
     let warehouse_id = ObjectID::from_str(warehouse.as_str())
@@ -174,13 +182,12 @@ pub async fn prepare_mint_nfts_to_warehouse(
     let mint_cap_id = ObjectID::from_str(mint_cap.as_str())
         .map_err(|err| err::object_id(err, mint_cap.as_str()))?;
 
-    let gas_price = get_reference_gas_price(&wallet_ctx).await?;
+    let gas_price = get_reference_gas_price(client.clone_client()).await?;
 
     let mut builder = ProgrammableTransactionBuilder::new();
 
-    let objs = wallet_ctx
-        .get_client()
-        .await?
+    let objs = client
+        .clone_client()
         .read_api()
         .multi_get_object_with_options(
             vec![mint_cap_id, warehouse_id],
@@ -212,8 +219,7 @@ pub async fn prepare_mint_nfts_to_warehouse(
     let coins: Vec<ObjectRef> = match gas_coin {
         Some(coin) => vec![*coin],
         None => {
-            wallet_ctx
-                .gas_objects(sender)
+            gas_objects(client, sender)
                 .await?
                 .iter()
                 // Ok to unwrap() since `get_gas_objects` guarantees gas
