@@ -4,6 +4,13 @@ use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
 
 use crate::io;
 
+#[utoipa::path(
+    responses(
+        (status = 201, description = "Success!"),
+        (status = 401, description = "Unauthorized"),
+        (status = 400, description = "Bad request")
+    ),
+)]
 #[post("/gen-build-publish-tx")]
 pub async fn gen_build_publish_tx(
     name: web::Bytes,

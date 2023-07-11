@@ -1,8 +1,4 @@
-use anyhow::{anyhow, Result};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub fn get_contract_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "contract", None)

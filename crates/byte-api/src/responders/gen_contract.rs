@@ -5,6 +5,13 @@ use walkdir::WalkDir;
 
 use crate::io;
 
+#[utoipa::path(
+    responses(
+        (status = 201, description = "Success!"),
+        (status = 401, description = "Unauthorized"),
+        (status = 400, description = "Bad request")
+    ),
+)]
 #[post("/gen-contract")]
 pub async fn gen_contract(
     name: web::Bytes,

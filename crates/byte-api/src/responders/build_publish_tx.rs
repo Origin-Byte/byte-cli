@@ -5,6 +5,13 @@ use serde::Serialize;
 use std::{ffi::OsString, path::Path};
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
 
+#[utoipa::path(
+    responses(
+        (status = 201, description = "Success!"),
+        (status = 401, description = "Unauthorized"),
+        (status = 400, description = "Bad request")
+    ),
+)]
 #[post("/build-publish-tx")]
 pub async fn build_publish_tx(
     sender: web::Bytes,
