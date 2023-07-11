@@ -4,25 +4,26 @@ use crate::{
     SchemaBuilder,
 };
 use anyhow::{anyhow, Result};
-use git2::Repository;
 use gutenberg_types::Schema;
 use package_manager::{
-    info::BuildInfo, package::PackageRegistry, toml::MoveToml, Network,
+    info::BuildInfo, package::PackageRegistry, toml::MoveToml,
 };
-use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
+use rust_sdk::{
+    metadata::{GlobalMetadata, StorableMetadata},
+    models::project::Project,
+};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
 };
-use tempfile::TempDir;
 use uploader::writer::Storage;
 
 impl LocalRead for Schema {}
-impl LocalRead for Project {}
 impl LocalRead for Storage {}
 impl LocalRead for MoveToml {}
 impl LocalRead for PackageRegistry {}
+impl LocalRead for Project {}
 impl LocalRead for BuildInfo {}
 impl LocalRead for GlobalMetadata {}
 impl LocalRead for StorableMetadata {}

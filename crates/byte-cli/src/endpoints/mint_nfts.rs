@@ -1,17 +1,17 @@
 use crate::{
     io::{LocalRead, LocalWrite},
-    models::{
-        effects::{MintEffects, MintError, Minted},
-        project::Project,
-    },
+    models::effects::{MintEffects, MintError, Minted},
 };
 use anyhow::{anyhow, Result};
 use chrono::Local;
 use console::style;
 use gutenberg_types::Schema;
 use indicatif::{ProgressBar, ProgressStyle};
-use rust_sdk::metadata::{Metadata, StorableMetadata};
 use rust_sdk::mint::MintEffect;
+use rust_sdk::{
+    metadata::{Metadata, StorableMetadata},
+    models::project::Project,
+};
 use rust_sdk::{
     mint,
     utils::{get_active_address, get_context},

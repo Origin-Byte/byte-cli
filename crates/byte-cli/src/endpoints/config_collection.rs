@@ -1,7 +1,8 @@
-use crate::models::{project::Project, FromPrompt};
+use crate::models::FromPrompt;
 use byte_cli::SchemaBuilder;
 use console::style;
 use gutenberg_types::models::{collection::CollectionData, nft::NftData};
+use rust_sdk::models::project::Project;
 
 pub async fn init_collection_config(
     mut builder: SchemaBuilder,

@@ -1,4 +1,3 @@
-use crate::models::project::Project;
 use convert_case::{Case, Casing};
 use gutenberg_types::{
     models::{
@@ -11,6 +10,7 @@ use gutenberg_types::{
     },
     Schema,
 };
+use rust_sdk::models::project::Project;
 
 pub async fn init_schema(
     name: &String,

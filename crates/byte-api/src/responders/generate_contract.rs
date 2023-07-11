@@ -1,18 +1,15 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use anyhow::{anyhow, Result};
-use gutenberg_types::Schema;
-use std::{
-    fs::{self, File},
-    path::Path,
-};
+use anyhow::Result;
+use std::fs;
 use walkdir::WalkDir;
 
 use crate::io;
 
-#[post("/generate-contract")]
-pub async fn generate_contract(
+#[post("/gen-contract")]
+pub async fn gen_contract(
     name: web::Bytes,
     project_dir: web::Bytes,
+    config_json: web::Bytes,
 ) -> impl Responder {
     // Convert Bytes into &str
     let name = match std::str::from_utf8(name.as_ref()) {
@@ -32,17 +29,14 @@ pub async fn generate_contract(
     };
 
     // Input
-    let schema_path =
-        io::get_schema_filepath(name, &Some(String::from(project_dir)));
     let contract_dir =
         io::get_contract_path(name, &Some(String::from(project_dir)));
 
-    // Logic
-    let schema_res = parse_config(schema_path.as_path());
+    let schema_res = serde_json::from_slice(&config_json);
 
     if schema_res.is_err() {
         return HttpResponse::InternalServerError()
-            .body("Failed to parse contract schema");
+            .body("Failed to parse config json");
     }
 
     let mut schema = schema_res.unwrap();
@@ -93,17 +87,4 @@ pub async fn generate_contract(
             ),
         ))
         .body(move_file_data);
-}
-
-pub fn parse_config(config_file: &Path) -> Result<Schema> {
-    let file = File::open(config_file).map_err(|err| {
-        anyhow!(
-            r#"Could not find configuration file "{}": {err}
-Call `byte-cli init-collection-config` to initialize the configuration file."#,
-            config_file.display()
-        )
-    })?;
-
-    serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
-Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
 }

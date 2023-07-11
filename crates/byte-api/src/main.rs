@@ -1,9 +1,8 @@
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
-
-use crate::responders::generate_contract::generate_contract;
 mod io;
-mod project;
 mod responders;
+
+use crate::responders::gen_build_publish_tx::gen_build_publish_tx;
+use actix_web::{get, App, HttpResponse, HttpServer, Responder};
 
 // Define a handler for the root path ("/")
 #[get("/")]
@@ -20,7 +19,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server at http://0.0.0.0:{}", port);
 
     // Start the HTTP server
-    HttpServer::new(|| App::new().service(index).service(generate_contract))
+    HttpServer::new(|| App::new().service(index).service(gen_build_publish_tx))
         .bind(("0.0.0.0", port))? // Bind to the desired host and port
         .run()
         .await

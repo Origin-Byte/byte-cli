@@ -11,7 +11,7 @@
 // Listings > Markets > The token string field is currenly not being validated
 
 use gutenberg_types::models::{
-    collection::Address,
+    address::Address,
     launchpad::{listing::Listing, market::Market},
 };
 

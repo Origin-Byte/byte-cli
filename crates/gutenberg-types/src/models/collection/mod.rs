@@ -7,7 +7,7 @@ mod royalties;
 mod supply;
 mod tags;
 
-pub use super::address::Address;
+use super::address::Address;
 use crate::deunicode;
 pub use royalties::{RoyaltyPolicy, Share};
 use serde::{Deserialize, Serialize};

@@ -4,5 +4,6 @@ pub mod consts;
 pub mod err;
 pub mod metadata;
 pub mod mint;
+pub mod models;
 pub mod publish;
 pub mod utils;
