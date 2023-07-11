@@ -1,45 +1,11 @@
-use std::fmt::{self, Display};
+use crate::{models::write_move_fn, DefArgs, MoveDefs, MoveTests, TestArgs};
+use crate::{InitArgs, MoveInit};
+use gutenberg_types::models::nft::{Dynamic, Fields};
 
-use serde::{Deserialize, Serialize};
+impl MoveDefs for Dynamic {
+    fn write_move_defs(&self, args: DefArgs) -> String {
+        let (fields, type_name) = def_args(args);
 
-use crate::models::write_move_fn;
-
-use super::Fields;
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
-#[serde(transparent)]
-pub struct Dynamic(bool);
-
-impl Default for Dynamic {
-    /// Static NFT by default is a reasonable default as it does not introduce
-    /// any extra attack vectors that the creator might be forced to consider
-    /// and dynamic features can always be added at a later date.
-    fn default() -> Self {
-        Self(false)
-    }
-}
-
-impl Display for Dynamic {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string = match self.0 {
-            true => "Dynamic",
-            false => "Static",
-        };
-
-        f.write_str(string)
-    }
-}
-
-impl Dynamic {
-    pub fn new(dynamic: bool) -> Self {
-        Self(dynamic)
-    }
-
-    pub fn is_dynamic(&self) -> bool {
-        self.0
-    }
-
-    pub fn write_move_defs(&self, fields: &Fields, type_name: &str) -> String {
         if !self.0 {
             return String::new();
         }
@@ -53,21 +19,18 @@ impl Dynamic {
                     field_name,
                     field.params().collect(),
                     field.param_types().collect(),
-                    field
-                        .write_move_init()
-                        .unwrap_or_else(|| field_name.to_string()),
+                    field.write_move_init(InitArgs::None), // .unwrap_or_else(|| field_name.to_string()), # TODO: Double check
                 )
             })
             .collect()
     }
+}
 
-    pub fn write_move_tests(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        witness_name: &str,
-        requires_collection: bool,
-    ) -> String {
+impl MoveTests for Dynamic {
+    fn write_move_tests(&self, args: TestArgs) -> String {
+        let (fields, type_name, witness_name, requires_collection) =
+            test_args(args);
+
         if !self.is_dynamic() {
             return String::new();
         }
@@ -311,4 +274,23 @@ fn write_move_field_setter(
     ));
 
     field_str
+}
+
+fn def_args(args: DefArgs) -> (&Fields, &str) {
+    match args {
+        DefArgs::Dynamic { fields, type_name } => (fields, type_name),
+        _ => panic!("Incorrect DefArgs variant"),
+    }
+}
+
+fn test_args(args: TestArgs) -> (&Fields, &str, &str, bool) {
+    match args {
+        TestArgs::Dynamic {
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+        } => (fields, type_name, witness_name, requires_collection),
+        _ => panic!("Incorrect TestArgs variant"),
+    }
 }

@@ -43,46 +43,49 @@ pub enum Commands {
     },
 
     /// Generates contract for later deployment
-    GenerateContract {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-    },
+    // TODO: Add back
+    // GenerateContract {
+    //     name: String,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    // },
 
     /// Deploys NFT contract to Sui Blockchain
-    DeployContract {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-        /// Gas budget for running module initializers
-        #[clap(default_value_t = 600_000_000)]
-        gas_budget: usize,
-    },
+    // TODO: Add back
+    // DeployContract {
+    //     name: String,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    //     /// Gas budget for running module initializers
+    //     #[clap(default_value_t = 600_000_000)]
+    //     gas_budget: usize,
+    // },
 
     /// Mints NFTs by calling the deployed contract
-    CreateWarehouse {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-        /// Gas budget for minting an NFT
-        #[clap(default_value_t = 50_000_000_000)]
-        gas_budget: usize,
-    },
-    MintNfts {
-        name: String,
-        // #[clap(long, action)]
-        // amount: Option<u64>,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-        /// Gas budget for minting an NFT
-        #[clap(default_value_t = 50_000_000_000)]
-        gas_budget: usize,
-        #[clap(long, action)]
-        warehouse_id: Option<String>,
-        #[clap(long, action)]
-        mint_cap_id: Option<String>,
-    },
-
+    // TODO: Add back
+    // CreateWarehouse {
+    //     name: String,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    //     /// Gas budget for minting an NFT
+    //     #[clap(default_value_t = 50_000_000_000)]
+    //     gas_budget: usize,
+    // },
+    // TODO: Add back
+    // MintNfts {
+    //     name: String,
+    //     // #[clap(long, action)]
+    //     // amount: Option<u64>,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    //     /// Gas budget for minting an NFT
+    //     #[clap(default_value_t = 50_000_000_000)]
+    //     gas_budget: usize,
+    //     #[clap(long, action)]
+    //     warehouse_id: Option<String>,
+    //     #[clap(long, action)]
+    //     mint_cap_id: Option<String>,
+    // },
     ListCoins {},
 
     SplitCoin {

@@ -1,7 +1,6 @@
 //! Integration tests directly check the generated examples in the parent
 //! directory
-
-use gutenberg::Schema;
+use gutenberg_types::Schema;
 use regex::Regex;
 
 /// Test that template is up to date

@@ -1,16 +1,112 @@
-use std::{
-    fs::File,
-    io::{self, Write},
-    path::{Path, PathBuf},
-    ffi::OsStr
-};
-
 mod manifest;
-pub mod models;
+mod models;
 mod schema;
 
-pub use manifest::{generate_manifest, write_manifest};
-pub use schema::Schema;
+use anyhow::{anyhow, Result};
+use gutenberg_types::{
+    models::{collection::CollectionData, nft::Fields},
+    Schema,
+};
+pub use manifest::write_manifest;
+use manifest::write_manifest_with_flavours;
+use package_manager::{
+    get_program_registry, package::PackageRegistry, version::Version, Network,
+};
+use std::{
+    ffi::OsStr,
+    fs::{self, File},
+    io::{self, Write},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+pub trait MoveInit {
+    fn write_move_init(&self, args: InitArgs) -> String;
+}
+
+pub trait MoveDefs {
+    fn write_move_defs(&self, args: DefArgs) -> String;
+}
+
+pub trait WriteMove {
+    fn write_move(&self) -> ContractFile;
+}
+
+pub enum InitArgs<'a> {
+    MintCap {
+        witness: &'a str,
+        type_name: &'a str,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+    CollectionData {
+        type_name: &'a str,
+    },
+    Orderbook {
+        type_name: &'a str,
+    },
+    None,
+}
+
+pub enum DefArgs<'a> {
+    Burn {
+        fields: &'a Fields,
+        type_name: &'a str,
+        requires_collection: bool,
+        requires_listing: bool,
+        requires_confirm: bool,
+    },
+    Dynamic {
+        fields: &'a Fields,
+        type_name: &'a str,
+    },
+    MintPolicies {
+        fields: &'a Fields,
+        type_name: &'a str,
+        requires_collection: bool,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+    None,
+}
+
+pub trait MoveTests {
+    fn write_move_tests(&self, args: TestArgs) -> String;
+}
+
+pub enum TestArgs<'a> {
+    Burn {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    Dynamic {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    MintPolicies {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+    },
+    Orderbook {
+        fields: &'a Fields,
+        type_name: &'a str,
+        witness_name: &'a str,
+        requires_collection: bool,
+        requires_royalties: bool,
+    },
+    NftData {
+        collection_data: &'a CollectionData,
+    },
+    None,
+}
 
 /// Used to return all files for loading contract
 ///
@@ -60,7 +156,7 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
 
 // Consume `Schema` since we are modifying it
 pub fn generate_contract_with_schema(
-    mut schema: Schema,
+    schema: &mut Schema,
     is_demo: bool,
 ) -> Vec<ContractFile> {
     if is_demo {
@@ -73,16 +169,22 @@ pub fn generate_contract_with_schema(
     files
 }
 
-pub fn generate_contract_with_path(
+pub fn generate_project(
     is_demo: bool,
     config_path: &Path,
     output_dir: &Path,
-) -> Result<(), io::Error> {
-    let schema = assert_schema(config_path);
+    version: Option<String>,
+) -> Result<()> {
+    let mut schema = assert_schema(config_path);
     let contract_dir = generate_contract_dir(&schema, output_dir);
 
-    write_manifest(schema.package_name(), &contract_dir)?;
-    generate_contract_with_schema(schema, is_demo)
+    let registry = get_program_registry(&Network::Mainnet)?;
+
+    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
+
+    write_manifest(schema.package_name(), &contract_dir, &registry, version)?;
+
+    generate_contract_with_schema(&mut schema, is_demo)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
@@ -123,7 +225,6 @@ fn assert_schema(path: &Path) -> Schema {
     }
 }
 
-
 /// Normalizes text into valid type name
 pub fn normalize_type(type_name: &str) -> String {
     deunicode(type_name)
@@ -140,4 +241,40 @@ pub fn normalize_type(type_name: &str) -> String {
 /// De-unicodes and removes all unknown characters
 pub fn deunicode(unicode: &str) -> String {
     deunicode::deunicode_with_tofu(unicode, "")
+}
+
+pub fn generate_project_with_flavors(
+    is_demo: bool,
+    schema: &mut Schema,
+    contract_dir: &Path,
+    version: Option<String>,
+) -> Result<()> {
+    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
+
+    let (main_registry, test_registry) =
+        package_manager::get_program_registries()?;
+
+    let sources_dir = &contract_dir.join("sources");
+    let _ = fs::remove_dir_all(sources_dir);
+    fs::create_dir_all(sources_dir).map_err(|err| {
+        anyhow!(
+            r#"Could not create directory "{}": {err}"#,
+            sources_dir.display()
+        )
+    })?;
+
+    write_manifest_with_flavours(
+        schema.package_name(),
+        &contract_dir,
+        &main_registry,
+        &test_registry,
+        version,
+    )?;
+
+    // Write Move contract
+    generate_contract_with_schema(schema, is_demo)
+        .into_iter()
+        .try_for_each(|file| file.write_to_file(&contract_dir))?;
+
+    Ok(())
 }

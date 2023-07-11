@@ -1,6 +1,6 @@
-use super::Address;
 use anyhow::anyhow;
 use console::style;
+use gutenberg_types::models::address::Address;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, str::FromStr};

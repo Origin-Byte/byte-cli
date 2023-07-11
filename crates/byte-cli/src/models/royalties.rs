@@ -1,13 +1,12 @@
-use std::collections::BTreeSet;
-
-use anyhow::Result;
-use package_manager::Address;
-
 use super::{address_validator, bps_validator, number_validator, FromPrompt};
 use crate::{cli::get_dialoguer_theme, consts::TX_SENDER_ADDRESS};
-
+use anyhow::Result;
 use dialoguer::{Confirm, Input};
-use gutenberg::models::collection::{RoyaltyPolicy, Share};
+use gutenberg_types::models::{
+    address::Address,
+    collection::{RoyaltyPolicy, Share},
+};
+use std::collections::BTreeSet;
 
 impl FromPrompt for RoyaltyPolicy {
     type Param<'a> = &'a [Address];

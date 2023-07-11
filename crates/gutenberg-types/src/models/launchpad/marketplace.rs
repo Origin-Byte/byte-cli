@@ -3,7 +3,7 @@
 //! String but should match to a value in a given Enum. Such Enums represent
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
-use package_manager::Address;
+use super::Address;
 use serde::{Deserialize, Serialize};
 
 /// Contains the market configurations of the marketplace

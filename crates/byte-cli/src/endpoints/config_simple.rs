@@ -1,17 +1,16 @@
-use crate::models::project::Project;
 use convert_case::{Case, Casing};
-use gutenberg::models::{
-    collection::Supply,
-    nft::{Burn, Dynamic, MintCap, Orderbook},
-};
-use gutenberg::{
+use gutenberg_types::{
     models::{
-        collection::CollectionData,
-        nft::{FieldType, MintPolicies, NftData, RequestPolicies},
+        address::Address,
+        collection::{CollectionData, Supply},
+        nft::{
+            Burn, Dynamic, FieldType, MintCap, MintPolicies, NftData,
+            Orderbook, RequestPolicies,
+        },
     },
     Schema,
 };
-use package_manager::Address;
+use rust_sdk::models::project::Project;
 
 pub async fn init_schema(
     name: &String,

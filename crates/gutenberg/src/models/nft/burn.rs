@@ -1,50 +1,25 @@
-use crate::models::collection::Supply;
-use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use crate::{
+    models::collection::supply::write_move_decrement, DefArgs, MoveDefs,
+    MoveTests, TestArgs,
+};
+use gutenberg_types::models::nft::{Burn, Fields};
 
-use super::Fields;
+impl MoveDefs for Burn {
+    fn write_move_defs(&self, args: DefArgs) -> String {
+        let (
+            fields,
+            type_name,
+            requires_collection,
+            requires_listing,
+            requires_confirm,
+        ) = def_args(args);
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum Burn {
-    Permissioned,
-    Permissionless,
-}
-
-impl Display for Burn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string = match self {
-            Burn::Permissioned => "Permissioned",
-            Burn::Permissionless => "Permissionless",
-        };
-
-        f.write_str(string)
-    }
-}
-
-impl Burn {
-    pub fn is_permissioned(&self) -> bool {
-        matches!(self, Burn::Permissioned)
-    }
-
-    pub fn is_permissionless(&self) -> bool {
-        matches!(self, Burn::Permissionless)
-    }
-
-    pub fn write_move_defs(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        requires_collection: bool,
-        requires_listing: bool,
-        requires_confirm: bool,
-    ) -> String {
         let mut code = String::new();
 
         let mut_str = requires_collection.then_some("mut ").unwrap_or_default();
 
         let collection_decrement_str = requires_collection
-            .then(Supply::write_move_decrement)
+            .then(write_move_decrement)
             .unwrap_or_default();
 
         let confirm_contract_str = requires_confirm
@@ -165,14 +140,13 @@ impl Burn {
 
         code
     }
+}
 
-    pub fn write_move_tests(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        witness_name: &str,
-        requires_collection: bool,
-    ) -> String {
+impl MoveTests for Burn {
+    fn write_move_tests(&self, args: TestArgs) -> String {
+        let (fields, type_name, witness_name, requires_collection) =
+            test_args(args);
+
         let collection_param_str = requires_collection
             .then_some(
                 "
@@ -254,5 +228,36 @@ impl Burn {
             sui::transfer::public_share_object(kiosk);
             sui::test_scenario::end(scenario);
         }}")
+    }
+}
+
+fn def_args(args: DefArgs) -> (&Fields, &str, bool, bool, bool) {
+    match args {
+        DefArgs::Burn {
+            fields,
+            type_name,
+            requires_collection,
+            requires_listing,
+            requires_confirm,
+        } => (
+            fields,
+            type_name,
+            requires_collection,
+            requires_listing,
+            requires_confirm,
+        ),
+        _ => panic!("Incorrect DefArgs variant"),
+    }
+}
+
+fn test_args(args: TestArgs) -> (&Fields, &str, &str, bool) {
+    match args {
+        TestArgs::Burn {
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+        } => (fields, type_name, witness_name, requires_collection),
+        _ => panic!("Incorrect TestArgs variant"),
     }
 }

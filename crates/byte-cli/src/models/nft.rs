@@ -1,8 +1,7 @@
 use super::{map_indices, FromPrompt};
 use crate::cli::get_dialoguer_theme;
-
 use dialoguer::{Input, MultiSelect};
-use gutenberg::models::nft::{
+use gutenberg_types::models::nft::{
     Burn, Dynamic, FieldType, MintCap, MintPolicies, NftData, Orderbook,
     RequestPolicies,
 };

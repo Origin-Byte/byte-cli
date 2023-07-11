@@ -6,12 +6,16 @@ pub mod io;
 pub mod models;
 
 use anyhow::{anyhow, Result};
+use byte_cli::io::LocalRead;
+use byte_cli::SchemaBuilder;
 use clap::Parser;
 use cli::{Cli, Commands};
 use console::style;
-use dialoguer::Confirm;
+use endpoints::*;
 use io::LocalWrite;
-use package_manager::Network;
+use package_manager::toml::{self as move_toml, MoveToml};
+use package_manager::{self, get_program_registry, Network};
+use rust_sdk::coin;
 use rust_sdk::utils::get_context;
 use std::env;
 use std::io::{Read, Write};
@@ -22,12 +26,6 @@ use std::{
     path::PathBuf,
 };
 use sui_sdk::types::base_types::ObjectID;
-
-use byte_cli::io::LocalRead;
-use byte_cli::SchemaBuilder;
-use endpoints::*;
-use package_manager::toml::{self as move_toml, MoveToml};
-use rust_sdk::{coin, consts::PRICE_PUBLISH};
 use uploader::writer::Storage;
 
 #[tokio::main]
@@ -115,135 +113,135 @@ async fn run() -> Result<()> {
             )
             .await?
         }
-        Commands::GenerateContract { name, project_dir } => {
-            // Input
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
-            let contract_dir =
-                io::get_contract_path(name.as_str(), &project_dir);
+        // Commands::GenerateContract { name, project_dir } => {
+        //     // Input
+        //     let schema_path =
+        //         io::get_schema_filepath(name.as_str(), &project_dir);
+        //     let contract_dir =
+        //         io::get_contract_path(name.as_str(), &project_dir);
 
-            // Logic
-            let schema = deploy_contract::parse_config(schema_path.as_path())?;
-            deploy_contract::generate_contract(schema, contract_dir.as_path())?;
-        }
-        Commands::DeployContract {
-            name,
-            project_dir,
-            gas_budget,
-        } => {
-            // Input
-            let project_path =
-                io::get_project_filepath(name.as_str(), &project_dir);
+        //     // Logic
+        //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
+        //     deploy_contract::generate_contract(schema, contract_dir.as_path())?;
+        // }
+        // Commands::DeployContract {
+        //     name,
+        //     project_dir,
+        //     gas_budget,
+        // } => {
+        //     // Input
+        //     let project_path =
+        //         io::get_project_filepath(name.as_str(), &project_dir);
 
-            let contract_dir =
-                io::get_contract_path(name.as_str(), &project_dir);
+        //     let contract_dir =
+        //         io::get_contract_path(name.as_str(), &project_dir);
 
-            // Logic
-            let theme = cli::get_dialoguer_theme();
+        //     // Logic
+        //     let theme = cli::get_dialoguer_theme();
 
-            let agreed = Confirm::with_theme(&theme)
-                .with_prompt(format!(
-                "This action has a cost of {} MIST. Do you want to proceed?",
-                PRICE_PUBLISH,
-                ))
-                .interact()
-                .unwrap();
+        //     let agreed = Confirm::with_theme(&theme)
+        //         .with_prompt(format!(
+        //         "This action has a cost of {} MIST. Do you want to proceed?",
+        //         PRICE_PUBLISH,
+        //         ))
+        //         .interact()
+        //         .unwrap();
 
-            if agreed {
-                let mut state =
-                    deploy_contract::parse_state(project_path.as_path())?;
+        //     if agreed {
+        //         let mut state =
+        //             deploy_contract::parse_state(project_path.as_path())?;
 
-                let response = deploy_contract::publish_contract(
-                    gas_budget,
-                    &PathBuf::from(contract_dir.as_path()),
-                )
-                .await?;
+        //         let response = deploy_contract::publish_contract(
+        //             gas_budget,
+        //             &PathBuf::from(contract_dir.as_path()),
+        //         )
+        //         .await?;
 
-                deploy_contract::process_effects(&mut state, response).await?;
+        //         deploy_contract::process_effects(&mut state, response).await?;
 
-                // Output
-                state.write_json(&project_path)?;
-            }
-        }
-        Commands::CreateWarehouse {
-            name,
-            project_dir,
-            gas_budget,
-        } => {
-            // Input
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
+        //         // Output
+        //         state.write_json(&project_path)?;
+        //     }
+        // }
+        // Commands::CreateWarehouse {
+        //     name,
+        //     project_dir,
+        //     gas_budget,
+        // } => {
+        //     // Input
+        //     let schema_path =
+        //         io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let project_path =
-                io::get_project_filepath(name.as_str(), &project_dir);
+        //     let project_path =
+        //         io::get_project_filepath(name.as_str(), &project_dir);
 
-            // Input
-            let toml_path = io::get_toml_path(name.as_str(), &project_dir);
+        //     // Input
+        //     let toml_path = io::get_toml_path(name.as_str(), &project_dir);
 
-            // Logic
-            let toml_string: String =
-                fs::read_to_string(toml_path.clone())?.parse()?;
+        //     // Logic
+        //     let toml_string: String =
+        //         fs::read_to_string(toml_path.clone())?.parse()?;
 
-            let move_toml: MoveToml =
-                toml::from_str(toml_string.as_str()).unwrap();
+        //     let move_toml: MoveToml =
+        //         toml::from_str(toml_string.as_str()).unwrap();
 
-            // Logic
-            let schema = deploy_contract::parse_config(schema_path.as_path())?;
-            let mut state =
-                deploy_contract::parse_state(project_path.as_path())?;
+        //     // Logic
+        //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
+        //     let mut state =
+        //         deploy_contract::parse_state(project_path.as_path())?;
 
-            if state.package_id.is_none() {
-                return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-            }
+        //     if state.package_id.is_none() {
+        //         return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+        //     }
 
-            create_warehouse::create_warehouse(
-                &schema, gas_budget, &move_toml, &mut state,
-            )
-            .await?;
+        //     create_warehouse::create_warehouse(
+        //         &schema, gas_budget, &move_toml, &mut state,
+        //     )
+        //     .await?;
 
-            // Output
-            state.write_json(&project_path)?;
-        }
-        Commands::MintNfts {
-            name,
-            project_dir,
-            gas_budget,
-            warehouse_id,
-            mint_cap_id,
-        } => {
-            // Input
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
+        //     // Output
+        //     state.write_json(&project_path)?;
+        // }
+        // Commands::MintNfts {
+        //     name,
+        //     project_dir,
+        //     gas_budget,
+        //     warehouse_id,
+        //     mint_cap_id,
+        // } => {
+        //     // Input
+        //     let schema_path =
+        //         io::get_schema_filepath(name.as_str(), &project_dir);
 
-            let project_path =
-                io::get_project_filepath(name.as_str(), &project_dir);
+        //     let project_path =
+        //         io::get_project_filepath(name.as_str(), &project_dir);
 
-            let (_, post_upload) =
-                io::get_upload_metadata(name.as_str(), &project_dir);
+        //     let (_, post_upload) =
+        //         io::get_upload_metadata(name.as_str(), &project_dir);
 
-            // Logic
-            // TODO: Replace this logic with the our IO Trait
-            let schema = deploy_contract::parse_config(schema_path.as_path())?;
-            let mut state =
-                deploy_contract::parse_state(project_path.as_path())?;
+        //     // Logic
+        //     // TODO: Replace this logic with the our IO Trait
+        //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
+        //     let mut state =
+        //         deploy_contract::parse_state(project_path.as_path())?;
 
-            if state.package_id.is_none() {
-                return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-            }
+        //     if state.package_id.is_none() {
+        //         return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+        //     }
 
-            state = mint_nfts::mint_nfts(
-                &schema,
-                gas_budget,
-                warehouse_id,
-                mint_cap_id,
-                post_upload,
-                state,
-            )
-            .await?;
+        //     state = mint_nfts::mint_nfts(
+        //         &schema,
+        //         gas_budget,
+        //         warehouse_id,
+        //         mint_cap_id,
+        //         post_upload,
+        //         state,
+        //     )
+        //     .await?;
 
-            // Output
-            state.write_json(&project_path)?;
-        }
+        //     // Output
+        //     state.write_json(&project_path)?;
+        // }
         Commands::ListCoins {} => {
             let wallet_ctx = get_context().await.unwrap();
             let client = wallet_ctx.get_client().await?;
@@ -314,7 +312,7 @@ async fn run() -> Result<()> {
                 Network::Mainnet
             };
 
-            let registry = io::get_program_registry(&network)?;
+            let registry = get_program_registry(&network)?;
 
             // Logic
             let toml_string: String =

@@ -2,62 +2,20 @@
 //! struct `Schema`, acting as an intermediate data structure, to write
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
+use crate::{ContractFile, DefArgs, MoveDefs, MoveTests, TestArgs, WriteMove};
+use gutenberg_types::Schema;
 use std::path::PathBuf;
 
-use crate::models::{collection::CollectionData, nft::NftData};
-use crate::{normalize_type, ContractFile};
-use serde::{Deserialize, Serialize};
-
-/// Struct that acts as an intermediate data structure representing the yaml
-/// configuration of the NFT collection.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Schema {
-    /// The named address that the module is published under
-    package_name: String,
-    #[serde(default)]
-    collection: CollectionData,
-    nft: NftData,
+impl MoveDefs for Schema {
+    fn write_move_defs(&self, _args: DefArgs) -> String {
+        self.nft.write_move_defs(DefArgs::NftData {
+            collection_data: &self.collection,
+        })
+    }
 }
 
-impl Schema {
-    pub fn new(
-        package_name: String,
-        collection: CollectionData,
-        nft: NftData,
-    ) -> Schema {
-        Schema {
-            package_name,
-            collection,
-            nft,
-        }
-    }
-
-    pub fn package_name(&self) -> String {
-        // Since `Schema.package_name` can be deserialized from an untrusted
-        // source it's fields must be escaped when preparing for display.
-        normalize_type(&self.package_name).to_lowercase()
-    }
-
-    pub fn collection(&self) -> &CollectionData {
-        &self.collection
-    }
-
-    pub fn nft(&self) -> &NftData {
-        &self.nft
-    }
-
-    /// Disables features that should not be enabled in demo mode
-    pub fn enforce_demo(&mut self) {
-        self.nft.enforce_demo();
-        self.collection.enforce_demo();
-    }
-
-    pub fn write_move_defs(&self) -> String {
-        self.nft.write_move_defs(&self.collection)
-    }
-
-    pub fn write_tests(&self) -> String {
+impl MoveTests for Schema {
+    fn write_move_tests(&self, _args: TestArgs) -> String {
         let type_name = self.nft().type_name();
         let witness_name = self.nft().witness_name();
         let collection_data = self.collection();
@@ -87,22 +45,28 @@ impl Schema {
         sui::test_scenario::end(scenario);
     }}");
 
-        tests_str.push_str(&self.nft.write_move_tests(collection_data));
+        tests_str.push_str(
+            &self
+                .nft
+                .write_move_tests(TestArgs::NftData { collection_data }),
+        );
 
         tests_str
     }
+}
 
+impl WriteMove for Schema {
     /// Higher level method responsible for generating Move code from the
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
     /// the caller.
-    pub fn write_move(&self) -> ContractFile {
+    fn write_move(&self) -> ContractFile {
         let witness_name = self.nft().witness_name();
         let module_name = self.nft().module_name();
         let package_name = self.package_name();
 
-        let definitions = self.write_move_defs();
-        let tests = self.write_tests();
+        let definitions = self.write_move_defs(DefArgs::None);
+        let tests = self.write_move_tests(TestArgs::None);
 
         let content = format!(
             "module {package_name}::{module_name} {{

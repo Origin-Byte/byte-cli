@@ -1,26 +1,52 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use gutenberg::generate_contract_with_path;
-use std::{fs, io::Write};
-use tempfile::tempdir;
+use anyhow::Result;
+use std::fs;
 use walkdir::WalkDir;
 
-#[post("/generate-contract")]
-pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let input_dir = temp_dir.path().join("input");
-    let output_dir = temp_dir.path().join("output");
-    fs::create_dir_all(&input_dir).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
+use crate::io;
 
-    // Write the JSON data to a file in the input directory
-    let input_file_path = input_dir.join("input.json");
-    let mut f = fs::File::create(&input_file_path).unwrap();
-    f.write_all(&input_data).unwrap();
+#[post("/gen-contract")]
+pub async fn gen_contract(
+    name: web::Bytes,
+    project_dir: web::Bytes,
+    config_json: web::Bytes,
+) -> impl Responder {
+    // Convert Bytes into &str
+    let name = match std::str::from_utf8(name.as_ref()) {
+        Ok(name) => name,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .body("Invalid UTF-8 argument: 'name'");
+        }
+    };
 
-    // Call generate_contract
-    let result =
-        generate_contract_with_path(false, &input_file_path, &output_dir);
+    let project_dir = match std::str::from_utf8(project_dir.as_ref()) {
+        Ok(project_dir) => project_dir,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .body("Invalid UTF-8 argument: 'project_name'");
+        }
+    };
+
+    // Input
+    let contract_dir =
+        io::get_contract_path(name, &Some(String::from(project_dir)));
+
+    let schema_res = serde_json::from_slice(&config_json);
+
+    if schema_res.is_err() {
+        return HttpResponse::InternalServerError()
+            .body("Failed to parse config json");
+    }
+
+    let mut schema = schema_res.unwrap();
+
+    let result = gutenberg::generate_project_with_flavors(
+        false,
+        &mut schema,
+        &contract_dir,
+        Some(String::from("1.3.0")),
+    );
 
     if result.is_err() {
         return HttpResponse::InternalServerError()
@@ -28,7 +54,7 @@ pub async fn generate_contract(input_data: web::Bytes) -> impl Responder {
     }
 
     // Search for the .move file in the output directory
-    let move_file_path = WalkDir::new(&output_dir)
+    let move_file_path = WalkDir::new(project_dir)
         .into_iter()
         .filter_map(Result::ok)
         .find(|entry| entry.file_name().to_string_lossy().ends_with(".move"))

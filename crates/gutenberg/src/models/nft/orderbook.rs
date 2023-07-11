@@ -1,16 +1,10 @@
-use serde::{Deserialize, Serialize};
+use crate::{InitArgs, MoveInit, MoveTests, TestArgs};
+use gutenberg_types::models::nft::{Fields, Orderbook};
 
-use super::Fields;
+impl MoveInit for Orderbook {
+    fn write_move_init(&self, args: InitArgs) -> String {
+        let type_name = init_args(args);
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum Orderbook {
-    Unprotected,
-    Protected,
-}
-
-impl Orderbook {
-    pub fn write_move_init(&self, type_name: &str) -> String {
         match self {
             Orderbook::Unprotected => format!(
                 "
@@ -30,15 +24,17 @@ impl Orderbook {
             ),
         }
     }
+}
 
-    pub fn write_move_tests(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        witness_name: &str,
-        requires_collection: bool,
-        requires_royalties: bool,
-    ) -> String {
+impl MoveTests for Orderbook {
+    fn write_move_tests(&self, args: TestArgs) -> String {
+        let (
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+            requires_royalties,
+        ) = test_args(args);
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
@@ -173,5 +169,31 @@ impl Orderbook {
         sui::test_scenario::return_shared(orderbook);
         sui::test_scenario::end(scenario);
     }}")
+    }
+}
+
+fn test_args(args: TestArgs) -> (&Fields, &str, &str, bool, bool) {
+    match args {
+        TestArgs::Orderbook {
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+            requires_royalties,
+        } => (
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+            requires_royalties,
+        ),
+        _ => panic!("Incorrect TestArgs variant"),
+    }
+}
+
+fn init_args(args: InitArgs) -> &str {
+    match args {
+        InitArgs::Orderbook { type_name } => type_name,
+        _ => panic!("Incorrect InitArgs variant"),
     }
 }

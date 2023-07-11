@@ -1,48 +1,12 @@
-use serde::{Deserialize, Serialize};
+use crate::models::collection;
+use crate::{models::write_move_fn, DefArgs, MoveDefs, MoveTests, TestArgs};
+use crate::{InitArgs, MoveInit};
+use gutenberg_types::models::nft::{Fields, MintPolicies};
 
-use crate::models::{collection::Supply, write_move_fn};
+impl MoveDefs for MintPolicies {
+    fn write_move_defs(&self, args: DefArgs) -> String {
+        let (fields, type_name, requires_collection) = def_args(args);
 
-use super::Fields;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct MintPolicies {
-    #[serde(default)]
-    launchpad: bool,
-    #[serde(default)]
-    airdrop: bool,
-}
-
-impl Default for MintPolicies {
-    /// Most collections will need at least one kind of mint function, airdrop
-    /// is a good candidate as it may be used for all launch strategies,
-    /// whereas launchpad only makes sense in primary market contexts.
-    fn default() -> Self {
-        Self {
-            launchpad: false,
-            airdrop: true,
-        }
-    }
-}
-
-impl MintPolicies {
-    pub fn new(launchpad: bool, airdrop: bool) -> Self {
-        Self { launchpad, airdrop }
-    }
-
-    pub fn has_launchpad(&self) -> bool {
-        self.launchpad
-    }
-
-    pub fn has_airdrop(&self) -> bool {
-        self.airdrop
-    }
-
-    pub fn write_move_defs(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        requires_collection: bool,
-    ) -> String {
         let mut mint_fns = String::new();
 
         let params: Vec<String> = fields.params().collect();
@@ -71,9 +35,6 @@ impl MintPolicies {
         let mut nft_param_types = base_param_types.clone();
         nft_param_types.push("&mut sui::tx_context::TxContext");
 
-        // Mint NFT to Warehouse
-        //
-        // TODO: Mint NFT to Listing
         if self.launchpad {
             let mut params = base_params.clone();
             params.push("warehouse");
@@ -178,15 +139,17 @@ impl MintPolicies {
             Some(type_name.to_string()),
             || {
                 let collection_increment_str = requires_collection
-                    .then(Supply::write_move_increment)
+                    .then(collection::supply::write_move_increment)
                     .unwrap_or_default();
 
                 let fields_str: String = fields.iter().map(|field| {
                     let field_name = field.name();
-                    let init = field
-                        .write_move_init()
-                        .map(|init| format!("{field_name}: {init}"))
-                        .unwrap_or_else(|| field_name.to_string());
+                    let mut init = field
+                        .write_move_init(InitArgs::None);
+
+                    init =  if init != "" {
+                        format!("{field_name}: {init}")
+                    } else { field_name.to_string()};
 
                     format!("
             {init},")
@@ -215,14 +178,13 @@ impl MintPolicies {
 
         mint_fns
     }
+}
 
-    pub fn write_mint_tests(
-        &self,
-        fields: &Fields,
-        type_name: &str,
-        witness_name: &str,
-        requires_collection: bool,
-    ) -> String {
+impl MoveTests for MintPolicies {
+    fn write_move_tests(&self, args: TestArgs) -> String {
+        let (fields, type_name, witness_name, requires_collection) =
+            test_args(args);
+
         let collection_take_str = requires_collection.then(|| format!("
 
         let collection = sui::test_scenario::take_shared<nft_protocol::collection::Collection<{type_name}>>(
@@ -316,5 +278,28 @@ impl MintPolicies {
         }
 
         test_str
+    }
+}
+
+fn def_args(args: DefArgs) -> (&Fields, &str, bool) {
+    match args {
+        DefArgs::MintPolicies {
+            fields,
+            type_name,
+            requires_collection,
+        } => (fields, type_name, requires_collection),
+        _ => panic!("Incorrect DefArgs variant"),
+    }
+}
+
+fn test_args(args: TestArgs) -> (&Fields, &str, &str, bool) {
+    match args {
+        TestArgs::MintPolicies {
+            fields,
+            type_name,
+            witness_name,
+            requires_collection,
+        } => (fields, type_name, witness_name, requires_collection),
+        _ => panic!("Incorrect TestArgs variant"),
     }
 }
