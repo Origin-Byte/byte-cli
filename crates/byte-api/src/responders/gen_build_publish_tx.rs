@@ -47,7 +47,7 @@ pub async fn gen_build_publish_tx(
 
     if result.is_err() {
         return HttpResponse::InternalServerError()
-            .body("Failed to generate contract");
+            .body(format!("Failed to generate contract: {:?}", result.err().unwrap()));
     }
 
     let tx_data_res = publish::prepare_publish_contract(
@@ -60,7 +60,7 @@ pub async fn gen_build_publish_tx(
 
     if tx_data_res.is_err() {
         return HttpResponse::InternalServerError()
-            .body("Failed to prepare contract publishing transaction");
+            .body(format!("Failed to prepare contract publishing transaction: {:?}", result.err().unwrap()));
     }
 
     let tx_data = tx_data_res.unwrap();
