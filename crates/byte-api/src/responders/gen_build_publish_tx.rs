@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use actix_web::{post, web, HttpResponse, Responder};
 use rust_sdk::publish;
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
@@ -36,10 +38,17 @@ pub async fn gen_build_publish_tx(
         }
     };
 
-    let sender = match SuiAddress::from_bytes(sender.as_ref()) {
+    let sender_str = match std::str::from_utf8(sender.as_ref()) {
         Ok(sender) => sender,
         Err(_) => {
-            return HttpResponse::BadRequest().body("Invalid 'sender' address");
+            return HttpResponse::BadRequest().body(format!("Invalid 'sender': {:?}", sender));
+        }
+    };
+
+    let sender = match SuiAddress::from_str(sender_str) {
+        Ok(sender) => sender,
+        Err(_) => {
+            return HttpResponse::BadRequest().body(format!("Invalid 'sender' str address: {:?}", sender_str));
         }
     };
 
