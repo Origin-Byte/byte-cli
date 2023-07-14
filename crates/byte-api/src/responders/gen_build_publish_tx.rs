@@ -1,10 +1,18 @@
-use std::str::FromStr;
-
 use actix_web::{post, web, HttpResponse, Responder};
 use rust_sdk::publish;
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
+use serde::Deserialize;
 
 use crate::io;
+
+#[derive(Deserialize)]
+pub struct RequestData {
+    name: String,
+    project_dir: String,
+    config_json: String,
+    sender: SuiAddress,
+    gas_budget: u64,
+}
 
 #[utoipa::path(
     responses(
@@ -15,64 +23,13 @@ use crate::io;
 )]
 #[post("/gen-build-publish-tx")]
 pub async fn gen_build_publish_tx(
-    name: web::Bytes,
-    project_dir: web::Bytes,
-    config_json: web::Bytes,
-    sender: web::Bytes,
-    gas_budget: web::Bytes,
+    data: web::Json<RequestData>,
 ) -> impl Responder {
-    // Convert Bytes into &str
-    let name = match std::str::from_utf8(name.as_ref()) {
-        Ok(name) => name,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'name'");
-        }
-    };
-
-    let project_dir = match std::str::from_utf8(project_dir.as_ref()) {
-        Ok(project_dir) => project_dir,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'project_name'");
-        }
-    };
-
-    let sender_str = match std::str::from_utf8(sender.as_ref()) {
-        Ok(sender) => sender,
-        Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Invalid 'sender': {:?}", sender));
-        }
-    };
-
-    let sender = match SuiAddress::from_str(sender_str) {
-        Ok(sender) => sender,
-        Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Invalid 'sender' str address: {:?}", sender_str));
-        }
-    };
-
-    let gas_budget = match std::str::from_utf8(gas_budget.as_ref()) {
-        Ok(gas_budget) => gas_budget,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'gas_budget'");
-        }
-    };
-
-    let gas_budget = match gas_budget.parse::<u64>() {
-        Ok(gas_budget) => gas_budget,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Unable to pares gas_budget into u64 ");
-        }
-    };
-
     // Input
     let contract_dir =
-        io::get_contract_path(name, &Some(String::from(project_dir)));
+        io::get_contract_path(&data.name, &Some(data.project_dir.to_owned()));
 
-    let schema_res = serde_json::from_slice(&config_json);
+    let schema_res = serde_json::from_str(&data.config_json);
 
     if schema_res.is_err() {
         return HttpResponse::InternalServerError()
@@ -94,10 +51,10 @@ pub async fn gen_build_publish_tx(
     }
 
     let tx_data_res = publish::prepare_publish_contract(
-        sender,
+        data.sender,
         contract_dir.as_path(),
         None,
-        gas_budget,
+        data.gas_budget,
     )
     .await;
 
