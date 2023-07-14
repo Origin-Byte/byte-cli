@@ -60,7 +60,7 @@ pub async fn gen_build_publish_tx(
 
     if tx_data_res.is_err() {
         return HttpResponse::InternalServerError()
-            .body(format!("Failed to prepare contract publishing transaction: {:?}", result.err().unwrap()));
+            .body(format!("Failed to prepare contract publishing transaction: {:?}", tx_data_res.err().unwrap()));
     }
 
     let tx_data = tx_data_res.unwrap();
