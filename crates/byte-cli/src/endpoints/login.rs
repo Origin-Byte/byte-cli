@@ -44,13 +44,23 @@ pub async fn login(accounts: &mut Accounts) -> Result<Response> {
 
     let status = res.status();
 
-    if !status.is_success() {
-        return Err(anyhow!("Failed with status: {}", status));
+    // Check if the status is a success.
+    if status.is_success() {
+        println!("You're succesfully logged in.");
+    } else if status.is_client_error() {
+        // Get the body of the response.
+        let body = res.text().await?;
+        return Err(anyhow!(
+            "Failed with status: {} and the following message: {}",
+            status,
+            body
+        ));
+    } else {
+        // For other errors (like server errors)
+        println!("An unexpected error occurred.");
     }
 
     accounts.register_if_not_yet(&email, &password);
-
-    // let body = res.json().await?;
 
     Ok(res)
 }

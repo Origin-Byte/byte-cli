@@ -388,7 +388,8 @@ async fn run() -> Result<()> {
 
             accounts.write_json(&byte_path.as_path())?;
 
-            println!("{:?}", result);
+            let body = result.text().await?;
+            println!("{:?}", body);
         }
         Commands::Signup { root_dir } => {
             let byte_path = io::get_byte_path(&root_dir);
