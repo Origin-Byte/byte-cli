@@ -2109,6 +2109,7 @@ dependencies = [
  "indicatif 0.16.2",
  "move-package",
  "package-manager",
+ "reqwest",
  "rust-sdk",
  "serde 1.0.166",
  "serde_json",

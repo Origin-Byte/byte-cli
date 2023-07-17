@@ -8,6 +8,59 @@ use crate::{
     err::CliError,
 };
 use dialoguer::{theme::ColorfulTheme, MultiSelect};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct Accounts {
+    pub main: Option<String>,
+    pub accounts: Vec<Account>,
+    jwt: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Account {
+    pub email: String,
+    password: String,
+}
+
+impl Accounts {
+    pub fn new(main: String, accounts: Vec<Account>) -> Self {
+        Self {
+            main: Some(main),
+            accounts,
+            jwt: None,
+        }
+    }
+
+    pub fn register_if_not_yet(&mut self, email: &str, password: &str) {
+        if self.check_if_registered(email) == false {
+            self.accounts.push(Account {
+                email: email.to_string(),
+                password: password.to_string(),
+            });
+        }
+    }
+
+    pub fn check_if_registered(&self, email: &str) -> bool {
+        self.accounts.iter().any(|account| &account.email == email)
+    }
+
+    pub fn set_main(&mut self, email: String) {
+        self.main = Some(email);
+    }
+
+    pub fn set_main_if_none(&mut self, email: String) {
+        if self.main.is_none() {
+            self.main = Some(email);
+        }
+    }
+}
+
+impl Account {
+    pub fn new(email: String, password: String) -> Self {
+        Self { email, password }
+    }
+}
 
 /// Trait for constructing Gutenberg objects from prompt
 pub trait FromPrompt {
