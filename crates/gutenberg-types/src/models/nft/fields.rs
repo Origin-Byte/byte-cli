@@ -43,7 +43,7 @@ impl From<Vec<(&str, FieldType)>> for Fields {
 /// Represents NFT field definition
 #[derive(Debug, Clone)]
 pub struct Field {
-    name: String,
+    pub name: String,
     field_type: FieldType,
 }
 

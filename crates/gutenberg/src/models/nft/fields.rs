@@ -5,8 +5,8 @@ impl MoveInit for Field {
     fn write_move_init(&self, _args: InitArgs) -> String {
         match self.field_type() {
             FieldType::String => String::from(""), // TODO: This was changed from None, double check correctness
-            FieldType::Url => String::from("sui::url::new_unsafe_from_bytes({field_name})"),
-            FieldType::Attributes => String::from("nft_protocol::attributes::from_vec({field_name}_keys, {field_name}_values)"),
+            FieldType::Url => format!("sui::url::new_unsafe_from_bytes({field_name})", field_name = self.name),
+            FieldType::Attributes => format!("nft_protocol::attributes::from_vec({field_name}_keys, {field_name}_values)", field_name = self.name),
         }
     }
 }
