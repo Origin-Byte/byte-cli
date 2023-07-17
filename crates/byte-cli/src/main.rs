@@ -12,11 +12,13 @@ use byte_cli::SchemaBuilder;
 use clap::Parser;
 use cli::{Cli, Commands};
 use console::style;
+use dialoguer::Confirm;
 use endpoints::*;
 use io::LocalWrite;
 use package_manager::toml::{self as move_toml, MoveToml};
 use package_manager::{self, get_program_registry, Network};
 use rust_sdk::coin;
+use rust_sdk::consts::PRICE_PUBLISH;
 use rust_sdk::utils::get_context;
 use std::env;
 use std::io::{Read, Write};
@@ -125,45 +127,51 @@ async fn run() -> Result<()> {
         //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
         //     deploy_contract::generate_contract(schema, contract_dir.as_path())?;
         // }
-        // Commands::DeployContract {
-        //     name,
-        //     project_dir,
-        //     gas_budget,
-        // } => {
-        //     // Input
-        //     let project_path =
-        //         io::get_project_filepath(name.as_str(), &project_dir);
+        Commands::DeployContract {
+            name,
+            project_dir,
+            gas_budget,
+        } => {
+            // Input
+            let project_path =
+                io::get_project_filepath(name.as_str(), &project_dir);
 
-        //     let contract_dir =
-        //         io::get_contract_path(name.as_str(), &project_dir);
+            let contract_dir =
+                io::get_contract_path(name.as_str(), &project_dir);
 
-        //     // Logic
-        //     let theme = cli::get_dialoguer_theme();
+            let schema_path =
+                io::get_schema_filepath(name.as_str(), &project_dir);
 
-        //     let agreed = Confirm::with_theme(&theme)
-        //         .with_prompt(format!(
-        //         "This action has a cost of {} MIST. Do you want to proceed?",
-        //         PRICE_PUBLISH,
-        //         ))
-        //         .interact()
-        //         .unwrap();
+            let byte_path = io::get_byte_path(&None);
+            let accounts = Accounts::read_json(&byte_path)?;
 
-        //     if agreed {
-        //         let mut state =
-        //             deploy_contract::parse_state(project_path.as_path())?;
+            let jwt = accounts.jwt.as_ref().unwrap();
 
-        //         let response = deploy_contract::publish_contract(
-        //             gas_budget,
-        //             &PathBuf::from(contract_dir.as_path()),
-        //         )
-        //         .await?;
+            // Logic
+            let theme = cli::get_dialoguer_theme();
 
-        //         deploy_contract::process_effects(&mut state, response).await?;
+            let mut state =
+                deploy_contract::parse_state(project_path.as_path())?;
 
-        //         // Output
-        //         state.write_json(&project_path)?;
-        //     }
-        // }
+            let schema = deploy_contract::parse_config(schema_path.as_path())?;
+
+            deploy_contract::prepare_publish_contract(
+                name, &schema, gas_budget, // &contract_dir.as_path(),
+                jwt,
+            )
+            .await?;
+
+            // let response = deploy_contract::publish_contract(
+            //     gas_budget,
+            //     &PathBuf::from(contract_dir.as_path()),
+            // )
+            // .await?;
+
+            // deploy_contract::process_effects(&mut state, response).await?;
+
+            // Output
+            // state.write_json(&project_path)?;
+        }
         // Commands::CreateWarehouse {
         //     name,
         //     project_dir,

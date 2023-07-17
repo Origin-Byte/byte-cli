@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 pub struct Accounts {
     pub main: Option<String>,
     pub accounts: Vec<Account>,
-    jwt: Option<String>,
+    pub jwt: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -1,46 +1,48 @@
-// use crate::models::project::{
-//     AdminObjects, CollectionObjects, MintCap, Project,
-// };
-// use anyhow::{anyhow, Context};
-// use console::style;
-// use gutenberg_types::Schema;
-// use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
-// use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
-// use std::fs::{self, File};
-// use std::io::Write;
-// use std::path::Path;
-// use std::sync::mpsc::channel;
-// use sui_sdk::rpc_types::{
-//     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
-// };
-// use terminal_link::Link;
-// use tokio::task::JoinSet;
+use anyhow::{anyhow, Context, Result};
+use console::style;
+use gutenberg_types::Schema;
+use reqwest::Client;
+use rust_sdk::models::project::Project;
+use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
+use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
+use serde_json::json;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::Path;
+use std::sync::mpsc::channel;
+use std::time::Duration;
+use sui_sdk::rpc_types::{
+    SuiTransactionBlockEffects, SuiTransactionBlockResponse,
+};
+use sui_sdk::types::transaction::TransactionData;
+use terminal_link::Link;
+use tokio::task::JoinSet;
 
-// pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
-//     let file = File::open(config_file).map_err(|err| {
-//         anyhow!(
-//             r#"Could not find configuration file "{}": {err}
-// Call `byte-cli init-collection-config` to initialize the configuration file."#,
-//             config_file.display()
-//         )
-//     })?;
+pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
+    let file = File::open(config_file).map_err(|err| {
+        anyhow!(
+            r#"Could not find configuration file "{}": {err}
+Call `byte-cli init-collection-config` to initialize the configuration file."#,
+            config_file.display()
+        )
+    })?;
 
-//     serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
-// Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
-// }
+    serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
+Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
+}
 
-// pub fn parse_state(config_file: &Path) -> Result<Project, anyhow::Error> {
-//     let file = File::open(config_file).map_err(|err| {
-//         anyhow!(
-//             r#"Could not find state file "{}": {err}
-// Call `byte-cli init-collection-config` to initialize the configuration file."#,
-//             config_file.display()
-//         )
-//     })?;
+pub fn parse_state(config_file: &Path) -> Result<Project, anyhow::Error> {
+    let file = File::open(config_file).map_err(|err| {
+        anyhow!(
+            r#"Could not find state file "{}": {err}
+Call `byte-cli init-collection-config` to initialize the configuration file."#,
+            config_file.display()
+        )
+    })?;
 
-//     serde_json::from_reader::<File, Project>(file)
-//         .map_err(|err| anyhow!(r#"Failed to serialize project state: {err}."#))
-// }
+    serde_json::from_reader::<File, Project>(file)
+        .map_err(|err| anyhow!(r#"Failed to serialize project state: {err}."#))
+}
 
 // pub fn generate_contract(
 //     schema: Schema,
@@ -118,6 +120,81 @@
 
 //     Ok(())
 // }
+
+pub async fn prepare_publish_contract(
+    name: String,
+    schema: &Schema,
+    gas_budget: usize,
+    // contract_dir: &Path,
+    jwt: &str,
+    // ) -> Result<TransactionData, anyhow::Error> {
+) -> Result<()> {
+    let contract_dir = Path::new("suip/contract/");
+
+    let wallet_ctx = rust_sdk::utils::get_context().await?;
+    let sender = wallet_ctx.config.active_address.unwrap();
+
+    let client = Client::builder()
+        .timeout(Duration::from_secs(60)) // Set a timeout of 30 seconds
+        .build()?;
+
+    let schema_str = r#"{“name”:“suip”,“configJson”:“{\“packageName\“:\“suip\“,\“collection\“:{\“name\“:\“suip\“,\“description\“:null,\“symbol\“:null,\“url\“:null,\“creators\“:[],\“tags\“:null,\“supply\“:\“untracked\“,\“royalties\“:{\“proportional\“:{\“shares\“:[{\“address\“:\“0xf9935ad63df83d84c5c071a65f241548ac7c452af2912218c6d2b3faefba5dc2\“,\“shareBps\“:10000}],\“collectionRoyaltyBps\“:100}}},\“nft\“:{\“typeName\“:\“Suip\“,\“burn\“:\“permissionless\“,\“dynamic\“:false,\“mintCap\“:\“unlimited\“,\“mintPolicies\“:{\“launchpad\“:true,\“airdrop\“:true},\“requestPolicies\“:{\“transfer\“:true,\“withdraw\“:false,\“borrow\“:false},\“orderbook\“:\“unprotected\“,\“fields\“:[[\“name\“,\“String\“],[\“description\“,\“String\“],[\“url\“,\“Url\“],[\“attributes\“,\“Attributes\“]]}}“,”sender”:“0x17147cee7083025ab4abf1fe3baa7f0d4956aaec132ec4e04563ee04919675f5”,“gasBudget”:600000000,“projectDir”:“suip/contract/“}"#;
+
+    let schema_json =
+        serde_json::to_string(&schema).expect("Failed to serialize schema");
+
+    // let schema_json_value: serde_json::Value =
+    //     serde_json::from_str(&schema_json)?;
+
+    let req_body = json!({
+        "name": name,
+        "configJson": schema_str,
+        "sender": sender.to_string(),
+        "gasBudget": gas_budget,
+        "projectDir": contract_dir,
+    });
+
+    println!("BODY: {}", req_body);
+
+    let res = client
+        .post("https://suiplay-api-1o7v724t.ew.gateway.dev/v1/admin/contracts/generateContractAndBuildPublishTransaction")
+        // .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", jwt)) // Add the Authorization
+        .json(&req_body)
+        .send()
+        .await?;
+
+    print!("THE RESPONSE IS: {:?}", res);
+
+    let status = res.status();
+
+    // Check if the status is a success.
+    if status.is_success() {
+        println!("You're succesfully logged in.");
+    } else if status.is_client_error() {
+        // Get the body of the response.
+        let body = res.text().await?;
+        return Err(anyhow!(
+            "Client Error with status: {} and the following message: {}",
+            status,
+            body
+        ));
+    } else {
+        let body = res.text().await?;
+        return Err(anyhow!(
+            "Server Error with status: {} and the following message: {:?}",
+            status,
+            body,
+        ));
+    }
+
+    let body = res.text().await?;
+
+    println!("{}", body);
+
+    Ok(())
+}
 
 // pub async fn publish_contract(
 //     gas_budget: usize,
