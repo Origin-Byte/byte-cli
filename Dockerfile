@@ -39,6 +39,9 @@ RUN cargo build --release --bin byte-api
 # Create the final minimal image
 FROM debian:bullseye-slim
 
+# Install the ca-certificates and git packages
+RUN apt-get update && apt-get install -y ca-certificates git && rm -rf /var/lib/apt/lists/*
+
 # Copy the binary from the builder to the final image
 COPY --from=builder /app/target/release/byte-api .
 
