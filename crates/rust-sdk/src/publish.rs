@@ -31,13 +31,9 @@ pub async fn publish_contract(
 ) -> Result<SuiTransactionBlockResponse, RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
 
-    let data = prepare_publish_contract(
-        sender,
-        package_dir,
-        Some(gas_coin),
-        gas_budget,
-    )
-    .await?;
+    let data =
+        prepare_publish_contract(sender, package_dir, gas_coin, gas_budget)
+            .await?;
 
     println!("{} Preparing transaction.", style("DONE").green().bold());
 
@@ -68,16 +64,12 @@ pub async fn publish_contract_and_pay(
 pub async fn prepare_publish_contract(
     sender: SuiAddress,
     package_dir: &Path,
-    gas_coin: Option<ObjectRef>,
+    gas_coin: ObjectRef,
     gas_budget: u64,
 ) -> Result<TransactionData, RustSdkError> {
     let builder = init_publish_pt(sender, package_dir).await?;
 
-    let gas_coins = if let Some(gas_coin) = gas_coin {
-        vec![gas_coin]
-    } else {
-        vec![]
-    };
+    let gas_coins = vec![gas_coin];
 
     Ok(TransactionData::new_programmable(
         sender,

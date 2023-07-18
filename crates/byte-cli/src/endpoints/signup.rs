@@ -1,14 +1,8 @@
-use std::path::Path;
-
-use crate::{
-    cli::get_dialoguer_theme,
-    io::LocalWrite,
-    models::{Account, Accounts},
-};
+use crate::{cli::get_dialoguer_theme, models::Accounts};
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Input, Password};
-use reqwest::{Body, Client, Response};
+use reqwest::{Client, Response};
 use serde_json::json;
 
 pub async fn signup(accounts: &mut Accounts) -> Result<Response> {

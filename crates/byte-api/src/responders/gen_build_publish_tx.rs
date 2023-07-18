@@ -1,7 +1,7 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use rust_sdk::publish;
-use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
+use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
 use serde::Deserialize;
+use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
 
 use crate::io;
 
@@ -32,10 +32,12 @@ pub async fn gen_build_publish_tx(
     let schema_res = serde_json::from_str(&data.config_json);
 
     if schema_res.is_err() {
-        let error_message = format!("Failed to parse config json: {:?}", schema_res.err().unwrap());
+        let error_message = format!(
+            "Failed to parse config json: {:?}",
+            schema_res.err().unwrap()
+        );
         eprintln!("{}", error_message);
-        return HttpResponse::InternalServerError()
-            .body(error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
 
     let mut schema = schema_res.unwrap();
@@ -48,25 +50,31 @@ pub async fn gen_build_publish_tx(
     );
 
     if result.is_err() {
-        let error_message = format!("Failed to generate contract: {:?}", result.err().unwrap());
+        let error_message =
+            format!("Failed to generate contract: {:?}", result.err().unwrap());
         eprintln!("{}", error_message);
-        return HttpResponse::InternalServerError()
-            .body(error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
+
+    let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await.unwrap();
+    let gas_coin = select_biggest_coin(&client, sender).await.unwrap();
 
     let tx_data_res = publish::prepare_publish_contract(
         data.sender,
         contract_dir.as_path(),
-        None,
-        data.gas_budget,
+        (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
+        gas_budget,
     )
     .await;
 
     if tx_data_res.is_err() {
-        let error_message = format!("Failed to prepare contract publishing transaction: {:?}", tx_data_res.err().unwrap());
+        let error_message = format!(
+            "Failed to prepare contract publishing transaction: {:?}",
+            tx_data_res.err().unwrap()
+        );
         eprintln!("{}", error_message);
-        return HttpResponse::InternalServerError()
-            .body(error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
 
     let tx_data = tx_data_res.unwrap();

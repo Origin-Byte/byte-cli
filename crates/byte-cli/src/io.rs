@@ -2,7 +2,7 @@ use crate::{
     err::CliError,
     models::{
         effects::{MintEffects, Minted},
-        Account, Accounts,
+        Accounts,
     },
     SchemaBuilder,
 };
@@ -199,6 +199,14 @@ pub fn get_contract_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "contract", None)
 }
 
+pub fn get_server_contract_path(
+    username: &str,
+    name: &str,
+    path_opt: &Option<String>,
+) -> PathBuf {
+    get_server_file_path(username, name, path_opt, "contract", None)
+}
+
 pub fn get_toml_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "contract", Some("Move.toml"))
 }
@@ -236,6 +244,30 @@ fn get_file_path(
     } else {
         filepath = dirs::home_dir().unwrap();
         filepath.push(format!(".byte/projects/{}", name));
+    }
+
+    filepath.push(format!("{}/", folder));
+
+    if let Some(file) = filename {
+        filepath.push(file);
+    }
+
+    filepath
+}
+
+fn get_server_file_path(
+    username: &str,
+    name: &str,
+    path_opt: &Option<String>,
+    folder: &str,
+    filename: Option<&str>,
+) -> PathBuf {
+    let mut filepath: PathBuf;
+
+    if let Some(path) = path_opt {
+        filepath = PathBuf::from(Path::new(path.clone().as_str()));
+    } else {
+        filepath = PathBuf::from(Path::new(&format!("{}/{}", username, name)));
     }
 
     filepath.push(format!("{}/", folder));
