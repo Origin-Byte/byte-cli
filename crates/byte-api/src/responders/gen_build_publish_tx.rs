@@ -58,13 +58,13 @@ pub async fn gen_build_publish_tx(
 
     let wallet_ctx = get_context().await.unwrap();
     let client = wallet_ctx.get_client().await.unwrap();
-    let gas_coin = select_biggest_coin(&client, sender).await.unwrap();
+    let gas_coin = select_biggest_coin(&client, data.sender).await.unwrap();
 
     let tx_data_res = publish::prepare_publish_contract(
         data.sender,
         contract_dir.as_path(),
         (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
-        gas_budget,
+        data.gas_budget,
     )
     .await;
 
