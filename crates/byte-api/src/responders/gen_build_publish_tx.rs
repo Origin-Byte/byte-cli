@@ -1,5 +1,5 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use rust_sdk::publish;
+use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
 
 use crate::io;
@@ -84,10 +84,14 @@ pub async fn gen_build_publish_tx(
             .body("Failed to generate contract");
     }
 
+    let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await.unwrap();
+    let gas_coin = select_biggest_coin(&client, sender).await.unwrap();
+
     let tx_data_res = publish::prepare_publish_contract(
         sender,
         contract_dir.as_path(),
-        None,
+        (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
         gas_budget,
     )
     .await;

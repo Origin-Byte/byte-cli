@@ -11,9 +11,9 @@ use dialoguer::{Input, Password};
 use gutenberg_types::models::{collection::CollectionData, nft::NftData};
 use reqwest::{Body, Client, Response};
 use rust_sdk::models::project::Project;
-use serde_json::json;
+use serde_json::{json, Value};
 
-pub async fn login(accounts: &mut Accounts) -> Result<Response> {
+pub async fn add_profile(accounts: &mut Accounts) -> Result<Response> {
     let theme = get_dialoguer_theme();
     println!("{}", style("Welcome to SuiPlay!").blue().bold().dim());
 
@@ -27,6 +27,14 @@ pub async fn login(accounts: &mut Accounts) -> Result<Response> {
         .interact()
         .unwrap();
 
+    let res = login(&email, &password).await?;
+
+    accounts.register_if_not_yet(&email, &password);
+
+    Ok(res)
+}
+
+pub async fn login(email: &str, password: &str) -> Result<Response> {
     let client = Client::new();
 
     let req_body = json!({
@@ -46,7 +54,7 @@ pub async fn login(accounts: &mut Accounts) -> Result<Response> {
 
     // Check if the status is a success.
     if status.is_success() {
-        println!("You're succesfully logged in.");
+        println!("Account successfully added to local config.");
     } else if status.is_client_error() {
         // Get the body of the response.
         let body = res.text().await?;
@@ -60,7 +68,14 @@ pub async fn login(accounts: &mut Accounts) -> Result<Response> {
         println!("An unexpected error occurred.");
     }
 
-    accounts.register_if_not_yet(&email, &password);
-
     Ok(res)
+}
+
+pub async fn get_jwt(response: Response) -> Result<String> {
+    let body = response.text().await?;
+    let json: Value =
+        serde_json::from_str(&body).expect("Failed to parse JSON");
+    let id_token = json["idToken"].as_str().expect("idToken is not a string");
+
+    Ok(id_token.to_string())
 }
