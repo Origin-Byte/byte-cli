@@ -2,7 +2,7 @@ use crate::{
     err::CliError,
     models::{
         effects::{MintEffects, Minted},
-        Account, Accounts,
+        Accounts,
     },
     SchemaBuilder,
 };

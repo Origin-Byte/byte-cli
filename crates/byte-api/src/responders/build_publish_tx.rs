@@ -1,6 +1,6 @@
 use actix_web::{post, web, HttpResponse, Responder};
 use dotenv::dotenv;
-use rust_sdk::publish;
+use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
 use serde::Serialize;
 use std::{ffi::OsString, path::Path};
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
@@ -46,10 +46,14 @@ pub async fn build_publish_tx(
     // Convert the `OsString` into a `Path`
     let contract_dir = Path::new(&contract_dir);
 
+    let wallet_ctx = get_context().await.unwrap();
+    let client = wallet_ctx.get_client().await.unwrap();
+    let gas_coin = select_biggest_coin(&client, sender).await.unwrap();
+
     let tx_data_res = publish::prepare_publish_contract(
         sender,
         contract_dir,
-        None,
+        (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
         gas_budget,
     )
     .await;
