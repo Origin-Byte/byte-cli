@@ -1,6 +1,9 @@
 use crate::{
     err::CliError,
-    models::effects::{MintEffects, Minted},
+    models::{
+        effects::{MintEffects, Minted},
+        Account, Accounts,
+    },
     SchemaBuilder,
 };
 use anyhow::{anyhow, Result};
@@ -37,6 +40,7 @@ impl LocalWrite for MoveToml {}
 impl LocalWrite for StorableMetadata {}
 impl LocalWrite for MintEffects {}
 impl LocalWrite for Minted {}
+impl LocalWrite for Accounts {}
 
 impl LocalRead for SchemaBuilder {
     fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {
@@ -65,6 +69,40 @@ impl LocalRead for SchemaBuilder {
                 println!("Unable to find schema in: {:?}", path_buf);
                 println!("Creating new schema");
                 Ok(SchemaBuilder::default())
+            }
+        }?;
+
+        Ok(schema)
+    }
+}
+
+impl LocalRead for Accounts {
+    fn read_json(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let f = File::open(path_buf);
+
+        let schema = match f {
+            Ok(file) => match serde_json::from_reader(file) {
+                Ok(schema) => Ok(schema),
+                Err(err) => Err(err),
+            },
+            Err(_) => Ok(Accounts::default()),
+        }?;
+
+        Ok(schema)
+    }
+
+    fn read_yaml(path_buf: &PathBuf) -> Result<Self, CliError> {
+        let f = File::open(path_buf);
+
+        let schema = match f {
+            Ok(file) => match serde_yaml::from_reader(file) {
+                Ok(schema) => Ok(schema),
+                Err(err) => Err(err),
+            },
+            Err(_) => {
+                println!("Unable to find schema in: {:?}", path_buf);
+                println!("Creating new schema");
+                Ok(Accounts::default())
             }
         }?;
 
@@ -126,6 +164,19 @@ pub fn get_upload_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {
 
 pub fn get_assets_path(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "assets", None)
+}
+
+pub fn get_byte_path(path_opt: &Option<String>) -> PathBuf {
+    let mut filepath: PathBuf;
+
+    if let Some(path) = path_opt {
+        filepath = PathBuf::from(Path::new(path.clone().as_str()));
+    } else {
+        filepath = dirs::home_dir().unwrap();
+    }
+    filepath.push(format!(".byte/byte.json"));
+
+    filepath
 }
 
 pub fn get_metadata_path(name: &str, path_opt: &Option<String>) -> PathBuf {

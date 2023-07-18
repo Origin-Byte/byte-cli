@@ -11,7 +11,7 @@ gutenberg-types = { path = "../gutenberg-types" }
 
 sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "2d985a342263ae224966e871b24beeafe11d782a" }
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "2d985a342263ae224966e871b24beeafe11d782a" }
-
+reqwest = { version = "0.11", features = ["json"]}
 git2 = "0.17"
 dialoguer = "0.10"
 thiserror = "1.0"

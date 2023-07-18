@@ -42,6 +42,20 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
+    Login {
+        #[clap(short, long, action)]
+        root_dir: Option<String>,
+    },
+    Signup {
+        #[clap(short, long, action)]
+        root_dir: Option<String>,
+    },
+    SwitchAccount {
+        email: String,
+        #[clap(short, long, action)]
+        root_dir: Option<String>,
+    },
+
     /// Generates contract for later deployment
     // TODO: Add back
     // GenerateContract {
@@ -105,6 +119,7 @@ pub enum Commands {
         gas_budget: usize,
         #[clap(long, action)]
         gas_id: String,
+        // up_to
     },
     CheckDependencies {
         name: String,

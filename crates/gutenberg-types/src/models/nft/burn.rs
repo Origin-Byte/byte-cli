@@ -1,8 +1,5 @@
-use crate::models::collection::Supply;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
-
-use super::Fields;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "camelCase")]

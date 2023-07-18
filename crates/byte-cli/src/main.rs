@@ -5,8 +5,9 @@ pub mod err;
 pub mod io;
 pub mod models;
 
+use crate::io::LocalRead;
+use crate::models::Accounts;
 use anyhow::{anyhow, Result};
-use byte_cli::io::LocalRead;
 use byte_cli::SchemaBuilder;
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -378,6 +379,41 @@ async fn run() -> Result<()> {
             // Output
             // Write the contents to the destination file
             destination_file.write_all(&buffer)?;
+        }
+        Commands::Login { root_dir } => {
+            let byte_path = io::get_byte_path(&root_dir);
+            let mut accounts = Accounts::read_json(&byte_path)?;
+
+            let result = login::login(&mut accounts).await?;
+
+            accounts.write_json(&byte_path.as_path())?;
+
+            let body = result.text().await?;
+            println!("{:?}", body);
+        }
+        Commands::Signup { root_dir } => {
+            let byte_path = io::get_byte_path(&root_dir);
+            let mut accounts = Accounts::read_json(&byte_path)?;
+
+            let result = signup::signup(&mut accounts).await?;
+
+            accounts.write_json(&byte_path.as_path())?;
+
+            let body = result.text().await?;
+            println!("Response: {:?}", body);
+        }
+        Commands::SwitchAccount { email, root_dir } => {
+            let byte_path = io::get_byte_path(&root_dir);
+            let mut accounts = Accounts::read_json(&byte_path)?;
+
+            if !accounts.check_if_registered(&email) {
+                return Err(anyhow!(
+                    "Email account not present in local storage"
+                ));
+            }
+
+            accounts.set_main(email);
+            accounts.write_json(&byte_path.as_path())?;
         } // TOOD: Add back feature
           // Commands::ParallelMint {
           //     name,
