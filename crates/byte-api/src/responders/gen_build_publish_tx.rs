@@ -1,8 +1,18 @@
 use actix_web::{post, web, HttpResponse, Responder};
 use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
+use serde::Deserialize;
 use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
 
 use crate::io;
+
+#[derive(Deserialize)]
+pub struct RequestData {
+    name: String,
+    project_dir: String,
+    config_json: String,
+    sender: SuiAddress,
+    gas_budget: u64,
+}
 
 #[utoipa::path(
     responses(
@@ -13,61 +23,21 @@ use crate::io;
 )]
 #[post("/gen-build-publish-tx")]
 pub async fn gen_build_publish_tx(
-    name: web::Bytes,
-    project_dir: web::Bytes,
-    config_json: web::Bytes,
-    sender: web::Bytes,
-    gas_budget: web::Bytes,
+    data: web::Json<RequestData>,
 ) -> impl Responder {
-    // Convert Bytes into &str
-    let name = match std::str::from_utf8(name.as_ref()) {
-        Ok(name) => name,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'name'");
-        }
-    };
-
-    let project_dir = match std::str::from_utf8(project_dir.as_ref()) {
-        Ok(project_dir) => project_dir,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'project_name'");
-        }
-    };
-
-    let sender = match SuiAddress::from_bytes(sender.as_ref()) {
-        Ok(sender) => sender,
-        Err(_) => {
-            return HttpResponse::BadRequest().body("Invalid 'sender' address");
-        }
-    };
-
-    let gas_budget = match std::str::from_utf8(gas_budget.as_ref()) {
-        Ok(gas_budget) => gas_budget,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'gas_budget'");
-        }
-    };
-
-    let gas_budget = match gas_budget.parse::<u64>() {
-        Ok(gas_budget) => gas_budget,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Unable to pares gas_budget into u64 ");
-        }
-    };
-
     // Input
     let contract_dir =
-        io::get_contract_path(name, &Some(String::from(project_dir)));
+        io::get_contract_path(&data.name, &Some(data.project_dir.to_owned()));
 
-    let schema_res = serde_json::from_slice(&config_json);
+    let schema_res = serde_json::from_str(&data.config_json);
 
     if schema_res.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to parse config json");
+        let error_message = format!(
+            "Failed to parse config json: {:?}",
+            schema_res.err().unwrap()
+        );
+        eprintln!("{}", error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
 
     let mut schema = schema_res.unwrap();
@@ -80,8 +50,10 @@ pub async fn gen_build_publish_tx(
     );
 
     if result.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to generate contract");
+        let error_message =
+            format!("Failed to generate contract: {:?}", result.err().unwrap());
+        eprintln!("{}", error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
 
     let wallet_ctx = get_context().await.unwrap();
@@ -89,7 +61,7 @@ pub async fn gen_build_publish_tx(
     let gas_coin = select_biggest_coin(&client, sender).await.unwrap();
 
     let tx_data_res = publish::prepare_publish_contract(
-        sender,
+        data.sender,
         contract_dir.as_path(),
         (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
         gas_budget,
@@ -97,8 +69,12 @@ pub async fn gen_build_publish_tx(
     .await;
 
     if tx_data_res.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to prepare contract publishing transaction");
+        let error_message = format!(
+            "Failed to prepare contract publishing transaction: {:?}",
+            tx_data_res.err().unwrap()
+        );
+        eprintln!("{}", error_message);
+        return HttpResponse::InternalServerError().body(error_message);
     }
 
     let tx_data = tx_data_res.unwrap();

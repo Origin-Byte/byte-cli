@@ -5,11 +5,7 @@ use actix_web::{middleware::Logger, App, HttpServer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-// // Define a handler for the root path ("/")
-// #[get("/")]
-// async fn index() -> impl Responder {
-//     HttpResponse::Ok().body("To replace with swagger docs")
-// }
+use crate::responders::gen_build_publish_tx::gen_build_publish_tx;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -34,10 +30,12 @@ async fn main() -> std::io::Result<()> {
 
     let factory = move || {
         // This factory closure is called on each worker thread independently.
-        App::new().wrap(Logger::default()).service(
+        App::new().wrap(Logger::default())
+        .service(
             SwaggerUi::new("/swagger-ui/{_:.*}")
                 .url("/api-doc/openapi.json", openapi.clone()),
         )
+        .service(gen_build_publish_tx)
     };
 
     let port = std::env::var("PORT")
@@ -48,7 +46,6 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server at http://0.0.0.0:{}/swagger-ui/", port);
 
     // Start the HTTP server
-    // HttpServer::new(|| App::new().service(index).service(gen_build_publish_tx))
     HttpServer::new(factory)
         .bind(("0.0.0.0", port))? // Bind to the desired host and port
         .run()

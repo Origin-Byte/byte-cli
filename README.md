@@ -32,3 +32,21 @@ The CLI has the following commands:
 `cargo run --bin byte-cli deploy-assets tony`
 
 `cargo run --bin byte-cli new-simple pinata_test 1000 100`
+
+
+## Deploy byte-api to Google Cloud
+
+### 1. Authenticate with Google Cloud Artifact Registry
+gcloud auth configure-docker europe-west6-docker.pkg.dev
+
+### 2. Build and push the image
+docker build -f Dockerfile -t europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest .
+docker push europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest
+
+### 3. Deploy the image to Cloud Run
+gcloud run deploy byte-api --image=europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest --region=europe-west6
+
+
+### 4. Service url:
+[Title](https://byte-api-gqns6vypmq-oa.a.run.app/swagger-ui/)
+(will be private soon)
