@@ -42,7 +42,7 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
-    Login {
+    AddProfile {
         #[clap(short, long, action)]
         root_dir: Option<String>,
     },

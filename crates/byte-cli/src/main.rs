@@ -145,7 +145,7 @@ async fn run() -> Result<()> {
             let byte_path = io::get_byte_path(&None);
             let accounts = Accounts::read_json(&byte_path)?;
 
-            let jwt = accounts.jwt.as_ref().unwrap();
+            let main_account = accounts.get_main_account();
 
             // Logic
             let theme = cli::get_dialoguer_theme();
@@ -154,10 +154,10 @@ async fn run() -> Result<()> {
                 deploy_contract::parse_state(project_path.as_path())?;
 
             let schema = deploy_contract::parse_config(schema_path.as_path())?;
+            let accounts = Accounts::read_json(&byte_path)?;
 
             deploy_contract::prepare_publish_contract(
-                name, &schema, gas_budget, // &contract_dir.as_path(),
-                jwt,
+                &mut state, &accounts, name, &schema, gas_budget,
             )
             .await?;
 
@@ -388,11 +388,11 @@ async fn run() -> Result<()> {
             // Write the contents to the destination file
             destination_file.write_all(&buffer)?;
         }
-        Commands::Login { root_dir } => {
+        Commands::AddProfile { root_dir } => {
             let byte_path = io::get_byte_path(&root_dir);
             let mut accounts = Accounts::read_json(&byte_path)?;
 
-            let result = login::login(&mut accounts).await?;
+            let result = add_profile::add_profile(&mut accounts).await?;
 
             accounts.write_json(&byte_path.as_path())?;
 
