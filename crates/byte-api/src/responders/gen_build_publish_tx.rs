@@ -32,8 +32,10 @@ pub async fn gen_build_publish_tx(
     let schema_res = serde_json::from_str(&data.config_json);
 
     if schema_res.is_err() {
+        let error_message = format!("Failed to parse config json: {:?}", schema_res.err().unwrap());
+        eprintln!("{}", error_message);
         return HttpResponse::InternalServerError()
-            .body("Failed to parse config json");
+            .body(error_message);
     }
 
     let mut schema = schema_res.unwrap();
@@ -46,8 +48,10 @@ pub async fn gen_build_publish_tx(
     );
 
     if result.is_err() {
+        let error_message = format!("Failed to generate contract: {:?}", result.err().unwrap());
+        eprintln!("{}", error_message);
         return HttpResponse::InternalServerError()
-            .body(format!("Failed to generate contract: {:?}", result.err().unwrap()));
+            .body(error_message);
     }
 
     let tx_data_res = publish::prepare_publish_contract(
@@ -59,8 +63,10 @@ pub async fn gen_build_publish_tx(
     .await;
 
     if tx_data_res.is_err() {
+        let error_message = format!("Failed to prepare contract publishing transaction: {:?}", tx_data_res.err().unwrap());
+        eprintln!("{}", error_message);
         return HttpResponse::InternalServerError()
-            .body(format!("Failed to prepare contract publishing transaction: {:?}", tx_data_res.err().unwrap()));
+            .body(error_message);
     }
 
     let tx_data = tx_data_res.unwrap();
