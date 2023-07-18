@@ -125,51 +125,45 @@ async fn run() -> Result<()> {
         //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
         //     deploy_contract::generate_contract(schema, contract_dir.as_path())?;
         // }
-        Commands::DeployContract {
-            name,
-            project_dir,
-            gas_budget,
-        } => {
-            // Input
-            let project_path =
-                io::get_project_filepath(name.as_str(), &project_dir);
+        // Commands::DeployContract {
+        //     name,
+        //     project_dir,
+        //     gas_budget,
+        // } => {
+        //     // Input
+        //     let project_path =
+        //         io::get_project_filepath(name.as_str(), &project_dir);
 
-            let contract_dir =
-                io::get_contract_path(name.as_str(), &project_dir);
+        //     let contract_dir =
+        //         io::get_contract_path(name.as_str(), &project_dir);
 
-            let schema_path =
-                io::get_schema_filepath(name.as_str(), &project_dir);
+        //     // Logic
+        //     let theme = cli::get_dialoguer_theme();
 
-            let byte_path = io::get_byte_path(&None);
-            let accounts = Accounts::read_json(&byte_path)?;
+        //     let agreed = Confirm::with_theme(&theme)
+        //         .with_prompt(format!(
+        //         "This action has a cost of {} MIST. Do you want to proceed?",
+        //         PRICE_PUBLISH,
+        //         ))
+        //         .interact()
+        //         .unwrap();
 
-            let main_account = accounts.get_main_account();
+        //     if agreed {
+        //         let mut state =
+        //             deploy_contract::parse_state(project_path.as_path())?;
 
-            // Logic
-            let theme = cli::get_dialoguer_theme();
+        //         let response = deploy_contract::publish_contract(
+        //             gas_budget,
+        //             &PathBuf::from(contract_dir.as_path()),
+        //         )
+        //         .await?;
 
-            let mut state =
-                deploy_contract::parse_state(project_path.as_path())?;
+        //         deploy_contract::process_effects(&mut state, response).await?;
 
-            let schema = deploy_contract::parse_config(schema_path.as_path())?;
-            let accounts = Accounts::read_json(&byte_path)?;
-
-            deploy_contract::prepare_publish_contract(
-                &mut state, &accounts, name, &schema, gas_budget,
-            )
-            .await?;
-
-            // let response = deploy_contract::publish_contract(
-            //     gas_budget,
-            //     &PathBuf::from(contract_dir.as_path()),
-            // )
-            // .await?;
-
-            // deploy_contract::process_effects(&mut state, response).await?;
-
-            // Output
-            // state.write_json(&project_path)?;
-        }
+        //         // Output
+        //         state.write_json(&project_path)?;
+        //     }
+        // }
         // Commands::CreateWarehouse {
         //     name,
         //     project_dir,
@@ -386,11 +380,11 @@ async fn run() -> Result<()> {
             // Write the contents to the destination file
             destination_file.write_all(&buffer)?;
         }
-        Commands::AddProfile { root_dir } => {
+        Commands::Login { root_dir } => {
             let byte_path = io::get_byte_path(&root_dir);
             let mut accounts = Accounts::read_json(&byte_path)?;
 
-            let result = add_profile::add_profile(&mut accounts).await?;
+            let result = login::login(&mut accounts).await?;
 
             accounts.write_json(&byte_path.as_path())?;
 

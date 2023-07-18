@@ -14,12 +14,13 @@ use serde::{Deserialize, Serialize};
 pub struct Accounts {
     pub main: Option<String>,
     pub accounts: Vec<Account>,
+    jwt: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
     pub email: String,
-    pub password: String,
+    password: String,
 }
 
 impl Accounts {
@@ -27,17 +28,8 @@ impl Accounts {
         Self {
             main: Some(main),
             accounts,
+            jwt: None,
         }
-    }
-
-    pub fn get_main_account(&self) -> &Account {
-        self.accounts
-            .iter()
-            .find(|account| {
-                account.email.as_str()
-                    == self.main.as_ref().expect("Failed to get main account")
-            })
-            .expect("Failed to get find main account in accounts list.")
     }
 
     pub fn register_if_not_yet(&mut self, email: &str, password: &str) {

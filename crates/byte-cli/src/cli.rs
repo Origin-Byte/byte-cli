@@ -42,7 +42,7 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
-    AddProfile {
+    Login {
         #[clap(short, long, action)]
         root_dir: Option<String>,
     },
@@ -65,14 +65,15 @@ pub enum Commands {
     // },
 
     /// Deploys NFT contract to Sui Blockchain
-    DeployContract {
-        name: String,
-        #[clap(short, long, action)]
-        project_dir: Option<String>,
-        /// Gas budget for running module initializers
-        #[clap(default_value_t = 600_000_000)]
-        gas_budget: usize,
-    },
+    // TODO: Add back
+    // DeployContract {
+    //     name: String,
+    //     #[clap(short, long, action)]
+    //     project_dir: Option<String>,
+    //     /// Gas budget for running module initializers
+    //     #[clap(default_value_t = 600_000_000)]
+    //     gas_budget: usize,
+    // },
 
     /// Mints NFTs by calling the deployed contract
     // TODO: Add back

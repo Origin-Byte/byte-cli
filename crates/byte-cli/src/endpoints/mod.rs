@@ -1,9 +1,9 @@
-pub mod add_profile;
 pub mod config_collection;
 pub mod config_simple;
 pub mod config_upload;
 pub mod create_warehouse;
 pub mod deploy_assets;
 pub mod deploy_contract;
-pub mod mint_nfts;
+pub mod login;
 pub mod signup;
+pub mod mint_nfts;
