@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "2d985a342263ae224966e871b24beeafe11d782a" }
+sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "cc4ad6d8a3f05ad8641e977fad228e09a77453b8" }
 
 dotenv = "0.15"
 env_logger = "0.10.0"
