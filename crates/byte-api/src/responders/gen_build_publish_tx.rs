@@ -1,7 +1,10 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
+use rust_sdk::{publish, utils::get_context};
 use serde::Deserialize;
-use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
+use sui_sdk::{
+    rpc_types::Coin,
+    types::{base_types::SuiAddress, transaction::TransactionData},
+};
 
 use crate::io;
 
@@ -12,6 +15,7 @@ pub struct RequestData {
     config_json: String,
     sender: SuiAddress,
     gas_budget: u64,
+    gas_coin: Coin,
 }
 
 #[utoipa::path(
@@ -56,9 +60,7 @@ pub async fn gen_build_publish_tx(
         return HttpResponse::InternalServerError().body(error_message);
     }
 
-    let wallet_ctx = get_context().await.unwrap();
-    let client = wallet_ctx.get_client().await.unwrap();
-    let gas_coin = select_biggest_coin(&client, data.sender).await.unwrap();
+    let gas_coin = &data.gas_coin;
 
     let tx_data_res = publish::prepare_publish_contract(
         data.sender,

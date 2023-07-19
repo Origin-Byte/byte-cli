@@ -171,14 +171,11 @@ pub async fn execute_tx(
     );
 
     let response = wallet_ctx
-        .execute_transaction_may_fail(
-            Transaction::from_data(
-                tx_data,
-                Intent::sui_transaction(),
-                signatures,
-            )
-            .verify()?,
-        )
+        .execute_transaction_may_fail(Transaction::from_data(
+            tx_data,
+            Intent::sui_transaction(),
+            signatures,
+        ))
         .await?;
 
     println!(

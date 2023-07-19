@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg_types::Schema;
 use reqwest::Client;
@@ -6,11 +6,10 @@ use rust_sdk::models::project::{
     AdminObjects, CollectionObjects, MintCap, Project,
 };
 use rust_sdk::utils::execute_tx;
-use rust_sdk::{coin, consts::VOLCANO_EMOJI, utils::get_context};
 use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
+use rust_sdk::{consts::VOLCANO_EMOJI, utils::get_context};
 use serde_json::json;
-use std::fs::{self, File};
-use std::io::Write;
+use std::fs::File;
 use std::path::Path;
 use std::sync::mpsc::channel;
 use std::time::Duration;
