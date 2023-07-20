@@ -44,7 +44,7 @@ docker build -f Dockerfile -t europe-west6-docker.pkg.dev/originbyte-4ce3a/cloud
 docker push europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest
 
 ### 3. Deploy the image to Cloud Run
-gcloud run deploy byte-api --image=europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest --region=europe-west6
+gcloud run deploy byte-api --image=europe-west6-docker.pkg.dev/originbyte-4ce3a/cloudrun-images/byte-api:latest --region=europe-west1
 
 
 ### 4. Service url:
