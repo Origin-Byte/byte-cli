@@ -127,6 +127,7 @@ async fn run() -> Result<()> {
         // }
         Commands::DeployContract {
             name,
+            network,
             project_dir,
             gas_budget,
         } => {
@@ -147,6 +148,13 @@ async fn run() -> Result<()> {
             // TODO
             let _main_account = accounts.get_main_account();
 
+            let network = if network.is_some() {
+                Network::from_str(network.unwrap().as_str())
+                    .map_err(|err| anyhow!("Invalid network: {:?}", err))?
+            } else {
+                Network::Mainnet
+            };
+
             // Logic
             // TODO
             let _theme = cli::get_dialoguer_theme();
@@ -158,7 +166,7 @@ async fn run() -> Result<()> {
             let accounts = Accounts::read_json(&byte_path)?;
 
             deploy_contract::prepare_publish_contract(
-                &mut state, &accounts, name, &schema, gas_budget,
+                &mut state, &accounts, name, &schema, gas_budget, network,
             )
             .await?;
 

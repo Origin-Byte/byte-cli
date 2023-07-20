@@ -42,10 +42,12 @@ pub enum Commands {
         project_dir: Option<String>,
     },
 
+    // TODO: RENAME LINK ACCOUNT
     AddProfile {
         #[clap(short, long, action)]
         root_dir: Option<String>,
     },
+    // TODO: RENAME CREATE ACCOUNT
     Signup {
         #[clap(short, long, action)]
         root_dir: Option<String>,
@@ -67,6 +69,7 @@ pub enum Commands {
     /// Deploys NFT contract to Sui Blockchain
     DeployContract {
         name: String,
+        network: Option<String>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
         /// Gas budget for running module initializers

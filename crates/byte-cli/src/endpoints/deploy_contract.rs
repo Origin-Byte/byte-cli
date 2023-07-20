@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg_types::Schema;
+use package_manager::Network;
 use reqwest::Client;
 use rust_sdk::coin::select_biggest_coin;
 use rust_sdk::models::project::{
@@ -134,6 +135,7 @@ pub async fn prepare_publish_contract(
     name: String,
     schema: &Schema,
     gas_budget: usize,
+    network: Network,
     // contract_dir: &Path,
     // ) -> Result<TransactionData, anyhow::Error> {
 ) -> Result<()> {
@@ -145,7 +147,7 @@ pub async fn prepare_publish_contract(
     let gas_coin = select_biggest_coin(&sui_client, sender).await?;
 
     let api_client = Client::builder()
-        .timeout(Duration::from_secs(250)) // Set a timeout of 30 seconds
+        .timeout(Duration::from_secs(500)) // Set a timeout of 30 seconds
         .build()?;
 
     let schema_json =
@@ -161,6 +163,7 @@ pub async fn prepare_publish_contract(
         "gasBudget": gas_budget,
         "projectDir": contract_dir,
         "gasCoin": gas_coin,
+        "network": network,
     });
 
     let main_acc = accounts.get_main_account();

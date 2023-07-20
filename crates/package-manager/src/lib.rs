@@ -6,7 +6,7 @@ pub mod version;
 use anyhow::{anyhow, Result};
 use git2::Repository;
 use package::PackageRegistry;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     fs::File,
@@ -30,7 +30,7 @@ pub const OB_PACKAGES: [&str; 12] = [
     "NftProtocol",
 ];
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum Network {
     Mainnet,
     Testnet,
