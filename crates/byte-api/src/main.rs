@@ -1,3 +1,4 @@
+mod err;
 mod io;
 mod responders;
 
@@ -30,12 +31,13 @@ async fn main() -> std::io::Result<()> {
 
     let factory = move || {
         // This factory closure is called on each worker thread independently.
-        App::new().wrap(Logger::default())
-        .service(
-            SwaggerUi::new("/swagger-ui/{_:.*}")
-                .url("/api-doc/openapi.json", openapi.clone()),
-        )
-        .service(gen_build_publish_tx)
+        App::new()
+            .wrap(Logger::default())
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-doc/openapi.json", openapi.clone()),
+            )
+            .service(gen_build_publish_tx)
     };
 
     let port = std::env::var("PORT")

@@ -1,9 +1,17 @@
-use actix_web::{post, web, HttpResponse, Responder};
-use anyhow::Result;
+use actix_web::{post, web, HttpResponse, Responder, Result};
+use anyhow::anyhow;
+use serde::Deserialize;
 use std::fs;
 use walkdir::WalkDir;
 
-use crate::io;
+use crate::{err::ByteApiError, io};
+
+#[derive(Deserialize)]
+pub struct RequestData {
+    name: String,
+    project_dir: String,
+    config_json: String,
+}
 
 #[utoipa::path(
     responses(
@@ -14,78 +22,42 @@ use crate::io;
 )]
 #[post("/gen-contract")]
 pub async fn gen_contract(
-    name: web::Bytes,
-    project_dir: web::Bytes,
-    config_json: web::Bytes,
-) -> impl Responder {
-    // Convert Bytes into &str
-    let name = match std::str::from_utf8(name.as_ref()) {
-        Ok(name) => name,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'name'");
-        }
-    };
-
-    let project_dir = match std::str::from_utf8(project_dir.as_ref()) {
-        Ok(project_dir) => project_dir,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid UTF-8 argument: 'project_name'");
-        }
-    };
-
-    // Input
+    data: web::Json<RequestData>,
+) -> Result<impl Responder> {
     let contract_dir =
-        io::get_contract_path(name, &Some(String::from(project_dir)));
+        io::get_contract_path(&data.name, &Some(data.project_dir.to_owned()));
 
-    let schema_res = serde_json::from_slice(&config_json);
+    let mut schema = serde_json::from_str(&data.config_json)?;
 
-    if schema_res.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to parse config json");
-    }
-
-    let mut schema = schema_res.unwrap();
-
-    let result = gutenberg::generate_project_with_flavors(
+    gutenberg::generate_project_with_flavors(
         false,
         &mut schema,
         &contract_dir,
         Some(String::from("1.3.0")),
-    );
-
-    if result.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to generate contract");
-    }
+    )
+    .map_err(ByteApiError::from)?;
 
     // Search for the .move file in the output directory
-    let move_file_path = WalkDir::new(project_dir)
+    let move_file_path = WalkDir::new(&data.project_dir)
         .into_iter()
         .filter_map(Result::ok)
         .find(|entry| entry.file_name().to_string_lossy().ends_with(".move"))
         .map(|entry| entry.into_path());
 
-    // Check if the .move file was found
-    let move_file_path = match move_file_path {
-        Some(path) => path,
-        None => {
-            return HttpResponse::InternalServerError()
-                .body("Failed to generate .move file")
-        }
-    };
+    if move_file_path.is_none() {
+        return Err(ByteApiError::AnyhowError(anyhow!(
+            "Failed to generate .move file"
+        ))
+        .into());
+    }
+
+    // Safe to unwrap
+    let move_file_path = move_file_path.unwrap();
 
     // Read the .move file and return it in the response
-    let move_file_data = match fs::read(&move_file_path) {
-        Ok(data) => data,
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .body("Failed to read .move file")
-        }
-    };
+    let move_file_data = fs::read(&move_file_path)?;
 
-    return HttpResponse::Ok()
+    return Ok(HttpResponse::Ok()
         .append_header((
             "Content-Disposition",
             format!(
@@ -93,5 +65,5 @@ pub async fn gen_contract(
                 move_file_path.file_name().unwrap().to_string_lossy()
             ),
         ))
-        .body(move_file_data);
+        .body(move_file_data));
 }

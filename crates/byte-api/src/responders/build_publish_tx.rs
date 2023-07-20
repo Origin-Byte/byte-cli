@@ -1,15 +1,21 @@
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder, Result};
 use dotenv::dotenv;
-use rust_sdk::{coin::select_biggest_coin, publish, utils::get_context};
+use rust_sdk::publish;
 use serde::{Deserialize, Serialize};
-use std::{ffi::OsString, path::Path};
-use sui_sdk::types::{base_types::SuiAddress, transaction::TransactionData};
+use std::path::Path;
+use sui_sdk::{
+    rpc_types::Coin,
+    types::{base_types::SuiAddress, transaction::TransactionData},
+};
+
+use crate::err::ByteApiError;
 
 #[derive(Deserialize)]
 pub struct RequestData {
     sender: SuiAddress,
     gas_budget: u64,
     contract_dir: String,
+    gas_coin: Coin,
 }
 
 #[utoipa::path(
@@ -20,35 +26,29 @@ pub struct RequestData {
     ),
 )]
 #[post("/build-publish-tx")]
-pub async fn build_publish_tx(data: web::Json<RequestData>) -> impl Responder {
+pub async fn build_publish_tx(
+    data: web::Json<RequestData>,
+) -> Result<impl Responder> {
     dotenv().ok();
 
     let contract_dir = Path::new(&data.contract_dir);
 
-    let wallet_ctx = get_context().await.unwrap();
-    let client = wallet_ctx.get_client().await.unwrap();
-    let gas_coin = select_biggest_coin(&client, data.sender).await.unwrap();
+    let gas_coin = &data.gas_coin;
 
-    let tx_data_res = publish::prepare_publish_contract(
+    let tx_data = publish::prepare_publish_contract(
         data.sender,
         contract_dir,
         (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
         data.gas_budget,
     )
-    .await;
-
-    if tx_data_res.is_err() {
-        return HttpResponse::InternalServerError()
-            .body("Failed to prepare contract publishing transaction");
-    }
-
-    let tx_data = tx_data_res.unwrap();
+    .await
+    .map_err(ByteApiError::from)?;
 
     let tx_data = match tx_data {
         TransactionData::V1(tx_data) => tx_data,
     };
 
-    return HttpResponse::Ok().json(tx_data);
+    Ok(HttpResponse::Ok().json(tx_data))
 }
 
 #[derive(Serialize)]

@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use console::style;
 use gutenberg_types::Schema;
 use reqwest::Client;
+use rust_sdk::coin::select_biggest_coin;
 use rust_sdk::models::project::{
     AdminObjects, CollectionObjects, MintCap, Project,
 };
@@ -140,9 +141,11 @@ pub async fn prepare_publish_contract(
 
     let wallet_ctx = rust_sdk::utils::get_context().await?;
     let sender = wallet_ctx.config.active_address.unwrap();
+    let sui_client = wallet_ctx.get_client().await.unwrap();
+    let gas_coin = select_biggest_coin(&sui_client, sender).await?;
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(150)) // Set a timeout of 30 seconds
+    let api_client = Client::builder()
+        .timeout(Duration::from_secs(250)) // Set a timeout of 30 seconds
         .build()?;
 
     let schema_json =
@@ -157,6 +160,7 @@ pub async fn prepare_publish_contract(
         "sender": sender.to_string(),
         "gasBudget": gas_budget,
         "projectDir": contract_dir,
+        "gasCoin": gas_coin,
     });
 
     let main_acc = accounts.get_main_account();
@@ -164,10 +168,10 @@ pub async fn prepare_publish_contract(
     let login_result = login(&main_acc.email, &main_acc.password).await?;
     let jwt = get_jwt(login_result).await?;
 
-    // println!("BODY: {}", req_body);
+    println!("BODY: {}", req_body);
 
-    let res = client
-        .post("https://suiplay-api-1o7v724t.ew.gateway.dev/v1/admin/contracts/generateContractAndBuildPublishTransaction")
+    let res = api_client
+        .post("https://suiplay-api.originbyte.io/v1/admin/contracts/generateContractAndBuildPublishTransaction")
         // .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", jwt)) // Add the Authorization
@@ -212,7 +216,7 @@ pub async fn prepare_publish_contract(
 
     println!("SUI RESPONSE {:?}", response);
 
-    process_effects(state, response);
+    process_effects(state, response).await?;
 
     Ok(())
 }

@@ -33,7 +33,7 @@ pub async fn signup(accounts: &mut Accounts) -> Result<Response> {
     });
 
     let res = client
-        .post("https://suiplay-api-1o7v724t.ew.gateway.dev/v1/admin/accounts/register")
+        .post("https://suiplay-api.originbyte.io/v1/admin/accounts/register")
         // .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&req_body)
