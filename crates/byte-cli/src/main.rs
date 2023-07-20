@@ -134,7 +134,8 @@ async fn run() -> Result<()> {
             let project_path =
                 io::get_project_filepath(name.as_str(), &project_dir);
 
-            let contract_dir =
+            // TODO
+            let _contract_dir =
                 io::get_contract_path(name.as_str(), &project_dir);
 
             let schema_path =
@@ -143,10 +144,12 @@ async fn run() -> Result<()> {
             let byte_path = io::get_byte_path(&None);
             let accounts = Accounts::read_json(&byte_path)?;
 
-            let main_account = accounts.get_main_account();
+            // TODO
+            let _main_account = accounts.get_main_account();
 
             // Logic
-            let theme = cli::get_dialoguer_theme();
+            // TODO
+            let _theme = cli::get_dialoguer_theme();
 
             let mut state =
                 deploy_contract::parse_state(project_path.as_path())?;

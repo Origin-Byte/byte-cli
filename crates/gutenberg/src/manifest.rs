@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use package_manager::{
     package::PackageRegistry,
     toml::{self as move_toml, MoveToml},
@@ -8,7 +8,6 @@ use std::{
     fs::{self, File},
     io::Write,
     path::Path,
-    str::FromStr,
 };
 
 pub fn write_manifest(

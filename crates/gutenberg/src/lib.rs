@@ -9,15 +9,12 @@ use gutenberg_types::{
 };
 pub use manifest::write_manifest;
 use manifest::write_manifest_with_flavours;
-use package_manager::{
-    get_program_registry, package::PackageRegistry, version::Version, Network,
-};
+use package_manager::{get_program_registry, version::Version, Network};
 use std::{
     ffi::OsStr,
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
-    str::FromStr,
 };
 
 pub trait MoveInit {

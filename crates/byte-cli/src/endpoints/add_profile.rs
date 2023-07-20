@@ -1,16 +1,8 @@
-use std::path::Path;
-
-use crate::{
-    cli::get_dialoguer_theme,
-    io::LocalWrite,
-    models::{Account, Accounts},
-};
+use crate::{cli::get_dialoguer_theme, models::Accounts};
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Input, Password};
-use gutenberg_types::models::{collection::CollectionData, nft::NftData};
-use reqwest::{Body, Client, Response};
-use rust_sdk::models::project::Project;
+use reqwest::{Client, Response};
 use serde_json::{json, Value};
 
 pub async fn add_profile(accounts: &mut Accounts) -> Result<Response> {
