@@ -1,6 +1,8 @@
 use clap::Parser;
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
+use gutenberg_types::models::address::Address;
+use std::str::FromStr;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -52,20 +54,43 @@ pub enum Commands {
 pub enum AccountCommands {
     #[clap(action, about = "Create a SuiPlay account")]
     Create {
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            action,
+            help = "This is where all the byte-cli configurations and projects are stored"
+        )]
         root_dir: Option<String>,
     },
 
-    #[clap(about = "Link a SuiPlay account to your local configuration")]
+    #[clap(
+        about = "Link a SuiPlay account to your local configuration. If you already have a SuiPlay account prior to installing the CLI then you can link your account via this command."
+    )]
     Link {
-        #[clap(short, long, action)]
+        #[clap(
+            short,
+            long,
+            help = "This is where all the byte-cli configurations and projects are stored"
+        )]
         root_dir: Option<String>,
     },
 
     #[clap(about = "Switch the default SuiPlay account")]
     Switch {
         email: String,
-        #[clap(short, long, action)]
+        #[clap(
+            short,
+            long,
+            help = "This is where all the byte-cli configurations and projects are stored"
+        )]
+        root_dir: Option<String>,
+    },
+    List {
+        #[clap(
+            short,
+            long,
+            help = "This is where all the byte-cli configurations and projects are stored"
+        )]
         root_dir: Option<String>,
     },
 }
@@ -127,9 +152,9 @@ pub enum ClientCommands {
         network: Option<String>,
         #[clap(short, long, action)]
         project_dir: Option<String>,
+        gas_coin: Option<String>,
         /// Gas budget for running module initializers
-        #[clap(default_value_t = 600_000_000)]
-        gas_budget: usize,
+        gas_budget: Option<usize>,
     },
     // Mints NFTs by calling the deployed contract
     // TODO: Add back

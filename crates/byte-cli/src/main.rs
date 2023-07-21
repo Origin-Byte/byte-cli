@@ -14,7 +14,6 @@ use cli::{
     AccountCommands, Cli, ClientCommands, CoinCommands, CollectionCommands,
     Commands, ImageCommands, MoveCommands,
 };
-use console::style;
 use endpoints::*;
 use io::LocalWrite;
 use package_manager::toml::{self as move_toml, MoveToml};
@@ -35,13 +34,7 @@ use uploader::writer::Storage;
 #[tokio::main]
 async fn main() {
     match run().await {
-        Ok(()) => {
-            println!(
-                "\n{}{}",
-                consts::KIWI_EMOJI,
-                style("Process completed.").green().bold().on_bright()
-            );
-        }
+        Ok(()) => {}
         Err(err) => {
             println!("\n{}", err,);
             std::process::exit(1);
@@ -55,39 +48,45 @@ async fn run() -> Result<()> {
     match cli.command {
         Commands::Account { cmd } => match cmd {
             AccountCommands::Create { root_dir } => {
+                // IO Read
                 let byte_path = io::get_byte_path(&root_dir);
                 let mut accounts = Accounts::read_json(&byte_path)?;
 
-                let result = signup::signup(&mut accounts).await?;
+                // Logic
+                account::create::signup(&mut accounts).await?;
 
+                // IO Write
                 accounts.write_json(&byte_path.as_path())?;
-
-                let body = result.text().await?;
-                println!("Response: {:?}", body);
             }
             AccountCommands::Link { root_dir } => {
+                // IO Read
                 let byte_path = io::get_byte_path(&root_dir);
                 let mut accounts = Accounts::read_json(&byte_path)?;
 
-                let result = add_profile::add_profile(&mut accounts).await?;
+                // Logic
+                account::link::add_profile(&mut accounts).await?;
 
+                // IO Write
                 accounts.write_json(&byte_path.as_path())?;
-
-                let body = result.text().await?;
-                println!("{:?}", body);
             }
             AccountCommands::Switch { email, root_dir } => {
+                // IO Read
                 let byte_path = io::get_byte_path(&root_dir);
                 let mut accounts = Accounts::read_json(&byte_path)?;
 
-                if !accounts.check_if_registered(&email) {
-                    return Err(anyhow!(
-                        "Email account not present in local storage"
-                    ));
-                }
+                // Logic
+                account::switch::switch(email, &mut accounts)?;
 
-                accounts.set_main(email);
+                // IO Write
                 accounts.write_json(&byte_path.as_path())?;
+            }
+            AccountCommands::List { root_dir } => {
+                // IO Read
+                let byte_path = io::get_byte_path(&root_dir);
+                let accounts = Accounts::read_json(&byte_path)?;
+
+                // Logic
+                account::list::list(&accounts)?;
             }
         },
         Commands::Collection { cmd } => {
@@ -103,7 +102,7 @@ async fn run() -> Result<()> {
                     if Path::new(&project_path).exists() {} // TODO
 
                     let (schema, project) =
-                        config_simple::init_schema(&name).await?;
+                        collection::config_basic::init_schema(&name).await?;
 
                     // Output
                     schema.write_json(&schema_path)?;
@@ -121,7 +120,7 @@ async fn run() -> Result<()> {
                     let project;
 
                     (builder, project) =
-                        config_collection::init_collection_config(builder)
+                        collection::config::init_collection_config(builder)
                             .await?;
 
                     // Output
@@ -143,29 +142,29 @@ async fn run() -> Result<()> {
         Commands::Images { cmd } => {
             match cmd {
                 ImageCommands::Config { name, project_dir } => {
+                    // IO Read
                     let upload_path =
                         io::get_upload_filepath(name.as_str(), &project_dir);
 
                     // Logic
-                    let uploader = config_upload::init_upload_config()?;
+                    let uploader = images::config::init_upload_config()?;
 
-                    // Output
+                    // IO Write
                     uploader.write_json(&upload_path)?;
                 }
                 ImageCommands::Upload { name, project_dir } => {
-                    // Input
+                    // IO Read
                     let assets_path =
                         io::get_assets_path(name.as_str(), &project_dir);
                     let (pre_upload, post_upload) =
                         io::get_upload_metadata(name.as_str(), &project_dir);
-
                     let upload_config_path =
                         io::get_upload_filepath(name.as_str(), &project_dir);
 
                     // Logic
                     let uploader = Storage::read_json(&upload_config_path)?;
 
-                    deploy_assets::deploy_assets(
+                    images::upload::deploy_assets(
                         &uploader,
                         assets_path,
                         pre_upload,
@@ -180,6 +179,7 @@ async fn run() -> Result<()> {
                 name,
                 network,
                 project_dir,
+                gas_coin,
                 gas_budget,
             } => {
                 // Input
@@ -187,8 +187,10 @@ async fn run() -> Result<()> {
                     io::get_project_filepath(name.as_str(), &project_dir);
 
                 // TODO
-                let _contract_dir =
-                    io::get_contract_path(name.as_str(), &project_dir);
+                let contract_dir =
+                    PathBuf::from(Path::new(&format!("{}/contract", name)));
+
+                io::get_contract_path(name.as_str(), &project_dir);
 
                 let schema_path =
                     io::get_schema_filepath(name.as_str(), &project_dir);
@@ -210,28 +212,29 @@ async fn run() -> Result<()> {
                 // TODO
                 let _theme = cli::get_dialoguer_theme();
 
-                let mut state =
-                    deploy_contract::parse_state(project_path.as_path())?;
+                let mut state = client::deploy_contract::parse_state(
+                    project_path.as_path(),
+                )?;
 
-                let schema =
-                    deploy_contract::parse_config(schema_path.as_path())?;
+                let schema = client::deploy_contract::parse_config(
+                    schema_path.as_path(),
+                )?;
                 let accounts = Accounts::read_json(&byte_path)?;
 
-                deploy_contract::prepare_publish_contract(
-                    &mut state, &accounts, name, &schema, gas_budget, network,
+                client::deploy_contract::gen_code_and_publish_contract(
+                    &mut state,
+                    &accounts,
+                    name,
+                    &schema,
+                    gas_coin,
+                    gas_budget,
+                    network,
+                    &contract_dir,
                 )
                 .await?;
 
-                // let response = deploy_contract::publish_contract(
-                //     gas_budget,
-                //     &PathBuf::from(contract_dir.as_path()),
-                // )
-                // .await?;
-
-                // deploy_contract::process_effects(&mut state, response).await?;
-
-                // Output
-                // state.write_json(&project_path)?;
+                // IO Write
+                state.write_json(&project_path)?;
             } // Commands::CreateWarehouse {
               //     name,
               //     project_dir,

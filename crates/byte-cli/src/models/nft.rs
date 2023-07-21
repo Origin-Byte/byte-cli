@@ -69,11 +69,14 @@ impl FromPrompt for MintCap {
             .interact()
             .unwrap();
 
+        let validator =
+            |input: &String| super::positive_integer_validator(input, 10_000);
+
         let mint_cap = match SUPPLY_OPTIONS[supply_index] {
             "Limited" => MintCap::limited(
                 Input::with_theme(&theme)
                     .with_prompt("What is the supply limit of the Collection?")
-                    .validate_with(super::positive_integer_validator)
+                    .validate_with(validator)
                     .interact()
                     .unwrap()
                     .parse::<u64>()

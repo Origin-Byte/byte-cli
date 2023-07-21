@@ -4,6 +4,7 @@ use gutenberg_types::Schema;
 use package_manager::Network;
 use reqwest::Client;
 use rust_sdk::coin::select_biggest_coin;
+use rust_sdk::coin::select_coin;
 use rust_sdk::models::project::{
     AdminObjects, CollectionObjects, MintCap, Project,
 };
@@ -13,18 +14,19 @@ use rust_sdk::{consts::VOLCANO_EMOJI, utils::get_context};
 use serde_json::json;
 use std::fs::File;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 use sui_sdk::rpc_types::{
     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
 };
+use sui_sdk::types::base_types::ObjectID;
 use sui_sdk::types::transaction::{TransactionData, TransactionDataV1};
 use terminal_link::Link;
 use tokio::task::JoinSet;
 
+use crate::endpoints::account::{get_jwt, login};
 use crate::models::Accounts;
-
-use super::add_profile::{get_jwt, login};
 
 pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {
@@ -129,32 +131,61 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 //     Ok(())
 // }
 
-pub async fn prepare_publish_contract(
+pub async fn gen_code_and_publish_contract(
     state: &mut Project,
     accounts: &Accounts,
     name: String,
     schema: &Schema,
-    gas_budget: usize,
+    gas_coin: Option<String>,
+    gas_budget: Option<usize>,
     network: Network,
-    // contract_dir: &Path,
-    // ) -> Result<TransactionData, anyhow::Error> {
+    contract_dir: &Path,
 ) -> Result<()> {
-    let contract_dir = Path::new("suip/contract/");
-
     let wallet_ctx = rust_sdk::utils::get_context().await?;
     let sender = wallet_ctx.config.active_address.unwrap();
     let sui_client = wallet_ctx.get_client().await.unwrap();
-    let gas_coin = select_biggest_coin(&sui_client, sender).await?;
+
+    if let Some(pkg_id) = state.package_id {
+        return Err(anyhow!(format!(
+            "Collection has already been deploy: {}",
+            pkg_id
+        )));
+    }
+
+    // The project owner should be the publisher address
+    state.project_owner = sender;
+
+    let gas_coin = if let Some(gas_coin) = gas_coin {
+        let gas_coin =
+            ObjectID::from_str(gas_coin.as_str()).map_err(|err| {
+                anyhow!(r#"Unable to parse gas-id object: {err}"#)
+            })?;
+
+        let coin = select_coin(&sui_client, sender, gas_coin).await?;
+        coin
+    } else {
+        let coin = select_biggest_coin(&sui_client, sender).await?;
+
+        coin
+    };
+
+    let gas_budget = if let Some(gas_budget) = gas_budget {
+        if gas_budget as u64 > gas_coin.balance {
+            return Err(anyhow!(
+                "Gas budget must not be greater than coin balance"
+            ));
+        }
+        gas_budget
+    } else {
+        gas_coin.balance as usize
+    };
 
     let api_client = Client::builder()
-        .timeout(Duration::from_secs(500)) // Set a timeout of 30 seconds
+        .timeout(Duration::from_secs(5000000000)) // Set a timeout of 30 seconds
         .build()?;
 
     let schema_json =
         serde_json::to_string(&schema).expect("Failed to serialize schema");
-
-    // let schema_json_value: serde_json::Value =
-    //     serde_json::from_str(&schema_json)?;
 
     let req_body = json!({
         "name": name,
@@ -171,18 +202,13 @@ pub async fn prepare_publish_contract(
     let login_result = login(&main_acc.email, &main_acc.password).await?;
     let jwt = get_jwt(login_result).await?;
 
-    println!("BODY: {}", req_body);
-
     let res = api_client
         .post("https://suiplay-api.originbyte.io/v1/admin/contracts/generateContractAndBuildPublishTransaction")
-        // .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", jwt)) // Add the Authorization
         .json(&req_body)
         .send()
         .await?;
-
-    print!("THE RESPONSE IS: {:?}", res);
 
     let status = res.status();
 
@@ -208,16 +234,11 @@ pub async fn prepare_publish_contract(
 
     let body = res.text().await?;
 
-    // println!("{}", body);
-
     let transaction_data_v1: TransactionDataV1 = serde_json::from_str(&body)?;
     let transaction_data = TransactionData::V1(transaction_data_v1);
-    println!("{:?}", transaction_data);
 
     let response: SuiTransactionBlockResponse =
         execute_tx(&wallet_ctx, transaction_data).await?;
-
-    println!("SUI RESPONSE {:?}", response);
 
     process_effects(state, response).await?;
 

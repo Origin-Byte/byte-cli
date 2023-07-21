@@ -52,10 +52,12 @@ impl FromPrompt for CollectionData {
                 .unwrap()
         });
 
+        let validator = |input: &String| positive_integer_validator(input, 20);
+
         // TODO: Separate into `Creators::from_prompt`
         let creators_num = Input::with_theme(&theme)
             .with_prompt("Number of creator addresses:")
-            .validate_with(positive_integer_validator)
+            .validate_with(validator)
             .interact()
             .unwrap()
             .parse::<u64>()

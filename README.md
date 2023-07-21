@@ -6,6 +6,9 @@ The CLI has the following commands:
 
 ```cargo run --bin byte-cli config-collection <PROJECT_FOLDER>```
 
+
+`byte-cli collection config-basic basic-flash`
+
 #### 2. To configure the upload:
 
 `cargo run --bin byte-cli config-upload <PROJECT_FOLDER>`

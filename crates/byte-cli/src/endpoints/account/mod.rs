@@ -1,30 +1,12 @@
-use crate::{cli::get_dialoguer_theme, models::Accounts};
 use anyhow::{anyhow, Result};
-use console::style;
-use dialoguer::{Input, Password};
 use reqwest::{Client, Response};
 use serde_json::{json, Value};
 
-pub async fn add_profile(accounts: &mut Accounts) -> Result<Response> {
-    let theme = get_dialoguer_theme();
-    println!("{}", style("Welcome to SuiPlay!").blue().bold().dim());
-
-    let email: String = Input::with_theme(&theme)
-        .with_prompt("E-mail:")
-        .interact()
-        .unwrap();
-
-    let password = Password::with_theme(&theme)
-        .with_prompt("Password")
-        .interact()
-        .unwrap();
-
-    let res = login(&email, &password).await?;
-
-    accounts.register_if_not_yet(&email, &password);
-
-    Ok(res)
-}
+pub mod create;
+pub mod link;
+pub mod list;
+pub mod switch;
+pub mod unlink;
 
 pub async fn login(email: &str, password: &str) -> Result<Response> {
     let client = Client::new();
