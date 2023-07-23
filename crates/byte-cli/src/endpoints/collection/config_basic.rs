@@ -1,3 +1,5 @@
+use crate::consts;
+use console::style;
 use convert_case::{Case, Casing};
 use gutenberg_types::{
     models::{
@@ -54,6 +56,12 @@ pub async fn init_schema(
             ("attributes", FieldType::Attributes),
         ]
         .into(),
+    );
+
+    println!(
+        "\n{}{}",
+        consts::KIWI_EMOJI,
+        style("Configuration created.").green().bold().on_bright()
     );
 
     Ok((

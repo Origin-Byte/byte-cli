@@ -8,6 +8,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use gutenberg_types::Schema;
+use package_manager::Network;
 use package_manager::{
     info::BuildInfo, package::PackageRegistry, toml::MoveToml,
 };
@@ -150,8 +151,26 @@ pub trait LocalWrite: Serialize {
     }
 }
 
+pub fn get_project_for_network(
+    name: &str,
+    path_opt: &Option<String>,
+    network: &Network,
+) -> PathBuf {
+    match network {
+        Network::Mainnet => get_project_filepath(name, path_opt),
+        Network::Testnet => get_project_test_filepath(name, path_opt),
+    }
+}
+
 pub fn get_project_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {
     get_file_path(name, path_opt, "configs", Some("project.json"))
+}
+
+pub fn get_project_test_filepath(
+    name: &str,
+    path_opt: &Option<String>,
+) -> PathBuf {
+    get_file_path(name, path_opt, "configs", Some("project-test.json"))
 }
 
 pub fn get_schema_filepath(name: &str, path_opt: &Option<String>) -> PathBuf {

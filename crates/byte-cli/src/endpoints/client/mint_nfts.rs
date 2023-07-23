@@ -1,4 +1,5 @@
 use crate::{
+    endpoints::client::check_network_match,
     io::{LocalRead, LocalWrite},
     models::effects::{MintEffects, MintError, Minted},
 };
@@ -7,6 +8,7 @@ use chrono::Local;
 use console::style;
 use gutenberg_types::Schema;
 use indicatif::{ProgressBar, ProgressStyle};
+use package_manager::Network;
 use rust_sdk::mint::MintEffect;
 use rust_sdk::{
     metadata::{Metadata, StorableMetadata},
@@ -28,11 +30,17 @@ pub async fn mint_nfts(
     mint_cap_id: Option<String>,
     metadata_path: PathBuf,
     state: Project,
+    amount: u64,
+    batches: u64,
+    network: &Network,
 ) -> Result<Project> {
     let contract_id = Arc::new(state.package_id.as_ref().unwrap().to_string());
     println!("Initiliazing process on contract ID: {:?}", contract_id);
 
     let wallet_ctx = Arc::new(get_context().await.unwrap());
+
+    check_network_match(&wallet_ctx, network)?;
+
     let active_address =
         get_active_address(&wallet_ctx.config.keystore).unwrap();
 
@@ -74,15 +82,12 @@ pub async fn mint_nfts(
         Minted::default()
     };
 
-    // TODO: Make this a variable
-    let batch_size = 250;
-
     // Filter already minted
     let to_mint: BTreeMap<u32, Metadata> = nft_data
         .0
         .into_iter()
-        // .iter_mut()
         .filter(|(v, _k)| !minted.0.contains(v))
+        .take(amount as usize)
         .collect();
 
     let (mut keys, mut meta): (Vec<u32>, Vec<Metadata>) =
@@ -90,6 +95,10 @@ pub async fn mint_nfts(
 
     let jobs_no = keys.len() as u64;
     let mut failed_jobs = 0;
+
+    // TODO: Current limitation, handle cases where division has remainder
+    // the last batch should adapt the size to fit the `jobs_no`
+    let batch_size = jobs_no / batches;
 
     let progress_bar = ProgressBar::new(jobs_no);
     progress_bar.set_style(

@@ -40,6 +40,10 @@ impl Accounts {
             .expect("Failed to get find main account in accounts list.")
     }
 
+    pub fn remove_account(&mut self, pop_acc: &str) {
+        self.accounts.retain(|acc| &acc.email != pop_acc);
+    }
+
     pub fn register_if_not_yet(&mut self, email: &str, password: &str) {
         if self.check_if_registered(email) == false {
             self.accounts.push(Account {
@@ -151,7 +155,10 @@ pub fn symbol_validator(input: &String) -> Result<(), String> {
     }
 }
 
-pub fn positive_integer_validator(input: &String) -> Result<(), String> {
+pub fn positive_integer_validator(
+    input: &String,
+    limit: u64,
+) -> Result<(), String> {
     if input.parse::<u64>().is_err() {
         Err(format!("Couldn't parse '{input}' to a number."))
     } else {
@@ -160,9 +167,9 @@ pub fn positive_integer_validator(input: &String) -> Result<(), String> {
             Err(format!(
                 "The number {input} provided has to be bigger than 0."
             ))
-        } else if numb > 20 {
+        } else if numb > limit {
             Err(format!(
-                "The number {input} provided is above the limit of 20."
+                "The number {input} provided is above the limit of {limit}."
             ))
         } else {
             Ok(())

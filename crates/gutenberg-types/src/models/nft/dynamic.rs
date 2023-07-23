@@ -1,4 +1,3 @@
-use super::Fields;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 

@@ -7,6 +7,7 @@ use dotenv::dotenv;
 use glob::glob;
 use rust_sdk::metadata::{GlobalMetadata, StorableMetadata};
 use std::ffi::OsStr;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -22,14 +23,28 @@ pub async fn deploy_assets(
     pre_upload_path: PathBuf,
     post_upload_path: PathBuf,
 ) -> Result<()> {
+    fs::create_dir_all(assets_dir.clone())?;
     let assets_dir = assets_dir.display().to_string();
 
     dotenv().ok();
 
     let storable_meta = StorableMetadata::read_json(
         if Path::new(&post_upload_path).exists() {
+            // If post upload path exists, then it means that the upload
+            // has already started in the past and that most likely the process
+            // is pending
             &post_upload_path
         } else {
+            // If post upload file does not exist, then start from scratch
+            if !Path::new(&pre_upload_path).exists() {
+                // Creates the metadata folder if it does not exist
+                fs::create_dir_all(pre_upload_path.parent().unwrap())?;
+
+                return Err(anyhow!(format!(
+                    "Unable to upload assets without the metadata file, used to store the URLs. Make sure you add the NFT images to {} create and the metadata to {:?}", assets_dir, pre_upload_path
+                )));
+            }
+
             &pre_upload_path
         },
     )?;

@@ -1,18 +1,17 @@
+use super::login;
 use crate::{cli::get_dialoguer_theme, models::Accounts};
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Input, Password};
-use reqwest::{Client, Response};
-use serde_json::json;
 
-pub async fn signup(accounts: &mut Accounts) -> Result<Response> {
+pub async fn add_profile(accounts: &mut Accounts) -> Result<()> {
     let theme = get_dialoguer_theme();
     println!(
         "{}",
-        style("Welcome to SuiPlay! Let's create an account.")
-            .blue()
+        style("Let's link your Suiplay account to the CLI.")
+            .green()
             .bold()
-            .dim()
+            .on_bright()
     );
 
     let email: String = Input::with_theme(&theme)
@@ -25,42 +24,38 @@ pub async fn signup(accounts: &mut Accounts) -> Result<Response> {
         .interact()
         .unwrap();
 
-    let client = Client::new();
-
-    let req_body = json!({
-        "email": email,
-        "password": password,
-    });
-
-    let res = client
-        .post("https://suiplay-api.originbyte.io/v1/admin/accounts/register")
-        // .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&req_body)
-        .send()
-        .await?;
+    let res = login(&email, &password).await?;
 
     let status = res.status();
 
     // Check if the status is a success.
     if status.is_success() {
-        println!("You've been successfully registerd!");
+        println!("We've successfully verified your account.");
     } else if status.is_client_error() {
         // Get the body of the response.
         let body = res.text().await?;
         return Err(anyhow!(
-            "Failed with status: {} and the following message: {}",
+            "Error while verifying your account. Failed with status: {} and the following message: {}",
             status,
             body
         ));
     } else {
         // For other errors (like server errors)
-        println!("An unexpected error occurred.");
+        let body = res.text().await?;
+
+        return Err(anyhow!(
+            "Ups.. It seems that we've encountered a server side error {} with the following message: {}",
+            status,
+            body
+        ));
     }
 
     accounts.register_if_not_yet(&email, &password);
 
-    accounts.set_main_if_none(email);
+    println!(
+        "{}",
+        style("Account is now lainked.").green().bold().on_bright()
+    );
 
-    Ok(res)
+    Ok(())
 }
