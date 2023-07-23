@@ -96,6 +96,11 @@ async fn run() -> Result<()> {
                     let project_path =
                         io::get_project_filepath(name.as_str(), &project_dir);
 
+                    let project_test_path = io::get_project_test_filepath(
+                        name.as_str(),
+                        &project_dir,
+                    );
+
                     let schema_path =
                         io::get_schema_filepath(name.as_str(), &project_dir);
 
@@ -107,6 +112,7 @@ async fn run() -> Result<()> {
                     // Output
                     schema.write_json(&schema_path)?;
                     project.write_json(&project_path)?;
+                    project.write_json(&project_test_path)?;
                 }
                 CollectionCommands::Config { name, project_dir } => {
                     // Input
@@ -183,10 +189,15 @@ async fn run() -> Result<()> {
                 gas_budget,
             } => {
                 // Input
-                let project_path =
-                    io::get_project_filepath(name.as_str(), &project_dir);
+                let network = Network::from_str(network.as_str())
+                    .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
 
-                // TODO
+                let project_path = io::get_project_for_network(
+                    name.as_str(),
+                    &project_dir,
+                    &network,
+                );
+
                 let contract_dir =
                     PathBuf::from(Path::new(&format!("{}/contract", name)));
 
@@ -200,13 +211,6 @@ async fn run() -> Result<()> {
 
                 // TODO
                 let _main_account = accounts.get_main_account();
-
-                let network = if network.is_some() {
-                    Network::from_str(network.unwrap().as_str())
-                        .map_err(|err| anyhow!("Invalid network: {:?}", err))?
-                } else {
-                    Network::Mainnet
-                };
 
                 // Logic
                 // TODO
@@ -235,86 +239,102 @@ async fn run() -> Result<()> {
 
                 // IO Write
                 state.write_json(&project_path)?;
-            } // Commands::CreateWarehouse {
-              //     name,
-              //     project_dir,
-              //     gas_budget,
-              // } => {
-              //     // Input
-              //     let schema_path =
-              //         io::get_schema_filepath(name.as_str(), &project_dir);
+            }
+            ClientCommands::CreateWarehouse {
+                name,
+                network,
+                project_dir,
+                gas_coin,
+                gas_budget,
+            } => {
+                // Input
+                let network = Network::from_str(network.as_str())
+                    .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
 
-              //     let project_path =
-              //         io::get_project_filepath(name.as_str(), &project_dir);
+                let project_path = io::get_project_for_network(
+                    name.as_str(),
+                    &project_dir,
+                    &network,
+                );
 
-              //     // Input
-              //     let toml_path = io::get_toml_path(name.as_str(), &project_dir);
+                let schema_path =
+                    io::get_schema_filepath(name.as_str(), &project_dir);
 
-              //     // Logic
-              //     let toml_string: String =
-              //         fs::read_to_string(toml_path.clone())?.parse()?;
+                // Logic
+                let schema = client::deploy_contract::parse_config(
+                    schema_path.as_path(),
+                )?;
+                let mut state = client::deploy_contract::parse_state(
+                    project_path.as_path(),
+                )?;
 
-              //     let move_toml: MoveToml =
-              //         toml::from_str(toml_string.as_str()).unwrap();
+                if state.package_id.is_none() {
+                    return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+                }
 
-              //     // Logic
-              //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
-              //     let mut state =
-              //         deploy_contract::parse_state(project_path.as_path())?;
+                client::create_warehouse::create_warehouse(
+                    &schema, gas_budget, gas_coin, &mut state, &network,
+                )
+                .await?;
 
-              //     if state.package_id.is_none() {
-              //         return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-              //     }
+                // Output
+                state.write_json(&project_path)?;
+            }
+            ClientCommands::MintNfts {
+                name,
+                network,
+                amount,
+                batches,
+                project_dir,
+                gas_budget,
+                warehouse_id,
+                mint_cap_id,
+            } => {
+                // Input
+                let schema_path =
+                    io::get_schema_filepath(name.as_str(), &project_dir);
 
-              //     create_warehouse::create_warehouse(
-              //         &schema, gas_budget, &move_toml, &mut state,
-              //     )
-              //     .await?;
+                let (_, post_upload) =
+                    io::get_upload_metadata(name.as_str(), &project_dir);
 
-              //     // Output
-              //     state.write_json(&project_path)?;
-              // }
-              // Commands::MintNfts {
-              //     name,
-              //     project_dir,
-              //     gas_budget,
-              //     warehouse_id,
-              //     mint_cap_id,
-              // } => {
-              //     // Input
-              //     let schema_path =
-              //         io::get_schema_filepath(name.as_str(), &project_dir);
+                let network = Network::from_str(network.as_str())
+                    .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
 
-              //     let project_path =
-              //         io::get_project_filepath(name.as_str(), &project_dir);
+                let project_path = io::get_project_for_network(
+                    name.as_str(),
+                    &project_dir,
+                    &network,
+                );
 
-              //     let (_, post_upload) =
-              //         io::get_upload_metadata(name.as_str(), &project_dir);
+                // Logic
+                // TODO: Replace this logic with the our IO Trait
+                let schema = client::deploy_contract::parse_config(
+                    schema_path.as_path(),
+                )?;
+                let mut state = client::deploy_contract::parse_state(
+                    project_path.as_path(),
+                )?;
 
-              //     // Logic
-              //     // TODO: Replace this logic with the our IO Trait
-              //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
-              //     let mut state =
-              //         deploy_contract::parse_state(project_path.as_path())?;
+                if state.package_id.is_none() {
+                    return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+                }
 
-              //     if state.package_id.is_none() {
-              //         return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-              //     }
+                state = client::mint_nfts::mint_nfts(
+                    &schema,
+                    gas_budget,
+                    warehouse_id,
+                    mint_cap_id,
+                    post_upload,
+                    state,
+                    amount,
+                    batches,
+                    &network,
+                )
+                .await?;
 
-              //     state = mint_nfts::mint_nfts(
-              //         &schema,
-              //         gas_budget,
-              //         warehouse_id,
-              //         mint_cap_id,
-              //         post_upload,
-              //         state,
-              //     )
-              //     .await?;
-
-              //     // Output
-              //     state.write_json(&project_path)?;
-              // }
-              // TOOD: Add back feature
+                // Output
+                state.write_json(&project_path)?;
+            } // TOOD: Add back feature
               // Commands::ParallelMint {
               //     name,
               //     project_dir,
@@ -429,13 +449,8 @@ async fn run() -> Result<()> {
                     let toml_path =
                         io::get_toml_path(name.as_str(), &project_dir);
 
-                    let network = if network.is_some() {
-                        Network::from_str(network.unwrap().as_str()).map_err(
-                            |err| anyhow!("Invalid network: {:?}", err),
-                        )?
-                    } else {
-                        Network::Mainnet
-                    };
+                    let network = Network::from_str(network.as_str())
+                        .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
 
                     let registry = get_program_registry(&network)?;
 

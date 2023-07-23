@@ -30,7 +30,7 @@ pub const OB_PACKAGES: [&str; 12] = [
     "NftProtocol",
 ];
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Eq)]
 pub enum Network {
     Mainnet,
     Testnet,

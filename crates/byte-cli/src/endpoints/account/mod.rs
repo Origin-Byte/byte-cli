@@ -28,7 +28,7 @@ pub async fn login(email: &str, password: &str) -> Result<Response> {
 
     // Check if the status is a success.
     if status.is_success() {
-        println!("Account successfully added to local config.");
+        println!("Successfully verified account.");
     } else if status.is_client_error() {
         // Get the body of the response.
         let body = res.text().await?;

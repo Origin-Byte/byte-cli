@@ -23,6 +23,7 @@ pub async fn deploy_assets(
     pre_upload_path: PathBuf,
     post_upload_path: PathBuf,
 ) -> Result<()> {
+    fs::create_dir_all(assets_dir.clone())?;
     let assets_dir = assets_dir.display().to_string();
 
     dotenv().ok();
@@ -39,7 +40,9 @@ pub async fn deploy_assets(
                 // Creates the metadata folder if it does not exist
                 fs::create_dir_all(pre_upload_path.parent().unwrap())?;
 
-                return Err(anyhow!("Unable to upload assets without the metadata file, used to store the URLs. Make sure you create and populate the file `metadata/pre-upload.json`"));
+                return Err(anyhow!(format!(
+                    "Unable to upload assets without the metadata file, used to store the URLs. Make sure you add the NFT images to {} create and the metadata to {:?}", assets_dir, pre_upload_path
+                )));
             }
 
             &pre_upload_path

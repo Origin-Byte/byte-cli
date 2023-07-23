@@ -1,8 +1,6 @@
 use clap::Parser;
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
-use gutenberg_types::models::address::Address;
-use std::str::FromStr;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -149,40 +147,44 @@ pub enum ClientCommands {
     #[clap(action, about = "Deploys NFT contract to Sui Blockchain")]
     PublishNftCollection {
         name: String,
-        network: Option<String>,
+        network: String,
         #[clap(short, long, action)]
         project_dir: Option<String>,
         gas_coin: Option<String>,
         /// Gas budget for running module initializers
         gas_budget: Option<usize>,
     },
-    // Mints NFTs by calling the deployed contract
-    // TODO: Add back
-    // CreateWarehouse {
-    //     name: String,
-    //     #[clap(short, long, action)]
-    //     project_dir: Option<String>,
-    //     /// Gas budget for minting an NFT
-    //     #[clap(default_value_t = 50_000_000_000)]
-    //     gas_budget: usize,
-    // },
-
-    // TODO: Add back
-    // MintNfts {
-    //     name: String,
-    //     // #[clap(long, action)]
-    //     // amount: Option<u64>,
-    //     #[clap(short, long, action)]
-    //     project_dir: Option<String>,
-    //     /// Gas budget for minting an NFT
-    //     #[clap(default_value_t = 50_000_000_000)]
-    //     gas_budget: usize,
-    //     #[clap(long, action)]
-    //     warehouse_id: Option<String>,
-    //     #[clap(long, action)]
-    //     mint_cap_id: Option<String>,
-    // },
-
+    #[clap(
+        action,
+        about = "Creates an NFT Warehouse owned by the sender address"
+    )]
+    CreateWarehouse {
+        name: String,
+        network: String,
+        #[clap(short, long, action)]
+        project_dir: Option<String>,
+        gas_coin: Option<String>,
+        /// Gas budget for minting an NFT
+        // TODO: This should be populated dynamically
+        gas_budget: Option<usize>,
+    },
+    MintNfts {
+        name: String,
+        network: String,
+        #[clap(long, action)]
+        amount: u64,
+        #[clap(long, action)]
+        batches: u64,
+        #[clap(short, long, action)]
+        project_dir: Option<String>,
+        /// Gas budget for minting an NFT
+        #[clap(default_value_t = 600_000_000)]
+        gas_budget: usize,
+        #[clap(long, action)]
+        warehouse_id: Option<String>,
+        #[clap(long, action)]
+        mint_cap_id: Option<String>,
+    },
     // TODO: Add back
     // ParallelMint {
     //     name: String,
@@ -233,7 +235,7 @@ pub enum MoveCommands {
     #[clap(action, about = "Checks OriginByte and Sui dependencies")]
     CheckDependencies {
         name: String,
-        network: Option<String>,
+        network: String,
         #[clap(short, long, action)]
         project_dir: Option<String>,
     },

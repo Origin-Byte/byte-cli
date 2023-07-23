@@ -167,7 +167,7 @@ pub async fn execute_tx(
     // Execute the transaction.
     println!(
         "{} Sending and executing transaction.",
-        style("WIN").cyan().bold()
+        style("WIP").cyan().bold()
     );
 
     let response = wallet_ctx
