@@ -2,6 +2,7 @@ use clap::Parser;
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
 
+/// Command Line Interface structure definition using clap.
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct Cli {
@@ -9,6 +10,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
+/// Enum representing different command categories.
 #[derive(Parser)]
 pub enum Commands {
     #[clap(about = "Account-related commands")]
@@ -48,6 +50,7 @@ pub enum Commands {
     },
 }
 
+/// Enum representing specific Account-related commands.
 #[derive(Parser)]
 pub enum AccountCommands {
     #[clap(action, about = "Create a SuiPlay account")]
@@ -93,6 +96,7 @@ pub enum AccountCommands {
     },
 }
 
+/// Enum representing specific Collection-related commands.
 #[derive(Parser)]
 pub enum CollectionCommands {
     #[clap(
@@ -123,6 +127,7 @@ pub enum CollectionCommands {
     // },
 }
 
+/// Enum representing specific Image Upload-related commands.
 #[derive(Parser)]
 pub enum ImageCommands {
     #[clap(
@@ -142,6 +147,7 @@ pub enum ImageCommands {
     },
 }
 
+/// Enum representing specific Sui Client-related commands.
 #[derive(Parser)]
 pub enum ClientCommands {
     #[clap(action, about = "Deploys NFT contract to Sui Blockchain")]
@@ -198,6 +204,7 @@ pub enum ClientCommands {
     // },
 }
 
+/// Enum representing specific Coin Client-related commands.
 #[derive(Parser)]
 pub enum CoinCommands {
     #[clap(action, about = "Lists all SUI coins")]
@@ -230,6 +237,7 @@ pub enum CoinCommands {
     },
 }
 
+/// Enum representing specific Move-related commands.
 #[derive(Parser)]
 pub enum MoveCommands {
     #[clap(action, about = "Checks OriginByte and Sui dependencies")]
@@ -252,6 +260,7 @@ pub enum MoveCommands {
     },
 }
 
+/// Creates and returns a dialoguer theme for consistent command-line interface styling.
 pub fn get_dialoguer_theme() -> ColorfulTheme {
     ColorfulTheme {
         prompt_style: Style::new(),

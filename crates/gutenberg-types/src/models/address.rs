@@ -4,6 +4,7 @@ use serde::{
 };
 use std::fmt::{self, Display};
 
+/// Custom error type for Address-related errors.
 #[derive(thiserror::Error, PartialEq, Debug)]
 pub enum AddressError {
     #[error("Invalid address encoding, expected hexadecimal, got {0}")]
@@ -12,10 +13,12 @@ pub enum AddressError {
     InvalidLength(usize),
 }
 
+/// Struct representing an Address with validation and serialization capabilities.
 #[derive(Debug, Default, PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct Address(String);
 
 impl Address {
+    /// Constructs a new Address, ensuring valid hexadecimal encoding and length.
     pub fn new(address: &str) -> Result<Self, AddressError> {
         // Extract byte string and pad to 64 bytes
         let hexa_str = address.strip_prefix("0x").unwrap_or(&address);
@@ -36,22 +39,25 @@ impl Address {
             .ok_or(AddressError::InvalidLength(length))
     }
 
+    /// Returns a zero Address.
     pub fn zero() -> Self {
         Address("0".to_string())
     }
 
+    /// Returns the address as a string.
     pub fn as_string(&self) -> &String {
         &self.0
     }
 }
 
 impl Display for Address {
+    /// Implements formatting for displaying the Address.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "0x{}", &self.0)
     }
 }
 
-// This is the trait that informs Serde how to deserialize Version.
+/// Implementing Deserialization for Address.
 impl<'de> Deserialize<'de> for Address {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -96,6 +102,7 @@ impl<'de> Deserialize<'de> for Address {
     }
 }
 
+/// Implementing Serialization for Address.
 impl Serialize for Address {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

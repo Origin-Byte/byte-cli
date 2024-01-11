@@ -6,13 +6,18 @@ use gutenberg_types::models::nft::{
     RequestPolicies,
 };
 
+// Predefined options for various settings related to minting and burning of NFTs.
 const MINTING_OPTIONS: [&str; 2] = ["OriginByte Launchpad", "NFT Airdrop"];
 const BURN_PERMISSIONS: [&str; 2] = ["Permissioned", "Permissionless"];
 const SUPPLY_OPTIONS: [&str; 2] = ["Unlimited", "Limited"];
 
+/// Implementation of the `FromPrompt` trait for the `Burn` struct.
+/// This allows creating a `Burn` instance by prompting the user for input.
 impl FromPrompt for Burn {
     type Param<'a> = ();
 
+    /// Creates a `Burn` instance from user input.
+    /// Prompts the user to select the permission level for burning NFTs.
     fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
@@ -34,6 +39,8 @@ impl FromPrompt for Burn {
     }
 }
 
+/// Implementation of the `FromPrompt` trait for the `Dynamic` struct.
+/// Enables the creation of a `Dynamic` instance based on user input.
 impl FromPrompt for Dynamic {
     type Param<'a> = ();
 
@@ -52,6 +59,8 @@ impl FromPrompt for Dynamic {
     }
 }
 
+/// Implementation of the `FromPrompt` trait for the `MintCap` struct.
+/// Facilitates the creation of a `MintCap` instance via user interaction.
 impl FromPrompt for MintCap {
     type Param<'a> = ();
 
@@ -89,6 +98,8 @@ impl FromPrompt for MintCap {
     }
 }
 
+/// Implementing `FromPrompt` for `MintPolicies`.
+/// Enables the creation of `MintPolicies` from user-selected options.
 impl FromPrompt for MintPolicies {
     type Param<'a> = ();
 

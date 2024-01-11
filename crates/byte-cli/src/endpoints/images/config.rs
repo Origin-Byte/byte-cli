@@ -7,8 +7,19 @@ use uploader::{
     writer::Storage,
 };
 
+/// Storage options for uploading.
 const STORAGE_OPTIONS: [&str; 2] = ["AWS", "Pinata"];
 
+/// Initializes and returns the configuration for a chosen storage service.
+///
+/// # Returns
+/// Result containing the Storage configuration or an error.
+///
+/// # Functionality
+/// - Prompts the user to select a storage service (AWS or Pinata).
+/// - Collects necessary configuration details based on the selected service.
+/// - Validates input where necessary (e.g., numerical values).
+/// - Constructs and returns the appropriate Storage configuration.
 pub fn init_upload_config() -> Result<Storage, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
@@ -111,6 +122,19 @@ pub fn init_upload_config() -> Result<Storage, anyhow::Error> {
     }
 }
 
+/// Helper function to display a selection prompt and return the chosen option.
+///
+/// # Arguments
+/// * `theme` - A reference to a ColorfulTheme for styling the prompt.
+/// * `prompt` - The prompt message to display.
+/// * `options` - An array of options to present to the user.
+///
+/// # Returns
+/// Result containing the selected option or an error.
+///
+/// # Functionality
+/// - Displays a selection prompt with the provided options.
+/// - Returns the option chosen by the user.
 pub fn select<'a>(
     theme: &ColorfulTheme,
     prompt: &str,

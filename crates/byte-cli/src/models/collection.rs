@@ -10,9 +10,23 @@ use gutenberg_types::models::{
 };
 use std::collections::BTreeSet;
 
+/// Implementation of the FromPrompt trait for CollectionData.
 impl FromPrompt for CollectionData {
+    /// Type of additional parameters for the prompt (none in this case).
     type Param<'a> = ();
 
+    /// Generates CollectionData from interactive prompts.
+    ///
+    /// # Arguments
+    /// * `_param` - Additional parameters for the prompt (unused).
+    ///
+    /// # Returns
+    /// Result containing CollectionData or an error.
+    ///
+    /// # Functionality
+    /// - Prompts the user for various pieces of collection data, including name, description, symbol, URL, and creator addresses.
+    /// - Validates the input where necessary, using custom validators.
+    /// - Constructs and returns the CollectionData with supplied values.
     fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
     where
         Self: Sized,

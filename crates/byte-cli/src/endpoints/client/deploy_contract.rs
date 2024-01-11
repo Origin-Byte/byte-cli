@@ -28,6 +28,13 @@ use super::check_network_match;
 use super::get_gas_budget;
 use super::get_gas_coin;
 
+/// Parses the configuration file to return a Schema object.
+///
+/// # Arguments
+/// * `config_file` - A reference to a Path representing the configuration file.
+///
+/// # Returns
+/// Result containing the Schema object or an error if parsing fails.
 pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
@@ -41,6 +48,13 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
 }
 
+/// Parses the state file to return a Project object.
+///
+/// # Arguments
+/// * `config_file` - A reference to a Path representing the state file.
+///
+/// # Returns
+/// Result containing the Project object or an error if parsing fails.
 pub fn parse_state(config_file: &Path) -> Result<Project, anyhow::Error> {
     let file = File::open(config_file).map_err(|err| {
         anyhow!(
@@ -54,6 +68,7 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
         .map_err(|err| anyhow!(r#"Failed to serialize project state: {err}."#))
 }
 
+// TODO: Add back
 // pub fn generate_contract(
 //     schema: Schema,
 //     output_dir: &Path,
@@ -131,6 +146,20 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
 //     Ok(())
 // }
 
+/// Asynchronously generates code and publishes a contract.
+///
+/// # Arguments
+/// * `state` - Mutable reference to the Project struct.
+/// * `accounts` - Reference to the Accounts struct.
+/// * `name` - The name of the contract.
+/// * `schema` - Reference to the Schema struct.
+/// * `gas_coin` - Optional String representing the gas coin.
+/// * `gas_budget` - Optional usize representing the gas budget.
+/// * `network` - The blockchain network.
+/// * `contract_dir` - A reference to a Path representing the contract directory.
+///
+/// # Returns
+/// Result type which is either empty (Ok) or contains an error (Err).
 pub async fn gen_code_and_publish_contract(
     state: &mut Project,
     accounts: &Accounts,
@@ -225,6 +254,7 @@ pub async fn gen_code_and_publish_contract(
     Ok(())
 }
 
+// TODO: Add back
 // pub async fn publish_contract(
 //     gas_budget: usize,
 //     contract_dir: &Path,
@@ -247,6 +277,14 @@ pub async fn gen_code_and_publish_contract(
 //     Ok(response)
 // }
 
+/// Asynchronously processes the effects of a transaction block response.
+///
+/// # Arguments
+/// * `state` - Mutable reference to the Project struct.
+/// * `response` - SuiTransactionBlockResponse object.
+///
+/// # Returns
+/// Result type which is either empty (Ok) or contains an error (Err).
 pub async fn process_effects(
     state: &mut Project,
     response: SuiTransactionBlockResponse,

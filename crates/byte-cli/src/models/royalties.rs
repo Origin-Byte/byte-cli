@@ -8,9 +8,18 @@ use gutenberg_types::models::{
 };
 use std::collections::BTreeSet;
 
+/// Implementation of the `FromPrompt` trait for `RoyaltyPolicy`.
 impl FromPrompt for RoyaltyPolicy {
+    /// Defines the parameter type for this implementation.
     type Param<'a> = &'a [Address];
 
+    /// Creates a `RoyaltyPolicy` instance interactively from user prompts.
+    ///
+    /// # Arguments
+    /// * `creators` - A slice of `Address` representing the creators.
+    ///
+    /// # Returns
+    /// * `Result<Self, anyhow::Error>` - A result containing the `RoyaltyPolicy` or an error.
     fn from_prompt(creators: &[Address]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
@@ -29,6 +38,10 @@ impl FromPrompt for RoyaltyPolicy {
     }
 }
 
+/// Fetches the type of royalty policy based on user input.
+///
+/// # Returns
+/// * `Result<RoyaltyPolicy, anyhow::Error>` - A result containing the `RoyaltyPolicy` or an error.
 pub fn get_policy_type() -> Result<RoyaltyPolicy, anyhow::Error> {
     let theme = get_dialoguer_theme();
 
@@ -44,6 +57,10 @@ pub fn get_policy_type() -> Result<RoyaltyPolicy, anyhow::Error> {
     })
 }
 
+/// Determines if the royalty owners are the same as the creators based on user confirmation.
+///
+/// # Returns
+/// * `bool` - `true` if the royalty beneficiary addresses are the same as the creator addresses, else `false`.
 pub fn are_royalty_owners_creators() -> bool {
     let theme = get_dialoguer_theme();
 
@@ -53,6 +70,10 @@ pub fn are_royalty_owners_creators() -> bool {
         .unwrap()
 }
 
+/// Interactively collects details about beneficiaries and their shares for royalty distribution.
+///
+/// # Returns
+/// * `Result<BTreeSet<Share>>` - A result containing a set of `Share` or an error.
 pub fn get_beneficiaries() -> Result<BTreeSet<Share>> {
     let theme = get_dialoguer_theme();
 
@@ -115,6 +136,13 @@ Note: Shares remaining: {}, please make sure the end sum amounts to 100% (i.e. 1
     Ok(shares)
 }
 
+/// Collects the share of each address in royalty distribution in basis points.
+///
+/// # Arguments
+/// * `addresses` - A slice of `Address` representing the addresses to collect shares for.
+///
+/// # Returns
+/// * `Vec<u64>` - A vector of shares in basis points for each address.
 pub fn royalty_shares(addresses: &[Address]) -> Vec<u64> {
     let theme = get_dialoguer_theme();
 

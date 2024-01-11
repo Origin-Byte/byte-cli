@@ -1,22 +1,41 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::fmt::{self, Display};
 
+/// Represents various tags associated with an NFT.
 #[derive(Debug, Clone)]
 pub enum Tag {
+    /// Tag representing Art.
     Art,
+    /// Tag representing a Profile Picture.
     ProfilePicture,
+    /// Tag representing a Collectible.
     Collectible,
+    /// Tag representing a Game Asset.
     GameAsset,
+    /// Tag representing a Tokenised Asset.
     TokenisedAsset,
+    /// Tag representing a Domain Name.
     DomainName,
+    /// Tag representing Music.
     Music,
+    /// Tag representing Video.
     Video,
+    /// Tag representing a Ticket.
     Ticket,
+    /// Tag representing a License.
     License,
+    /// Custom tag with a provided string.
     Custom(String),
 }
 
 impl Tag {
+    /// Creates a new `Tag` instance based on a string.
+    ///
+    /// # Arguments
+    /// * `tag` - The string representing the tag.
+    ///
+    /// # Returns
+    /// * `Tag` - A new instance of `Tag` based on the input string.
     pub fn new(tag: &str) -> Self {
         match tag {
             "Art" => Tag::Art,
@@ -33,6 +52,7 @@ impl Tag {
         }
     }
 
+    /// Returns the corresponding function name for the tag.
     pub fn function_name(&self) -> &'static str {
         match self {
             Tag::Art => "art",
@@ -105,11 +125,19 @@ impl Serialize for Tag {
     }
 }
 
+/// Represents a collection of `Tag` instances.
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct Tags(pub Vec<Tag>);
 
 impl Tags {
+    /// Creates a new `Tags` instance from a vector of strings.
+    ///
+    /// # Arguments
+    /// * `tags` - A vector of strings representing tags.
+    ///
+    /// # Returns
+    /// * `Tags` - A new instance of `Tags` containing `Tag` instances based on the input strings.
     pub fn new(tags: &[String]) -> Self {
         let tags = tags
             .iter()

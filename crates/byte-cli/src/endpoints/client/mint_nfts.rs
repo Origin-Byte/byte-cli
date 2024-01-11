@@ -23,6 +23,28 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use terminal_link::Link;
 
+/// Asynchronously mints NFTs to a warehouse.
+///
+/// # Arguments
+/// * `schema` - Reference to the Schema struct representing the NFT schema.
+/// * `gas_budget` - The gas budget for the minting operation.
+/// * `warehouse_id` - Optional String representing the warehouse ID.
+/// * `mint_cap_id` - Optional String representing the mint capability ID.
+/// * `metadata_path` - PathBuf to the metadata JSON file.
+/// * `state` - The current Project state.
+/// * `amount` - The number of NFTs to mint.
+/// * `batches` - The number of batches to divide the minting process into.
+/// * `network` - Reference to the Network struct representing the blockchain network.
+///
+/// # Returns
+/// Result containing the updated Project state or an error.
+///
+/// # Functionality
+/// - Initializes the process and checks network compatibility.
+/// - Collects NFT metadata and filters already minted NFTs.
+/// - Splits the minting process into batches and executes minting.
+/// - Updates the state with the minting effects and writes logs.
+/// - Prints a summary of the minting process and outputs links for exploration.
 pub async fn mint_nfts(
     schema: &Schema,
     gas_budget: usize,

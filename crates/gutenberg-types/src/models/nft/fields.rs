@@ -4,31 +4,38 @@ use serde::{
     Deserialize, Serialize,
 };
 
+/// A collection of `Field` instances.
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct Fields(Vec<Field>);
 
 impl Fields {
+    /// Creates a new `Fields` instance from a vector of `Field`.
     pub fn new(fields: Vec<Field>) -> Self {
         Self(fields)
     }
 
+    /// Returns an iterator over the field names.
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|field| field.name.as_str())
     }
 
+    /// Returns an iterator over the `Field` references.
     pub fn iter(&self) -> impl Iterator<Item = &Field> {
         self.0.iter()
     }
 
+    /// Returns an iterator over parameters for each field.
     pub fn params(&self) -> impl Iterator<Item = String> + '_ {
         self.iter().flat_map(Field::params)
     }
 
+    /// Returns an iterator over parameter types for each field.
     pub fn param_types(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.iter().flat_map(Field::param_types)
     }
 
+    /// Returns an iterator over test parameters for each field.
     pub fn test_params(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.iter().flat_map(Field::test_params)
     }
@@ -40,7 +47,7 @@ impl From<Vec<(&str, FieldType)>> for Fields {
     }
 }
 
-/// Represents NFT field definition
+/// Represents a field definition for NFT.
 #[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
@@ -48,18 +55,22 @@ pub struct Field {
 }
 
 impl Field {
+    /// Creates a new `Field` instance.
     pub fn new(name: String, field_type: FieldType) -> Self {
         Self { name, field_type }
     }
 
+    /// Returns the name of the field.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Returns the `FieldType` of the field.
     pub fn field_type(&self) -> &FieldType {
         &self.field_type
     }
 
+    /// Returns an iterator over parameters associated with the field.
     pub fn params(&self) -> impl Iterator<Item = String> {
         let field_name = self.name();
         match self.field_type() {
@@ -73,6 +84,7 @@ impl Field {
         .into_iter()
     }
 
+    /// Returns an iterator over the types of parameters associated with the field.
     pub fn param_types(&self) -> impl Iterator<Item = &'static str> {
         match self.field_type() {
             FieldType::String => vec!["std::string::String"],
@@ -84,6 +96,7 @@ impl Field {
         .into_iter()
     }
 
+    /// Returns an iterator over test parameters for the field.
     pub fn test_params(&self) -> impl Iterator<Item = &'static str> {
         match self.field_type() {
             FieldType::String => vec!["std::string::utf8(b\"TEST STRING\")"],
@@ -114,6 +127,7 @@ pub enum FieldType {
     Attributes,
 }
 
+/// Custom deserialization for `Field`.
 impl<'de> Deserialize<'de> for Field {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -150,6 +164,7 @@ impl<'de> Deserialize<'de> for Field {
     }
 }
 
+/// Custom serialization for `Field`.
 impl Serialize for Field {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

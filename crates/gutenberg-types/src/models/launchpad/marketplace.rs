@@ -16,8 +16,19 @@ pub struct Marketplace {
 }
 
 impl Marketplace {
+    /// Creates a new `Marketplace` instance.
+    ///
+    /// # Arguments
+    /// * `admin` - The `Address` that will act as the admin of the marketplace.
+    /// * `receiver` - The `Address` where transaction fees or other payments will be sent.
+    /// * `default_fee` - The default fee for transactions in the marketplace, in basis points.
+    ///
+    /// # Returns
+    /// * `Marketplace` - A new instance of `Marketplace`.
+    ///
+    /// # TODO
+    /// Validate the default fee in basis points to ensure it falls within an acceptable range.
     pub fn new(admin: Address, receiver: Address, default_fee: u64) -> Self {
-        // TODO: Validate default fee basis points
         Marketplace {
             admin,
             receiver,

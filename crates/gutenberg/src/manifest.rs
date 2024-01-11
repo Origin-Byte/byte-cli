@@ -10,6 +10,18 @@ use std::{
     path::Path,
 };
 
+/// Writes a manifest file for a given package.
+///
+/// # Arguments
+///
+/// * `package_name` - The name of the package.
+/// * `contract_dir` - The directory where the manifest file will be written.
+/// * `main_registry` - The main package registry.
+/// * `version` - Optional specific version of the package.
+///
+/// # Returns
+///
+/// Returns a `Result<()>` indicating success or failure.
 pub fn write_manifest(
     package_name: String,
     contract_dir: &Path,
@@ -26,6 +38,21 @@ pub fn write_manifest(
     Ok(())
 }
 
+/// Writes a manifest file with flavours for a given package.
+///
+/// This function generates two TOML files for main and test environments and places them in a 'flavours' directory.
+///
+/// # Arguments
+///
+/// * `package_name` - The name of the package.
+/// * `contract_dir` - The directory where the manifest files will be written.
+/// * `main_registry` - The main package registry.
+/// * `test_registry` - The test package registry.
+/// * `version` - Optional specific version of the package.
+///
+/// # Returns
+///
+/// Returns a `Result<()>` indicating success or failure.
 pub fn write_manifest_with_flavours(
     package_name: String,
     contract_dir: &Path,
@@ -73,6 +100,19 @@ pub fn write_manifest_with_flavours(
     Ok(())
 }
 
+/// Generates a TOML string for a module's manifest.
+///
+/// This function constructs the TOML representation of a module's manifest, including dependencies and versions.
+///
+/// # Arguments
+///
+/// * `module_name` - The name of the module.
+/// * `version` - Optional specific version for the module.
+/// * `registry` - The package registry used for resolving dependencies.
+///
+/// # Returns
+///
+/// Returns a `Result<String>` containing the TOML string or an error.
 pub fn write_toml_string(
     module_name: &str,
     version: &Option<Version>,

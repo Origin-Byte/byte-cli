@@ -31,6 +31,8 @@ use std::{
 use sui_sdk::types::base_types::ObjectID;
 use uploader::writer::Storage;
 
+/// Main entry point for the application.
+/// This is an asynchronous function due to network and IO operations.
 #[tokio::main]
 async fn main() {
     match run().await {
@@ -42,6 +44,10 @@ async fn main() {
     }
 }
 
+/// Core runtime logic of the application.
+///
+/// Parses command-line arguments and executes the corresponding command.
+/// This function is asynchronous due to potential network and IO operations.
 async fn run() -> Result<()> {
     let cli = Cli::parse();
 

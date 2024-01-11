@@ -8,7 +8,17 @@ use gutenberg::{
 };
 use std::collections::BTreeSet;
 
+/// Implementation of `FromPrompt` trait for `Settings` struct.
+/// It allows the creation of `Settings` instances through user prompts.
 impl FromPrompt for Settings {
+    /// Creates a `Settings` instance from user input.
+    /// It prompts the user to choose various NFT related settings like royalties, minting policies, and features.
+    ///
+    /// # Arguments
+    /// * `schema` - A reference to the `SchemaBuilder` that helps in building the settings schema.
+    ///
+    /// # Returns
+    /// * `Result<Settings, anyhow::Error>` - Result object containing `Settings` if successful or an error.
     fn from_prompt(schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
@@ -55,7 +65,17 @@ impl FromPrompt for Settings {
     }
 }
 
+/// Implementation of `FromPrompt` trait for `Composability` struct.
+/// This allows for creating instances of `Composability` through user prompts, specifically for NFT traits.
 impl FromPrompt for Composability {
+    /// Creates a `Composability` instance from user input.
+    /// It prompts the user to define the number and names of tradeable NFT traits in a collection.
+    ///
+    /// # Arguments
+    /// * `_schema` - A reference to the `SchemaBuilder` used for building the composability schema.
+    ///
+    /// # Returns
+    /// * `Result<Composability, anyhow::Error>` - Result object containing `Composability` if successful or an error.
     fn from_prompt(_schema: &SchemaBuilder) -> Result<Self, anyhow::Error>
     where
         Self: Sized,

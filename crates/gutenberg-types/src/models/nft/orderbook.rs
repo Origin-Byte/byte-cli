@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use super::Fields;
 
+/// An enum representing the types of orderbooks available.
+/// This is serialized and deserialized using `serde`.
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Orderbook {
@@ -9,7 +11,14 @@ pub enum Orderbook {
     Protected,
 }
 
+
 impl Orderbook {
+    /// Generates a Move initialization code string for the orderbook based on its type.
+    /// This function is used to create the necessary initialization code for an orderbook,
+    /// which varies depending on whether it is `Unprotected` or `Protected`.
+    ///
+    /// # Arguments
+    /// * `type_name` - The name of the type for which the orderbook is being initialized.
     pub fn write_move_init(&self, type_name: &str) -> String {
         match self {
             Orderbook::Unprotected => format!(
@@ -31,6 +40,17 @@ impl Orderbook {
         }
     }
 
+    /// Creates Move test code as a string for the orderbook.
+    /// This method generates test cases for the orderbook based on its configuration,
+    /// and the provided `Fields`, `type_name`, `witness_name`, and conditions like
+    /// `requires_collection` and `requires_royalties`.
+    ///
+    /// # Arguments
+    /// * `fields` - Field definitions for the orderbook.
+    /// * `type_name` - The name of the type associated with the orderbook.
+    /// * `witness_name` - The name of the witness for the test.
+    /// * `requires_collection` - Boolean indicating if collection is required.
+    /// * `requires_royalties` - Boolean indicating if royalties are required.
     pub fn write_move_tests(
         &self,
         fields: &Fields,
