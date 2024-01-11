@@ -9,8 +9,8 @@ uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }
 gutenberg-types = { path = "../gutenberg-types" }
 
-sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "cc4ad6d8a3f05ad8641e977fad228e09a77453b8" }
-move-package = { git = "https://github.com/MystenLabs/sui", rev = "cc4ad6d8a3f05ad8641e977fad228e09a77453b8" }
+sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
+move-package = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
 reqwest = { version = "0.11", features = ["json"]}
 git2 = "0.17"
 dialoguer = "0.10"
