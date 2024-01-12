@@ -17,6 +17,7 @@ use crate::uploader::{
 // Maximum number of times to retry each individual upload.
 const MAX_RETRY: u8 = 1;
 
+/// Configuration for AWS services, including bucket, directory, and region.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AWSConfig {
     pub bucket: String,
@@ -26,6 +27,16 @@ pub struct AWSConfig {
 }
 
 impl AWSConfig {
+    /// Creates a new `AWSConfig`.
+    ///
+    /// # Arguments
+    /// * `bucket` - The S3 bucket name.
+    /// * `directory` - The directory within the bucket.
+    /// * `region` - The AWS region.
+    /// * `profile` - The AWS profile to use.
+    ///
+    /// # Returns
+    /// A result containing the new AWSConfig or an error.
     pub fn new(
         bucket: String,
         directory: String,
@@ -47,6 +58,7 @@ impl AWSConfig {
     }
 }
 
+/// Setup for AWS services, encapsulating bucket and directory information.
 pub struct AWSSetup {
     pub bucket: Arc<Bucket>,
     pub directory: String,
@@ -54,6 +66,13 @@ pub struct AWSSetup {
 }
 
 impl AWSSetup {
+    /// Initializes a new `AWSSetup` based on provided AWS configuration.
+    ///
+    /// # Arguments
+    /// * `config` - The AWS configuration.
+    ///
+    /// # Returns
+    /// A result containing the new `AWSSetup` or an error.
     pub async fn new(config: &AWSConfig) -> Result<Self> {
         let credentials =
             Credentials::from_profile(Some(config.profile.as_str()))?;
@@ -78,6 +97,19 @@ impl AWSSetup {
         })
     }
 
+    /// Asynchronously writes an asset to AWS S3.
+    ///
+    /// # Arguments
+    /// * `bucket` - The AWS S3 bucket.
+    /// * `directory` - The directory within the bucket.
+    /// * `url` - The base URL of the AWS bucket.
+    /// * `asset` - The asset to upload.
+    /// * `metadata` - The global metadata.
+    /// * `terminate_flag` - Flag indicating if the upload process should be
+    ///   terminated.
+    ///
+    /// # Returns
+    /// A result indicating the success or failure of the upload.
     async fn write(
         bucket: Arc<Bucket>,
         directory: String,
@@ -146,6 +178,7 @@ impl AWSSetup {
     }
 }
 
+/// Implementation of the `Prepare` trait for `AWSSetup`.
 #[async_trait]
 impl Prepare for AWSSetup {
     async fn prepare(&self, _assets: &[Asset]) -> Result<()> {
@@ -153,8 +186,19 @@ impl Prepare for AWSSetup {
     }
 }
 
+/// Implementation of `ParallelUploader` for `AWSSetup`.
 #[async_trait]
 impl ParallelUploader for AWSSetup {
+    /// Uploads an asset to AWS S3 in a parallel manner.
+    ///
+    /// # Arguments
+    /// * `asset` - The asset to be uploaded.
+    /// * `metadata` - The global metadata.
+    /// * `terminate_flag` - Flag indicating if the upload process should be
+    ///   terminated.
+    ///
+    /// # Returns
+    /// A `JoinHandle` that resolves to a result of `UploadEffects`.
     fn upload_asset(
         &self,
         asset: Asset,
@@ -179,12 +223,27 @@ impl ParallelUploader for AWSSetup {
     }
 }
 
+/// Fetches the AWS region from the user's AWS configuration.
+///
+/// # Arguments
+/// * `profile` - The AWS profile name.
+///
+/// # Returns
+/// A result containing the AWS `Region` or an error.
 pub fn get_region(profile: &str) -> Result<Region> {
     let region_string = get_region_string(profile)?;
 
     Ok(region_string.parse()?)
 }
 
+/// Retrieves the region string from the AWS configuration file based on the
+/// profile.
+///
+/// # Arguments
+/// * `profile` - The AWS profile name.
+///
+/// # Returns
+/// A result containing the region string or an error.
 pub fn get_region_string(profile: &str) -> Result<String> {
     let home_dir = dirs::home_dir()
         .expect("Unexpected error: Could not find home directory.");
@@ -211,6 +270,14 @@ pub fn get_region_string(profile: &str) -> Result<String> {
     Ok(region.clone())
 }
 
+/// Asserts the existence of a specified AWS profile in the AWS configuration
+/// file.
+///
+/// # Arguments
+/// * `profile` - The AWS profile name to be validated.
+///
+/// # Returns
+/// A result indicating success or an error if the profile is not found.
 pub fn assert_profile(profile: &str) -> Result<()> {
     let home_dir = dirs::home_dir()
         .expect("Unexpected error: Could not find home directory.");

@@ -18,12 +18,8 @@ use sui_types::transaction::{
 };
 use sui_types::SUI_FRAMEWORK_PACKAGE_ID;
 use sui_types::{
-    base_types::ObjectRef,
-    coin,
-    gas_coin::MIST_PER_SUI,
-    // messages::{CallArg, ObjectArg, ProgrammableTransaction, TransactionData},
-    programmable_transaction_builder::ProgrammableTransactionBuilder,
-    TypeTag,
+    base_types::ObjectRef, coin, gas_coin::MIST_PER_SUI,
+    programmable_transaction_builder::ProgrammableTransactionBuilder, TypeTag,
 };
 
 pub struct CoinList(Vec<(ObjectID, u64, f64)>);
@@ -53,6 +49,21 @@ impl Display for CoinList {
     }
 }
 
+/// Splits a coin into multiple coins of specified amounts.
+///
+/// This function prepares and executes a transaction to split a coin into
+/// multiple smaller coins.
+///
+/// # Arguments
+/// * `coin_id` - The ID of the coin to be split.
+/// * `amount` - The amount to split from the coin. If `None`, the coin is split
+///   evenly.
+/// * `count` - The number of coins to split into.
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_id` - Optional ID of the gas coin.
+///
+/// # Returns
+/// A result indicating success or failure of the operation.
 pub async fn split(
     coin_id: ObjectID,
     amount: Option<u64>,
@@ -75,6 +86,18 @@ pub async fn split(
     Ok(())
 }
 
+/// Prepares transaction data for splitting a coin.
+///
+/// # Arguments
+/// * `wallet_ctx` - The wallet context for the transaction.
+/// * `coin_id` - The ID of the coin to be split.
+/// * `amount` - The amount to split from the coin.
+/// * `count` - The number of coins to split into.
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_id` - Optional ID of the gas coin.
+///
+/// # Returns
+/// A result containing the transaction data or an error.
 pub async fn prepare_split(
     wallet_ctx: &WalletContext,
     coin_id: ObjectID,
@@ -115,6 +138,17 @@ pub async fn prepare_split(
         .await?)
 }
 
+/// Combines smaller coins into a larger coin.
+///
+/// This function prepares and executes a transaction to combine smaller coins
+/// into a single larger coin.
+///
+/// # Arguments
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_id` - The ID of the gas coin.
+///
+/// # Returns
+/// A result indicating success or failure of the operation.
 pub async fn combine(
     gas_budget: u64,
     gas_id: ObjectID,
@@ -132,6 +166,16 @@ pub async fn combine(
     Ok(())
 }
 
+/// Prepares transaction data for combining coins.
+///
+/// # Arguments
+/// * `client` - The client used for network interactions.
+/// * `sender` - The Sui address sending the transaction.
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_id` - The ID of the gas coin.
+///
+/// # Returns
+/// A result containing the transaction data or an error.
 pub async fn prepare_combine<C>(
     client: C,
     sender: SuiAddress,
@@ -161,6 +205,19 @@ where
     ))
 }
 
+/// Selects a specific coin by its ObjectID.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for retrieving coin information.
+/// * `sender` - The Sui address of the coin owner.
+/// * `coin_id` - The ID of the coin to select.
+///
+/// # Returns
+/// A result containing the selected coin (`Coin`) or a `RustSdkError`.
 pub async fn select_coin<C>(
     client: C,
     sender: SuiAddress,
@@ -180,6 +237,18 @@ where
     Ok(coin_obj)
 }
 
+/// Selects the largest coin owned by the sender.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for retrieving coin information.
+/// * `sender` - The Sui address of the coin owner.
+///
+/// # Returns
+/// A result containing the largest coin (`Coin`) or a `RustSdkError`.
 pub async fn select_biggest_coin<C>(
     client: C,
     sender: SuiAddress,
@@ -197,6 +266,20 @@ where
     Ok(coin_obj)
 }
 
+/// Separates the specified gas coin from the coin with the largest balance.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for retrieving coin information.
+/// * `sender` - The Sui address of the coin owner.
+/// * `gas_id` - The ID of the gas coin.
+///
+/// # Returns
+/// A result containing the separated gas coin, the largest balance coin, and
+/// other coins (`(Coin, Coin, Vec<Coin>)`) or a `RustSdkError`.
 pub async fn separate_gas_and_max_coin<C>(
     client: C,
     sender: SuiAddress,
@@ -222,6 +305,20 @@ where
     Ok((max_coin, gas_coin, coins))
 }
 
+/// Separates the specified gas coin from other coins.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for retrieving coin information.
+/// * `sender` - The Sui address of the coin owner.
+/// * `gas_id` - The ID of the gas coin.
+///
+/// # Returns
+/// A result containing the separated gas coin and other coins ((Coin,
+/// Vec<Coin>)) or a RustSdkError.
 pub async fn separate_gas_coin<C>(
     client: C,
     sender: SuiAddress,
@@ -242,6 +339,22 @@ where
     Ok((gas_obj, coins))
 }
 
+/// Lists all coins owned by the specified sender along with their balances.
+///
+/// This function retrieves and formats a list of all coins owned by the sender,
+/// including each coin's ID, balance, and its equivalent value in SUI.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for retrieving coin information.
+/// * `sender` - The Sui address of the coin owner.
+///
+/// # Returns
+/// A result containing a formatted list of coins (`CoinList`) or a
+/// `RustSdkError`.
 pub async fn list_coins<C>(client: C, sender: SuiAddress) -> Result<CoinList>
 where
     C: Deref<Target = SuiClient> + CloneClient,
@@ -262,6 +375,17 @@ where
     Ok(CoinList(list))
 }
 
+/// Retrieves all coins owned by the specified sender.
+///
+/// This function fetches a complete list of coins, including their balances,
+/// owned by the sender.
+///
+/// # Arguments
+/// * `client` - An instance of `SuiClient` used for querying the blockchain.
+/// * `sender` - The Sui address of the coin owner.
+///
+/// # Returns
+/// A result containing a vector of `Coin` instances or a `RustSdkError`.
 pub async fn get_coins(
     client: impl Deref<Target = SuiClient>,
     sender: SuiAddress,
@@ -293,6 +417,16 @@ pub async fn get_coins(
     Ok(coins)
 }
 
+/// Finds and returns the coin with the highest balance owned by the specified
+/// sender.
+///
+/// # Arguments
+/// * `client` - An instance of `SuiClient` used for querying the blockchain.
+/// * `sender` - The Sui address of the coin owner.
+///
+/// # Returns
+/// A result containing the coin with the highest balance (`Coin`) or a
+/// `RustSdkError`.
 pub async fn get_max_coin(
     client: impl Deref<Target = SuiClient>,
     sender: SuiAddress,
@@ -306,7 +440,21 @@ pub async fn get_max_coin(
     Ok(coin_obj)
 }
 
-// TODO: Fix
+/// Merges multiple coins into a single coin.
+///
+/// This function prepares a programmable transaction to merge several coins
+/// into one. It is typically used for consolidating coin balances.
+///
+/// # Arguments
+/// * `_signer` - The Sui address initiating the merge transaction.
+/// * `main_coin` - A reference to the main coin into which other coins will be
+///   merged.
+/// * `coins_to_merge` - A slice of coins to be merged into the main coin.
+/// * `_gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the programmable transaction (`ProgrammableTransaction`)
+/// or an error.
 pub async fn merge_coins(
     _signer: SuiAddress,
     main_coin: &Coin,

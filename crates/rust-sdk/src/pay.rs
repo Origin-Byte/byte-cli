@@ -26,6 +26,14 @@ use sui_types::{
     programmable_transaction_builder::ProgrammableTransactionBuilder,
 };
 
+/// Asynchronously pays a specified amount of SUI.
+///
+/// # Arguments
+/// * `amount` - The amount of SUI to be paid.
+/// * `gas_budget` - The budget for gas in the transaction.
+///
+/// # Returns
+/// A result indicating success or an error (`RustSdkError`).
 pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
     let wallet_ctx = get_context().await.unwrap();
 
@@ -38,6 +46,16 @@ pub async fn pay(amount: u64, gas_budget: u64) -> Result<(), RustSdkError> {
     Ok(())
 }
 
+/// Asynchronously prepares the data required for a payment transaction.
+///
+/// # Arguments
+/// * `wallet_ctx` - A reference to the wallet context.
+/// * `amount` - The amount of SUI to be paid.
+/// * `gas_budget` - The budget for gas in the transaction.
+///
+/// # Returns
+/// A result containing `TransactionData` on success or an error
+/// (`RustSdkError`).
 pub async fn prepare_pay(
     wallet_ctx: &WalletContext,
     amount: u64,

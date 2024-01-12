@@ -21,6 +21,13 @@ use sui_types::transaction::{Transaction, TransactionData};
 
 use crate::err::RustSdkError;
 
+/// Retrieves a Sui client for network interactions.
+///
+/// # Arguments
+/// * `uri` - The URI of the Sui fullnode to connect to.
+///
+/// # Returns
+/// A result containing the Sui client or a `RustSdkError`.
 pub async fn get_client(uri: &str) -> Result<SuiClient, RustSdkError> {
     // e.g. uri: https://fullnode.devnet.sui.io:443
     let client_builder = SuiClientBuilder::default();
@@ -29,6 +36,11 @@ pub async fn get_client(uri: &str) -> Result<SuiClient, RustSdkError> {
     Ok(client)
 }
 
+/// Retrieves the wallet context from the local configuration.
+///
+/// # Returns
+/// A result containing the wallet context (`WalletContext`) or a
+/// `RustSdkError`.
 pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);
 
@@ -37,6 +49,13 @@ pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     Ok(ctx)
 }
 
+/// Retrieves the reference gas price from the network.
+///
+/// # Arguments
+/// * `client` - An instance of `SuiClient` for network interaction.
+///
+/// # Returns
+/// A result containing the reference gas price or a `RustSdkError`.
 pub async fn get_reference_gas_price(
     client: impl Deref<Target = SuiClient>,
 ) -> Result<u64, RustSdkError> {
@@ -47,6 +66,20 @@ pub async fn get_reference_gas_price(
 
 /// Get all the gas objects (and conveniently, gas amounts) for the address
 /// Copied and modified from https://github.com/MystenLabs/sui/blob/main/crates/sui-sdk/src/wallet_context.rs#L119
+///
+/// Retrieves all gas objects and their values for a given address.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `client` - The client used for network interactions.
+/// * `address` - The Sui address for which to retrieve gas objects.
+///
+/// # Returns
+/// A result containing a vector of tuples with gas values and corresponding
+/// object data.
 pub async fn gas_objects<C>(
     client: C,
     address: SuiAddress,
@@ -92,6 +125,10 @@ where
     Ok(values_objects)
 }
 
+/// Retrieves the keystore from the local configuration.
+///
+/// # Returns
+/// A result containing the keystore or a `RustSdkError`.
 pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
     // Load keystore from ~/.sui/sui_config/sui.keystore
     let keystore_path = match dirs::home_dir() {
@@ -104,16 +141,36 @@ pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
     Ok(keystore)
 }
 
+/// Retrieves the active address from the keystore.
+///
+/// # Arguments
+/// * `keystore` - A reference to the keystore.
+///
+/// # Returns
+/// A result containing the active Sui address or an error.
 pub fn get_active_address(keystore: &Keystore) -> Result<SuiAddress> {
     keystore.addresses().last().cloned().ok_or_else(|| {
         anyhow!("Could not retrieve active address from keystore")
     })
 }
 
+/// Extracts the object reference from a `Coin` object.
+///
+/// # Arguments
+/// * `coin` - A reference to the `Coin` object.
+///
+/// # Returns
+/// The object reference (`ObjectRef`) for the coin.
 pub fn get_coin_ref(coin: &Coin) -> ObjectRef {
     (coin.coin_object_id, coin.version, coin.digest)
 }
 
+/// Represents a Move type in the Sui ecosystem.
+///
+/// # Fields
+/// * `contract_address` - The address of the contract.
+/// * `module` - The module name within the contract.
+/// * `type_name` - The type name within the module.
 pub struct MoveType {
     contract_address: String,
     module: String,
@@ -144,10 +201,36 @@ impl MoveType {
     }
 }
 
+/// Converts a string to an `ObjectID`.
+///
+/// # Arguments
+/// * `obj_id_str` - The string representation of the object ID.
+///
+/// # Returns
+/// The `ObjectID` parsed from the string.
 pub fn get_object_id(obj_id_str: &str) -> ObjectID {
     ObjectID::from_str(obj_id_str).expect("Could not parse object ID")
 }
 
+/// Executes a transaction using the provided wallet context and transaction
+/// data.
+///
+/// This function signs and executes a transaction based on the given
+/// transaction data. It handles both the signing process using the wallet's
+/// keystore and the actual sending of the transaction to the network.
+///
+/// # Type Parameters
+/// * `wallet_ctx` - A flexible parameter that can accept both
+///   `Arc<WalletContext>` and a reference to `WalletContext`.
+///
+/// # Arguments
+/// * `tx_data` - The transaction data to be executed, encapsulating details
+///   like the transaction's payload and gas information.
+///
+/// # Returns
+/// A result containing the transaction block response
+/// (`SuiTransactionBlockResponse`) upon success, or a `RustSdkError` in case of
+/// failure.
 pub async fn execute_tx(
     // This way it works with both Arc<WalletContext> and &WalletContext
     wallet_ctx: impl Deref<Target = WalletContext>,
@@ -186,6 +269,12 @@ pub async fn execute_tx(
     Ok(response)
 }
 
+/// A trait to enable cloning of Sui client instances.
+///
+/// This trait provides a method to clone instances of Sui clients. It's useful
+/// in contexts where a client instance needs to be reused or passed across
+/// different parts of an application, especially when dealing with `Arc` for
+/// shared ownership or references to the client.
 pub trait CloneClient {
     fn clone_client(&self) -> Self;
 }

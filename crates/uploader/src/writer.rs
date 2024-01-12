@@ -1,7 +1,4 @@
-use crate::storage::{
-    aws::AWSConfig,
-    pinata::PinataConfig, // nft_storage::NftStorageConfig
-};
+use crate::storage::{aws::AWSConfig, pinata::PinataConfig};
 
 use serde::{Deserialize, Serialize};
 
@@ -9,5 +6,4 @@ use serde::{Deserialize, Serialize};
 pub enum Storage {
     Aws(AWSConfig),
     Pinata(PinataConfig),
-    // NftStorage(NftStorageConfig),
 }

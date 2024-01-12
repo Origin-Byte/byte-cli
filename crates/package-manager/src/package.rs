@@ -58,11 +58,11 @@ impl PackageRegistry {
     /// # Returns
     ///
     /// * A reference to the package information.
-    pub fn get_package_info<'a>(
-        &'a self,
-        dep_name: &'a String,
-        version: &'a Version,
-    ) -> Result<&'a PackageInfo> {
+    pub fn get_package_info(
+        &self,
+        dep_name: &String,
+        version: &Version,
+    ) -> Result<&PackageInfo> {
         // Fetch available versions by package name
         let versions = self.0.get(dep_name).ok_or_else(|| {
             anyhow!(format!(
@@ -78,7 +78,8 @@ impl PackageRegistry {
         Ok(dependency)
     }
 
-    /// Retrieves packages with Git paths for the specified dependencies and version.
+    /// Retrieves packages with Git paths for the specified dependencies and
+    /// version.
     ///
     /// # Arguments
     ///
@@ -107,20 +108,24 @@ impl PackageRegistry {
             .collect()
     }
 
-    /// Retrieves a list of packages that require updating based on their dependencies.
+    /// Retrieves a list of packages that require updating based on their
+    /// dependencies.
     ///
-    /// This function filters and maps the provided dependencies to their updated versions
-    /// if available. It uses `get_updated_package_info` to check each dependency.
+    /// This function filters and maps the provided dependencies to their
+    /// updated versions if available. It uses `get_updated_package_info` to
+    /// check each dependency.
     ///
     /// # Arguments
-    /// * `deps` - A slice of references to `PackageInfo` representing the dependencies.
+    /// * `deps` - A slice of references to `PackageInfo` representing the
+    ///   dependencies.
     ///
     /// # Returns
-    /// A vector of references to `PackageInfo` containing the packages that need updating.
-    pub fn get_packages_to_update<'a>(
-        &'a self,
-        deps: &'a [&'a PackageInfo],
-    ) -> Vec<&'a PackageInfo> {
+    /// A vector of references to `PackageInfo` containing the packages that
+    /// need updating.
+    pub fn get_packages_to_update(
+        &self,
+        deps: &[&PackageInfo],
+    ) -> Vec<&PackageInfo> {
         deps.iter()
             .filter_map(|contract| self.get_updated_package_info(contract))
             .collect()
@@ -128,18 +133,21 @@ impl PackageRegistry {
 
     /// Determines if a given package dependency has a newer version available.
     ///
-    /// This function checks if there is a newer version for the provided package.
-    /// If a newer version exists, it returns a reference to the updated `PackageInfo`.
+    /// This function checks if there is a newer version for the provided
+    /// package. If a newer version exists, it returns a reference to the
+    /// updated `PackageInfo`.
     ///
     /// # Arguments
-    /// * `dep` - A reference to `PackageInfo` representing the package to check.
+    /// * `dep` - A reference to `PackageInfo` representing the package to
+    ///   check.
     ///
     /// # Returns
-    /// An `Option` containing a reference to updated `PackageInfo` if a newer version exists.
-    pub fn get_updated_package_info<'a>(
-        &'a self,
-        dep: &'a PackageInfo,
-    ) -> Option<&'a PackageInfo> {
+    /// An `Option` containing a reference to updated `PackageInfo` if a newer
+    /// version exists.
+    pub fn get_updated_package_info(
+        &self,
+        dep: &PackageInfo,
+    ) -> Option<&PackageInfo> {
         // Fetch available versions by package name
         let versions = if let Some(versions) = self.0.get(&dep.package.name) {
             versions
@@ -162,19 +170,16 @@ impl PackageRegistry {
 
     /// Fetches the latest version of a specified package.
     ///
-    /// Attempts to retrieve the latest version available for a given package name.
-    /// Returns an error if the package name is not found or if there is an issue
-    /// retrieving the latest version.
+    /// Attempts to retrieve the latest version available for a given package
+    /// name. Returns an error if the package name is not found or if there
+    /// is an issue retrieving the latest version.
     ///
     /// # Arguments
     /// * `dep_name` - The name of the dependency.
     ///
     /// # Returns
     /// A result containing the latest version or an error message.
-    pub fn get_latest_version<'a>(
-        &'a self,
-        dep_name: &str,
-    ) -> Result<&'a Version> {
+    pub fn get_latest_version(&self, dep_name: &str) -> Result<&Version> {
         // Fetch available versions by package name
         let versions = self.0.get(dep_name).ok_or_else(|| {
             anyhow!(format!(
@@ -197,8 +202,9 @@ impl PackageRegistry {
 
     /// Retrieves the version associated with a given object ID.
     ///
-    /// This function iterates over all versions in the package map to find a match
-    /// for the specified object ID. It returns an error if the object ID is not found.
+    /// This function iterates over all versions in the package map to find a
+    /// match for the specified object ID. It returns an error if the object
+    /// ID is not found.
     ///
     /// # Arguments
     /// * `object_id` - An `Address` reference representing the object ID.
@@ -231,16 +237,17 @@ impl PackageRegistry {
 
     /// Retrieves the external dependency path for a given protocol and version.
     ///
-    /// This function searches for a specific external dependency within a protocol's
-    /// version and returns its Git path. An error is returned if the protocol or
-    /// version is not found.
+    /// This function searches for a specific external dependency within a
+    /// protocol's version and returns its Git path. An error is returned if
+    /// the protocol or version is not found.
     ///
     /// # Arguments
     /// * `ext_dep` - The name of the external dependency.
     /// * `version` - The version of the protocol.
     ///
     /// # Returns
-    /// A result containing the Git path of the external dependency or an error message.
+    /// A result containing the Git path of the external dependency or an error
+    /// message.
     pub fn get_ext_dep_from_protocol(
         &self,
         ext_dep: &str,
@@ -273,7 +280,8 @@ impl PackageRegistry {
     }
 }
 
-/// Represents package information, including dependencies and package references.
+/// Represents package information, including dependencies and package
+/// references.
 ///
 /// This struct contains metadata about a package, including its dependencies
 /// and the reference path to the package.
@@ -289,8 +297,8 @@ pub struct PackageInfo {
 
 /// Represents a path to a package, including the object ID and Git information.
 ///
-/// This struct is used to store the path to a specific package and its associated
-/// object ID.
+/// This struct is used to store the path to a specific package and its
+/// associated object ID.
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct PackagePath {
@@ -298,7 +306,8 @@ pub struct PackagePath {
     pub object_id: Address,
 }
 
-/// Represents basic package metadata, including name, version, and publish date.
+/// Represents basic package metadata, including name, version, and publish
+/// date.
 ///
 /// This struct holds essential information about a package, such as its name,
 /// version, and optional publish date.
@@ -314,7 +323,8 @@ pub struct Package {
 impl Package {
     /// Constructs a new `Package` instance.
     ///
-    /// Creates a new package with the specified name, version, and optional published address.
+    /// Creates a new package with the specified name, version, and optional
+    /// published address.
     ///
     /// # Arguments
     /// * `name` - The name of the package.
@@ -354,19 +364,23 @@ impl Package {
     }
 }
 
-/// Represents a Git repository path with optional subdirectory and revision information.
+/// Represents a Git repository path with optional subdirectory and revision
+/// information.
 ///
-/// This struct encapsulates the details required to specify a location within a Git repository.
-/// It includes the main repository URL, an optional subdirectory within that repository,
-/// and the revision (such as a commit hash, branch, or tag) to pinpoint the exact state of the repository.
+/// This struct encapsulates the details required to specify a location within a
+/// Git repository. It includes the main repository URL, an optional
+/// subdirectory within that repository, and the revision (such as a commit
+/// hash, branch, or tag) to pinpoint the exact state of the repository.
 ///
 /// # Fields
-/// * `git` - The URL of the Git repository. This should be a complete URL pointing to a Git repo.
-/// * `subdir` - An optional subdirectory within the Git repository. This allows specifying a path
-///              within a larger repo, facilitating the use of mono-repos or repositories with multiple projects.
-/// * `rev` - The revision of the repository. This can be a commit hash, a branch name, or a tag,
-///           depending on the needs of the application. It specifies the exact state of the repository
-///           to be used.
+/// * `git` - The URL of the Git repository. This should be a complete URL
+///   pointing to a Git repo.
+/// * `subdir` - An optional subdirectory within the Git repository. This allows
+///   specifying a path within a larger repo, facilitating the use of mono-repos
+///   or repositories with multiple projects.
+/// * `rev` - The revision of the repository. This can be a commit hash, a
+///   branch name, or a tag, depending on the needs of the application. It
+///   specifies the exact state of the repository to be used.
 #[derive(Deserialize, Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct GitPath {
     pub git: String,
@@ -378,7 +392,8 @@ impl GitPath {
     /// Constructs a new `GitPath`.
     ///
     /// Creates a `GitPath` instance representing the Git repository URL,
-    /// an optional subdirectory within the repository, and the specific revision.
+    /// an optional subdirectory within the repository, and the specific
+    /// revision.
     ///
     /// # Arguments
     /// * `git` - The Git repository URL.

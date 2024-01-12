@@ -23,6 +23,19 @@ use crate::utils::{execute_tx, get_context};
 use crate::{collection_state::ObjectType as OBObjectType, err::RustSdkError};
 use std::str::FromStr;
 
+/// Publishes a contract and returns the transaction response.
+///
+/// This function compiles the contract from the specified directory, creates a
+/// transaction to publish it, and then executes the transaction.
+///
+/// # Arguments
+/// * `sender` - The Sui address sending the transaction.
+/// * `package_dir` - The directory path of the package to be published.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the transaction block response or a `RustSdkError`.
 pub async fn publish_contract(
     sender: SuiAddress,
     package_dir: &Path,
@@ -40,6 +53,19 @@ pub async fn publish_contract(
     execute_tx(&wallet_ctx, data).await
 }
 
+/// Publishes a contract and performs a payment, returning the transaction
+/// response.
+///
+/// Similar to `publish_contract`, but also includes a payment step in the
+/// transaction.
+///
+/// # Arguments
+/// * `package_dir` - The directory path of the package to be published.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the transaction block response or a `RustSdkError`.
 pub async fn publish_contract_and_pay(
     package_dir: &Path,
     gas_coin: ObjectRef,
@@ -61,6 +87,16 @@ pub async fn publish_contract_and_pay(
     execute_tx(&wallet_ctx, data).await
 }
 
+/// Prepares transaction data for publishing a contract.
+///
+/// # Arguments
+/// * `sender` - The Sui address sending the transaction.
+/// * `package_dir` - The directory path of the package to be published.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the transaction data or a `RustSdkError`.
 pub async fn prepare_publish_contract(
     sender: SuiAddress,
     package_dir: &Path,
@@ -80,6 +116,17 @@ pub async fn prepare_publish_contract(
     ))
 }
 
+/// Prepares transaction data for publishing a contract and performing a
+/// payment.
+///
+/// # Arguments
+/// * `sender` - The Sui address sending the transaction.
+/// * `package_dir` - The directory path of the package to be published.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the transaction data or a `RustSdkError`.
 pub async fn prepare_publish_contract_and_pay(
     sender: SuiAddress,
     package_dir: &Path,
@@ -103,6 +150,14 @@ pub async fn prepare_publish_contract_and_pay(
     ))
 }
 
+/// Initializes the programmable transaction builder for publishing a contract.
+///
+/// # Arguments
+/// * `sender` - The Sui address sending the transaction.
+/// * `package_dir` - The directory path of the package to be published.
+///
+/// # Returns
+/// A result containing the initialized transaction builder or a `RustSdkError`.
 async fn init_publish_pt(
     sender: SuiAddress,
     package_dir: &Path,
@@ -140,6 +195,15 @@ async fn init_publish_pt(
     Ok(builder)
 }
 
+/// Retrieves the dependencies of the specified package.
+///
+/// # Arguments
+/// * `build_config` - The build configuration for the Move package.
+/// * `package_path` - The directory path of the package.
+///
+/// # Returns
+/// A result containing a vector of object IDs representing dependencies or a
+/// `RustSdkError`.
 fn get_dependencies(
     build_config: &MoveBuildConfig,
     package_path: &Path,
@@ -173,6 +237,15 @@ fn get_dependencies(
     Ok(deps)
 }
 
+/// Prints information about an object.
+///
+/// This function retrieves the details of a specified object and sends its type
+/// to a channel.
+///
+/// # Arguments
+/// * `client` - The Sui client used to read object data.
+/// * `object` - The reference to the owned object.
+/// * `tx` - The sender channel used to transmit the object type.
 pub async fn print_object(
     client: &SuiClient,
     object: &OwnedObjectRef,
