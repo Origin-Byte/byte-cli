@@ -10,6 +10,16 @@ use crate::{
     version::Version,
 };
 
+/// Represents the structure of a Move.toml file, which includes package metadata,
+/// dependencies, and addresses mapping.
+///
+/// This struct is used to parse and manipulate the contents of a Move.toml file,
+/// commonly used in Move language projects for configuration and dependency management.
+///
+/// # Fields
+/// * `package` - Metadata about the package itself, including name, version, and publish address.
+/// * `dependencies` - A mapping of dependency names to their Git repository paths.
+/// * `addresses` - A mapping of names to blockchain addresses used in the Move package.
 #[derive(Deserialize, Debug, Serialize)]
 pub struct MoveToml {
     package: Package,
@@ -18,6 +28,12 @@ pub struct MoveToml {
 }
 
 impl MoveToml {
+    /// Constructs a new `MoveToml` instance.
+    ///
+    /// # Arguments
+    /// * `package` - The metadata of the package.
+    /// * `dependencies` - A map of dependency names to their Git paths.
+    /// * `addresses` - A map of names to addresses.
     pub fn new(
         package: Package,
         dependencies: BTreeMap<String, GitPath>,
@@ -30,12 +46,24 @@ impl MoveToml {
         }
     }
 
+    /// Sanitizes dependency paths by removing empty subdirectories.
+    ///
+    /// Iterates through each dependency and cleans up its GitPath, removing
+    /// any empty subdirectory fields.
     pub fn sanitize_output(&mut self) {
         self.dependencies
             .iter_mut()
             .for_each(|(_, dep)| dep.sanitize_subdir());
     }
 
+    /// Retrieves a list of `PackageInfo` objects from the package registry.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    ///
+    /// # Returns
+    /// A result containing a reference to a map of `Version` to `PackageInfo`,
+    /// or an error if the package is not found.
     pub fn pkg_info_list<'a>(
         &self,
         pkg_registry: &'a PackageRegistry,
@@ -46,6 +74,13 @@ impl MoveToml {
         })
     }
 
+    /// Retrieves the `PackageInfo` for the current package from the registry.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    ///
+    /// # Returns
+    /// A result containing a reference to `PackageInfo`, or an error if not found.
     pub fn pkg_info<'a>(
         &self,
         pkg_registry: &'a PackageRegistry,
@@ -61,6 +96,14 @@ impl MoveToml {
         })
     }
 
+    /// Retrieves a vector of `PackageInfo` for each dependency in the package.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    ///
+    /// # Returns
+    /// A vector of references to `PackageInfo` for each dependency.
+    pub fn dependency_pkg_infos<'a>(
     pub fn dependency_pkg_infos<'a>(
         &'a self,
         pkg_registry: &'a PackageRegistry,
@@ -80,6 +123,17 @@ impl MoveToml {
             .collect()
     }
 
+    /// Retrieves a list of addresses corresponding to the dependencies in the `MoveToml`.
+    ///
+    /// This function maps each dependency in the `MoveToml` to its associated address
+    /// from the package registry. It is used to fetch the addresses of all dependencies
+    /// listed in the Move.toml file.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    ///
+    /// # Returns
+    /// A vector of references to `Address` for each dependency.
     pub fn get_dependency_ids<'a>(
         &'a self,
         pkg_registry: &'a PackageRegistry,
@@ -100,6 +154,14 @@ impl MoveToml {
             .collect()
     }
 
+
+    /// Updates the `MoveToml` file with the latest package versions and dependencies.
+    ///
+    /// This function checks for updates in the package registry and updates the Move.toml
+    /// file accordingly. It also sanitizes the paths of updated dependencies.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
     pub fn update_toml(&mut self, pkg_registry: &PackageRegistry) {
         let dependencies = self.dependency_pkg_infos(pkg_registry);
 
@@ -131,6 +193,21 @@ impl MoveToml {
             });
     }
 
+    /// Generates a `MoveToml` instance with specified dependencies and version.
+    ///
+    /// This function creates a `MoveToml` instance with a specific set of dependencies,
+    /// external dependencies, and a version. It is particularly useful for initializing
+    /// a Move.toml file with predefined settings.
+    ///
+    /// # Arguments
+    /// * `name` - The name of the package.
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    /// * `dep_names` - A list of dependency names.
+    /// * `ext_dep_names` - A list of external dependency names.
+    /// * `version` - The specific version of the package.
+    ///
+    /// # Returns
+    /// A result containing the new `MoveToml` instance or an error.
     pub fn get_toml(
         name: &str,
         pkg_registry: &PackageRegistry,
@@ -168,6 +245,20 @@ impl MoveToml {
         Ok(toml)
     }
 
+    /// Generates the latest `MoveToml` instance for a package.
+    ///
+    /// This function is similar to `get_toml` but automatically uses the latest version
+    /// from the package registry. It is used when initializing a Move.toml file with
+    /// the most recent versions of dependencies.
+    ///
+    /// # Arguments
+    /// * `name` - The name of the package.
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    /// * `dep_names` - A list of dependency names.
+    /// * `ext_dep_names` - A list of external dependency names.
+    ///
+    /// # Returns
+    /// A result containing the new `MoveToml` instance or an error.
     pub fn get_toml_latest(
         name: &str,
         pkg_registry: &PackageRegistry,
@@ -187,6 +278,15 @@ impl MoveToml {
         )
     }
 
+    /// Retrieves a specific dependency's `GitPath` from the `MoveToml`.
+    ///
+    /// This function fetches the GitPath for a named dependency from the Move.toml file.
+    ///
+    /// # Arguments
+    /// * `dep_name` - The name of the dependency.
+    ///
+    /// # Returns
+    /// A reference to the `GitPath` of the specified dependency.
     pub fn get_dependency<'a>(&'a self, dep_name: &'a str) -> &'a GitPath {
         // Fetch available versions by package name
         let dependency = self.dependencies.get(dep_name).expect(
@@ -197,10 +297,24 @@ impl MoveToml {
         dependency
     }
 
+    /// Converts the `MoveToml` instance into a TOML value.
+    ///
+    /// This function serializes the `MoveToml` instance into a TOML value, suitable for
+    /// saving to a file or further manipulation.
+    ///
+    /// # Returns
+    /// A result containing the TOML value or a serialization error.
     pub fn to_value(&self) -> Result<toml::Value, toml::ser::Error> {
         toml::Value::try_from(self)
     }
 
+    /// Converts the `MoveToml` instance into a formatted TOML string.
+    ///
+    /// This function serializes the `MoveToml` instance into a prettified TOML string,
+    /// adding appropriate vertical spacing for better readability.
+    ///
+    /// # Returns
+    /// A result containing the formatted TOML string or a serialization error.
     pub fn to_string(&self) -> Result<String, toml::ser::Error> {
         let mut toml_string = toml::to_string_pretty(self)?;
         toml_string = add_vertical_spacing(toml_string.as_str());
@@ -209,6 +323,17 @@ impl MoveToml {
     }
 }
 
+/// Retrieves `PackageInfo` for a given dependency based on its GitPath.
+///
+/// This function is used to fetch the package information associated with a specific
+/// revision of a dependency, as identified by its `GitPath`.
+///
+/// # Arguments
+/// * `dependency` - A reference to the `GitPath` of the dependency.
+/// * `versions` - A reference to a `BTreeMap` mapping `Version` to `PackageInfo`.
+///
+/// # Returns
+/// A reference to the `PackageInfo` corresponding to the specified dependency revision.
 pub fn get_package_info<'a>(
     dependency: &'a GitPath,
     versions: &'a BTreeMap<Version, PackageInfo>,
@@ -219,6 +344,17 @@ pub fn get_package_info<'a>(
     contract
 }
 
+/// Retrieves the version and corresponding package information for a specific revision.
+///
+/// This function finds the version and `PackageInfo` in the provided versions map
+/// that matches the specified revision.
+///
+/// # Arguments
+/// * `versions` - A reference to a `BTreeMap` mapping `Version` to `PackageInfo`.
+/// * `rev` - A reference to a `String` representing the revision.
+///
+/// # Returns
+/// A tuple containing a reference to the `Version` and a reference to the `PackageInfo`.
 pub fn get_version_and_pkg_info_from_rev<'a>(
     versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
@@ -229,6 +365,16 @@ pub fn get_version_and_pkg_info_from_rev<'a>(
         .expect(format!("Could not find rev {} in version map", rev).as_str())
 }
 
+/// Retrieves `PackageInfo` for a given revision.
+///
+/// This function looks up the `PackageInfo` for a specific revision within the versions map.
+///
+/// # Arguments
+/// * `versions` - A reference to a `BTreeMap` mapping `Version` to `PackageInfo`.
+/// * `rev` - A reference to a `String` representing the revision.
+///
+/// # Returns
+/// A reference to the `PackageInfo` for the specified revision.
 pub fn get_package_info_from_rev<'a>(
     versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
@@ -240,6 +386,17 @@ pub fn get_package_info_from_rev<'a>(
         .1
 }
 
+/// Retrieves the object ID for a given revision from the versions map.
+///
+/// This function finds the object ID associated with a specific revision of a package.
+/// The object ID is part of the `PackageInfo` and is used for identifying the package.
+///
+/// # Arguments
+/// * `versions` - A reference to a `BTreeMap` mapping `Version` to `PackageInfo`.
+/// * `rev` - A reference to a `String` representing the revision.
+///
+/// # Returns
+/// A reference to the `Address` object ID for the specified revision.
 pub fn get_object_id_from_rev<'a>(
     versions: &'a BTreeMap<Version, PackageInfo>,
     rev: &'a String,
@@ -250,6 +407,17 @@ pub fn get_object_id_from_rev<'a>(
     &contract.contract_ref.object_id
 }
 
+/// Generates a `PackagePath` for a given dependency.
+///
+/// This function constructs a `PackagePath`, including both the path and object ID,
+/// for a specific dependency based on its `GitPath` and the versions map.
+///
+/// # Arguments
+/// * `dependency` - A reference to the `GitPath` of the dependency.
+/// * `versions` - A reference to a `BTreeMap` mapping `Version` to `PackageInfo`.
+///
+/// # Returns
+/// A `PackagePath` consisting of the dependency's path and its associated object ID.
 pub fn get_contract_ref(
     dependency: &GitPath,
     versions: &BTreeMap<Version, PackageInfo>,
@@ -265,6 +433,18 @@ pub fn get_contract_ref(
 
 /// This function is here because Toml serializer seems to be
 /// failing to add a vertical space between the tables `package` and `dependencies`
+///
+/// Adds vertical spacing to a TOML string.
+///
+/// This function is a workaround for a known issue where the TOML serializer
+/// does not add vertical space between tables. It ensures better readability
+/// of the serialized TOML string.
+///
+/// # Arguments
+/// * `input` - The original TOML string.
+///
+/// # Returns
+/// The modified TOML string with added vertical spacing.
 pub fn add_vertical_spacing(input: &str) -> String {
     let re = Regex::new(r"(?m)^(published-at.*)")
         .expect("Failed to read `published-at` field");
