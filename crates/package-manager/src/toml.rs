@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, str::FromStr};
 
 use crate::{
-    package::{GitPath, Package, PackageInfo, PackagePath, PackageRegistry},
+    package::{
+        Flavor, GitPath, Package, PackageInfo, PackagePath, PackageRegistry,
+    },
     version::Version,
 };
 
@@ -217,6 +219,7 @@ impl MoveToml {
     /// A result containing the new `MoveToml` instance or an error.
     pub fn get_toml(
         name: &str,
+        flavor: Flavor,
         pkg_registry: &PackageRegistry,
         dep_names: &[String],
         ext_dep_names: &[String],
@@ -243,6 +246,7 @@ impl MoveToml {
             package: Package::new(
                 name.to_string(),
                 Version::from_str("1.0.0")?,
+                flavor,
                 Some(empty_addr.clone()),
             ),
             dependencies,
@@ -268,6 +272,7 @@ impl MoveToml {
     /// A result containing the new `MoveToml` instance or an error.
     pub fn get_toml_latest(
         name: &str,
+        flavor: Flavor,
         pkg_registry: &PackageRegistry,
         dep_names: &[String],
         ext_dep_names: &[String],
@@ -278,6 +283,7 @@ impl MoveToml {
 
         MoveToml::get_toml(
             name,
+            flavor,
             pkg_registry,
             dep_names,
             ext_dep_names,

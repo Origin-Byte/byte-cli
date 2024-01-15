@@ -9,7 +9,9 @@ use gutenberg_types::{
 };
 pub use manifest::write_manifest;
 use manifest::write_manifest_with_flavours;
-use package_manager::{get_program_registry, version::Version, Network};
+use package_manager::{
+    get_program_registry, package::Flavor, version::Version, Network,
+};
 use std::{
     ffi::OsStr,
     fs::{self, File},
@@ -190,8 +192,8 @@ pub fn generate_contract_with_schema(schema: &Schema) -> Vec<ContractFile> {
 /// specified directory.
 ///
 /// # Arguments
-/// * `is_demo` - A boolean indicating if the project is a demo.
 /// * `config_path` - Path to the configuration file.
+/// * `flavor` - The network flavor, whether `Mainnet` or `Testnet`.
 /// * `output_dir` - Path to the output directory for writing the project.
 /// * `version` - Optional string representing the version of the project.
 ///
@@ -204,6 +206,7 @@ pub fn generate_contract_with_schema(schema: &Schema) -> Vec<ContractFile> {
 /// - Generates and writes the contract files based on the schema.
 pub fn generate_project(
     config_path: &Path,
+    flavor: Flavor,
     output_dir: &Path,
     version: Option<String>,
 ) -> Result<()> {
@@ -214,7 +217,13 @@ pub fn generate_project(
 
     let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
 
-    write_manifest(schema.package_name(), &contract_dir, &registry, version)?;
+    write_manifest(
+        schema.package_name(),
+        flavor,
+        &contract_dir,
+        &registry,
+        version,
+    )?;
 
     generate_contract_with_schema(&schema)
         .into_iter()

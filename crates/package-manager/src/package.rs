@@ -316,8 +316,15 @@ pub struct PackagePath {
 pub struct Package {
     name: String,
     version: Version,
+    flavor: Flavor,
     #[serde(rename(serialize = "published-at"))]
     published_at: Option<Address>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Clone, PartialEq, Eq)]
+pub enum Flavor {
+    Testnet,
+    Mainnet,
 }
 
 impl Package {
@@ -333,11 +340,13 @@ impl Package {
     pub fn new(
         name: String,
         version: Version,
+        flavor: Flavor,
         published_at: Option<Address>,
     ) -> Self {
         Self {
             name,
             version,
+            flavor,
             published_at,
         }
     }
@@ -553,6 +562,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.0.0")?,
+                flavor: Flavor::Mainnet,
                 published_at: Some(Address::new("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40")?),
             },
             contract_ref: PackagePath {
@@ -576,6 +586,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.2.0")?,
+                flavor: Flavor::Mainnet,
                 published_at: Some(Address::new("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8")?),
             },
             contract_ref: PackagePath {

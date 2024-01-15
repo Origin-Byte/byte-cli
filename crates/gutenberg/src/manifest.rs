@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use package_manager::{
-    package::PackageRegistry,
+    package::{Flavor, PackageRegistry},
     toml::{self as move_toml, MoveToml},
     version::Version,
 };
@@ -15,6 +15,7 @@ use std::{
 /// # Arguments
 ///
 /// * `package_name` - The name of the package.
+/// * `flavor` - The network flavor, whether `Mainnet` or `Testnet`.
 /// * `contract_dir` - The directory where the manifest file will be written.
 /// * `main_registry` - The main package registry.
 /// * `version` - Optional specific version of the package.
@@ -24,12 +25,17 @@ use std::{
 /// Returns a `Result<()>` indicating success or failure.
 pub fn write_manifest(
     package_name: String,
+    flavor: Flavor,
     contract_dir: &Path,
     main_registry: &PackageRegistry,
     version: Option<Version>,
 ) -> Result<()> {
-    let manifest =
-        write_toml_string(package_name.as_str(), &version, &main_registry)?;
+    let manifest = write_toml_string(
+        package_name.as_str(),
+        flavor,
+        &version,
+        &main_registry,
+    )?;
 
     let path = contract_dir.join("Move.toml");
     let mut file = File::create(path)?;
@@ -40,11 +46,13 @@ pub fn write_manifest(
 
 /// Writes a manifest file with flavours for a given package.
 ///
-/// This function generates two TOML files for main and test environments and places them in a 'flavours' directory.
+/// This function generates two TOML files for main and test environments and
+/// places them in a 'flavours' directory.
 ///
 /// # Arguments
 ///
 /// * `package_name` - The name of the package.
+/// * `flavor` - The network flavor, whether `Mainnet` or `Testnet`.
 /// * `contract_dir` - The directory where the manifest files will be written.
 /// * `main_registry` - The main package registry.
 /// * `test_registry` - The test package registry.
@@ -60,11 +68,19 @@ pub fn write_manifest_with_flavours(
     test_registry: &PackageRegistry,
     version: Option<Version>,
 ) -> Result<()> {
-    let main_toml_string =
-        write_toml_string(package_name.as_str(), &version, &main_registry)?;
+    let main_toml_string = write_toml_string(
+        package_name.as_str(),
+        Flavor::Mainnet,
+        &version,
+        &main_registry,
+    )?;
 
-    let test_toml_string =
-        write_toml_string(package_name.as_str(), &version, &test_registry)?;
+    let test_toml_string = write_toml_string(
+        package_name.as_str(),
+        Flavor::Testnet,
+        &version,
+        &test_registry,
+    )?;
 
     let flavours_path = contract_dir.join("flavours/");
     fs::create_dir_all(&flavours_path).with_context(|| {
@@ -102,11 +118,13 @@ pub fn write_manifest_with_flavours(
 
 /// Generates a TOML string for a module's manifest.
 ///
-/// This function constructs the TOML representation of a module's manifest, including dependencies and versions.
+/// This function constructs the TOML representation of a module's manifest,
+/// including dependencies and versions.
 ///
 /// # Arguments
 ///
 /// * `module_name` - The name of the module.
+/// * `flavor` - The network flavor, whether `Mainnet` or `Testnet`.
 /// * `version` - Optional specific version for the module.
 /// * `registry` - The package registry used for resolving dependencies.
 ///
@@ -115,12 +133,14 @@ pub fn write_manifest_with_flavours(
 /// Returns a `Result<String>` containing the TOML string or an error.
 pub fn write_toml_string(
     module_name: &str,
+    flavor: Flavor,
     version: &Option<Version>,
     registry: &PackageRegistry,
 ) -> Result<String> {
     let mut move_toml = match version {
         Some(version) => MoveToml::get_toml(
             module_name,
+            flavor,
             registry,
             &[
                 String::from("NftProtocol"),
@@ -132,6 +152,7 @@ pub fn write_toml_string(
         )?,
         None => MoveToml::get_toml_latest(
             module_name,
+            flavor,
             registry,
             &[
                 String::from("NftProtocol"),

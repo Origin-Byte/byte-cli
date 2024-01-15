@@ -1,5 +1,6 @@
 use clap::Parser;
 use gutenberg::generate_project;
+use package_manager::package::Flavor;
 use std::path::Path;
 
 /// A struct representing command-line arguments.
@@ -28,6 +29,7 @@ fn main() {
     // and handle potential errors.
     if let Err(err) = generate_project(
         &config_path_parsed,
+        Flavor::Mainnet,
         &output_dir_parsed,
         Some(String::from("1.3.0")), /* TODO: It should not be a fixed
                                       * version string */
