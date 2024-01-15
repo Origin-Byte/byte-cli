@@ -1746,6 +1746,7 @@ dependencies = [
  "dotenv",
  "git2",
  "glob",
+ "gutenberg",
  "gutenberg-types",
  "hex",
  "indicatif 0.16.2",

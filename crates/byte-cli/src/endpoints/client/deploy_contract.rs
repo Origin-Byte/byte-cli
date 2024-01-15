@@ -1,52 +1,24 @@
 use anyhow::{anyhow, Result};
 use console::style;
-use gutenberg_types::Schema;
 use package_manager::Network;
-use reqwest::Client;
 use rust_sdk::models::project::{
     AdminObjects, CollectionObjects, MintCap, Project,
 };
 use rust_sdk::utils::execute_tx;
 use rust_sdk::{collection_state::ObjectType as OBObjectType, publish};
 use rust_sdk::{consts::VOLCANO_EMOJI, utils::get_context};
-use serde_json::json;
 use std::fs::File;
 use std::path::Path;
 use std::sync::mpsc::channel;
-use std::time::Duration;
 use sui_sdk::rpc_types::{
     SuiTransactionBlockEffects, SuiTransactionBlockResponse,
 };
-use sui_sdk::types::transaction::{TransactionData, TransactionDataV1};
 use terminal_link::Link;
 use tokio::task::JoinSet;
-
-use crate::endpoints::account::{get_jwt, login};
-use crate::models::Accounts;
 
 use super::check_network_match;
 use super::get_gas_budget;
 use super::get_gas_coin;
-
-/// Parses the configuration file to return a Schema object.
-///
-/// # Arguments
-/// * `config_file` - A reference to a Path representing the configuration file.
-///
-/// # Returns
-/// Result containing the Schema object or an error if parsing fails.
-pub fn parse_config(config_file: &Path) -> Result<Schema, anyhow::Error> {
-    let file = File::open(config_file).map_err(|err| {
-        anyhow!(
-            r#"Could not find configuration file "{}": {err}
-Call `byte-cli init-collection-config` to initialize the configuration file."#,
-            config_file.display()
-        )
-    })?;
-
-    serde_json::from_reader::<File, Schema>(file).map_err(|err|anyhow!(r#"Could not parse configuration file "{}": {err}
-Call `byte-cli init-collection-config to initialize the configuration file again."#, config_file.display()))
-}
 
 /// Parses the state file to return a Project object.
 ///
@@ -68,103 +40,20 @@ Call `byte-cli init-collection-config` to initialize the configuration file."#,
         .map_err(|err| anyhow!(r#"Failed to serialize project state: {err}."#))
 }
 
-// TODO: Add back
-// pub fn generate_contract(
-//     schema: Schema,
-//     output_dir: &Path,
-// ) -> Result<(), anyhow::Error> {
-//     println!("{} Generating contract", style("WIP").cyan().bold());
-
-//     let package_name = schema.package_name();
-//     let contract_dir = gutenberg::generate_contract_dir(&schema, output_dir);
-
-//     // Write Move-main.toml
-//     let flavours_path = contract_dir.join("flavours/");
-//     fs::create_dir_all(&flavours_path).with_context(|| {
-//         format!(
-//             r#"Could not create "{path}""#,
-//             path = flavours_path.display()
-//         )
-//     })?;
-
-//     let main_toml_path = contract_dir.join("flavours/Move-main.toml");
-//     let mut main_toml_file =
-//         File::create(&main_toml_path).with_context(|| {
-//             format!(
-//                 r#"Could not create "{path}""#,
-//                 path = main_toml_path.display()
-//             )
-//         })?;
-
-//     main_toml_file
-//         .write_all(
-//             gutenberg::generate_manifest(package_name.clone())
-//                 .to_string()?
-//                 .as_bytes(),
-//         )
-//         .with_context(|| {
-//             format!(
-//                 r#"Could not write to {path}"#,
-//                 path = main_toml_path.display()
-//             )
-//         })?;
-
-//     // Write Move-test.toml
-//     let test_toml_path = contract_dir.join("flavours/Move-test.toml");
-//     let mut test_toml_file =
-//         File::create(&test_toml_path).with_context(|| {
-//             format!(
-//                 r#"Could not create "{path}""#,
-//                 path = main_toml_path.display()
-//             )
-//         })?;
-
-//     test_toml_file
-//         .write_all(
-//             gutenberg::generate_manifest(package_name)
-//                 .to_string()?
-//                 .as_bytes(),
-//         )
-//         .with_context(|| {
-//             format!(
-//                 r#"Could not write to {path}"#,
-//                 path = main_toml_path.display()
-//             )
-//         })?;
-
-//     // Copy Main Move.toml
-//     fs::copy(main_toml_path, contract_dir.join("Move.toml"))?;
-
-//     // TODO: Implement license check
-//     let is_demo = false;
-//     gutenberg::generate_contract_with_schema(schema, is_demo)
-//         .into_iter()
-//         .for_each(|file| file.write_to_file(&contract_dir).unwrap());
-
-//     println!("{} Generating contract", style("DONE").green().bold());
-
-//     Ok(())
-// }
-
-/// Asynchronously generates code and publishes a contract.
+/// Asynchronously publishes a contract.
 ///
 /// # Arguments
 /// * `state` - Mutable reference to the Project struct.
-/// * `accounts` - Reference to the Accounts struct.
-/// * `name` - The name of the contract.
-/// * `schema` - Reference to the Schema struct.
 /// * `gas_coin` - Optional String representing the gas coin.
 /// * `gas_budget` - Optional usize representing the gas budget.
 /// * `network` - The blockchain network.
-/// * `contract_dir` - A reference to a Path representing the contract directory.
+/// * `contract_dir` - A reference to a Path representing the contract
+///   directory.
 ///
 /// # Returns
 /// Result type which is either empty (Ok) or contains an error (Err).
-pub async fn gen_code_and_publish_contract(
+pub async fn publish_contract(
     state: &mut Project,
-    accounts: &Accounts,
-    name: String,
-    schema: &Schema,
     gas_coin: Option<String>,
     gas_budget: Option<usize>,
     network: Network,
@@ -189,93 +78,21 @@ pub async fn gen_code_and_publish_contract(
     let gas_coin = get_gas_coin(&sui_client, sender, gas_coin).await?;
     let gas_budget = get_gas_budget(gas_coin.clone(), gas_budget)?;
 
-    let api_client = Client::builder()
-        .timeout(Duration::from_secs(5000000000)) // Set a timeout of 30 seconds
-        .build()?;
-
-    let schema_json =
-        serde_json::to_string(&schema).expect("Failed to serialize schema");
-
-    let req_body = json!({
-        "name": name,
-        "configJson": schema_json,
-        "sender": sender.to_string(),
-        "gasBudget": gas_budget,
-        "projectDir": contract_dir,
-        "gasCoin": gas_coin,
-        "network": network,
-    });
-
-    let main_acc = accounts.get_main_account();
-
-    let login_result = login(&main_acc.email, &main_acc.password).await?;
-    let jwt = get_jwt(login_result).await?;
-
-    let res = api_client
-        .post("https://suiplay-api.originbyte.io/v1/admin/contracts/generateContractAndBuildPublishTransaction")
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", jwt)) // Add the Authorization
-        .json(&req_body)
-        .send()
-        .await?;
-
-    let status = res.status();
-
-    // Check if the status is a success.
-    if status.is_success() {
-        println!("Successfully generated contract.");
-    } else if status.is_client_error() {
-        // Get the body of the response.
-        let body = res.text().await?;
-        return Err(anyhow!(
-            "Client Error with status: {} and the following message: {}",
-            status,
-            body
-        ));
-    } else {
-        let body = res.text().await?;
-        return Err(anyhow!(
-            "Server Error with status: {} and the following message: {:?}",
-            status,
-            body,
-        ));
-    }
-
-    let body = res.text().await?;
-
-    let transaction_data_v1: TransactionDataV1 = serde_json::from_str(&body)?;
-    let transaction_data = TransactionData::V1(transaction_data_v1);
+    let tx_data = publish::prepare_publish_contract(
+        sender,
+        contract_dir,
+        (gas_coin.coin_object_id, gas_coin.version, gas_coin.digest),
+        gas_budget as u64,
+    )
+    .await?;
 
     let response: SuiTransactionBlockResponse =
-        execute_tx(&wallet_ctx, transaction_data).await?;
+        execute_tx(&wallet_ctx, tx_data).await?;
 
     process_effects(state, response).await?;
 
     Ok(())
 }
-
-// TODO: Add back
-// pub async fn publish_contract(
-//     gas_budget: usize,
-//     contract_dir: &Path,
-// ) -> Result<SuiTransactionBlockResponse, anyhow::Error> {
-//     let wallet_ctx = rust_sdk::utils::get_context().await?;
-//     let client = wallet_ctx.get_client().await?;
-//     let sender = wallet_ctx.config.active_address.unwrap();
-
-//     let gas_coin = rust_sdk::utils::get_coin_ref(
-//         &coin::get_max_coin(&client, sender).await?,
-//     );
-
-//     let response = publish::publish_contract_and_pay(
-//         contract_dir,
-//         gas_coin,
-//         gas_budget as u64,
-//     )
-//     .await?;
-
-//     Ok(response)
-// }
 
 /// Asynchronously processes the effects of a transaction block response.
 ///

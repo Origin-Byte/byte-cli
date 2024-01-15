@@ -30,7 +30,6 @@ pub async fn gen_contract(
     let mut schema = serde_json::from_str(&data.config_json)?;
 
     gutenberg::generate_project_with_flavors(
-        false,
         &mut schema,
         &contract_dir,
         Some(String::from("1.3.0")),

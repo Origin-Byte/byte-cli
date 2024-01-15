@@ -24,7 +24,8 @@ impl FromPrompt for CollectionData {
     /// Result containing CollectionData or an error.
     ///
     /// # Functionality
-    /// - Prompts the user for various pieces of collection data, including name, description, symbol, URL, and creator addresses.
+    /// - Prompts the user for various pieces of collection data, including
+    ///   name, description, symbol, URL, and creator addresses.
     /// - Validates the input where necessary, using custom validators.
     /// - Constructs and returns the CollectionData with supplied values.
     fn from_prompt(_param: ()) -> Result<Self, anyhow::Error>
@@ -86,7 +87,8 @@ impl FromPrompt for CollectionData {
                     .with_prompt(format!(
                         "Please input address of the creator number {}:",
                         i + 1,
-                        // if i == 0 {" (Note: The first address will receive the MintCap object)"} else {""}
+                        // if i == 0 {" (Note: The first address will receive
+                        // the MintCap object)"} else {""}
                     ))
                     .validate_with(address_validator)
                     .interact()

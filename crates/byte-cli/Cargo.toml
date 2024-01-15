@@ -8,6 +8,7 @@ rust-sdk = { path = "../rust-sdk" }
 uploader = { path = "../uploader" }
 package-manager = { path = "../package-manager" }
 gutenberg-types = { path = "../gutenberg-types" }
+gutenberg = { path = "../gutenberg" }
 
 sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
 move-package = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }

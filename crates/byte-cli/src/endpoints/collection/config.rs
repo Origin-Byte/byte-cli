@@ -7,13 +7,16 @@ use rust_sdk::models::project::Project;
 /// Asynchronously initializes the configuration for an NFT collection.
 ///
 /// # Arguments
-/// * `builder` - A mutable SchemaBuilder object to configure the collection and NFT metadata.
+/// * `builder` - A mutable SchemaBuilder object to configure the collection and
+///   NFT metadata.
 ///
 /// # Returns
-/// A Result tuple containing the updated SchemaBuilder and Project, or an error.
+/// A Result tuple containing the updated SchemaBuilder and Project, or an
+/// error.
 ///
 /// # Functionality
-/// - Welcomes the user and guides them through setting up collection level metadata.
+/// - Welcomes the user and guides them through setting up collection level
+///   metadata.
 /// - Obtains collection data from the user using interactive prompts.
 /// - Sets up the project with the collection name and sender address.
 /// - Guides the user to configure NFT level metadata.
@@ -35,7 +38,7 @@ pub async fn init_collection_config(
 
     builder.collection = Some(CollectionData::from_prompt(())?);
 
-    let keystore = rust_sdk::utils::get_keystore().await?;
+    let keystore = rust_sdk::utils::get_keystore()?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
     let project = Project::new(
         builder.collection.as_ref().unwrap().name().unwrap(),

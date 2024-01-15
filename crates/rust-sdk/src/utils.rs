@@ -10,6 +10,7 @@ use sui_config::{sui_config_dir, SUI_CLIENT_CONFIG};
 use sui_json_rpc_types::{
     Coin, SuiObjectData, SuiObjectDataFilter, SuiObjectDataOptions,
     SuiObjectResponse, SuiObjectResponseQuery, SuiTransactionBlockResponse,
+    SuiTransactionBlockResponseOptions,
 };
 use sui_keys::keystore::AccountKeystore;
 use sui_keys::keystore::{FileBasedKeystore, Keystore};
@@ -17,9 +18,19 @@ use sui_sdk::wallet_context::WalletContext;
 use sui_sdk::{SuiClient, SuiClientBuilder};
 use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
 use sui_types::crypto::Signature;
+use sui_types::quorum_driver_types::ExecuteTransactionRequestType;
 use sui_types::transaction::{Transaction, TransactionData};
 
 use crate::err::RustSdkError;
+
+pub async fn get_client_mainnet() -> Result<SuiClient, RustSdkError> {
+    let client_builder = SuiClientBuilder::default();
+    let client = client_builder
+        .build("https://fullnode.mainnet.sui.io:443")
+        .await?;
+
+    Ok(client)
+}
 
 /// Retrieves a Sui client for network interactions.
 ///
@@ -129,7 +140,7 @@ where
 ///
 /// # Returns
 /// A result containing the keystore or a `RustSdkError`.
-pub async fn get_keystore() -> Result<Keystore, RustSdkError> {
+pub fn get_keystore() -> Result<Keystore, RustSdkError> {
     // Load keystore from ~/.sui/sui_config/sui.keystore
     let keystore_path = match dirs::home_dir() {
         Some(v) => v.join(".sui").join("sui_config").join("sui.keystore"),
@@ -259,6 +270,49 @@ pub async fn execute_tx(
             Intent::sui_transaction(),
             signatures,
         ))
+        .await?;
+
+    println!(
+        "{} Sending and executing transaction.",
+        style("Done").cyan().bold()
+    );
+
+    Ok(response)
+}
+
+pub async fn execute_tx_with_client(
+    // This way it works with both Arc<SuiClient> and &SuiClient
+    client: impl Deref<Target = SuiClient>,
+    tx_data: TransactionData,
+    sender: SuiAddress,
+) -> Result<SuiTransactionBlockResponse, RustSdkError> {
+    let keystore = get_keystore()?;
+
+    // Sign transaction.
+    let mut signatures: Vec<Signature> = vec![];
+
+    let signature =
+        keystore.sign_secure(&sender, &tx_data, Intent::sui_transaction())?;
+
+    signatures.push(signature);
+
+    // Execute the transaction.
+    println!(
+        "{} Sending and executing transaction.",
+        style("WIP").cyan().bold()
+    );
+
+    let response = client
+        .quorum_driver_api()
+        .execute_transaction_block(
+            Transaction::from_data(
+                tx_data,
+                Intent::sui_transaction(),
+                signatures,
+            ),
+            SuiTransactionBlockResponseOptions::new(),
+            Some(ExecuteTransactionRequestType::WaitForEffectsCert),
+        )
         .await?;
 
     println!(

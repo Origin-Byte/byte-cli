@@ -6,14 +6,14 @@ pub mod io;
 pub mod models;
 
 use crate::io::LocalRead;
-use crate::models::Accounts;
 use anyhow::{anyhow, Result};
 use byte_cli::SchemaBuilder;
 use clap::Parser;
 use cli::{
-    AccountCommands, Cli, ClientCommands, CoinCommands, CollectionCommands,
-    Commands, ImageCommands, MoveCommands,
+    Cli, ClientCommands, CoinCommands, CollectionCommands, ImageCommands,
+    MoveCommands,
 };
+use endpoints::collection::codegen;
 use endpoints::*;
 use io::LocalWrite;
 use package_manager::toml::{self as move_toml, MoveToml};
@@ -51,51 +51,8 @@ async fn main() {
 async fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    match cli.command {
-        Commands::Account { cmd } => match cmd {
-            AccountCommands::Create { root_dir } => {
-                // IO Read
-                let byte_path = io::get_byte_path(&root_dir);
-                let mut accounts = Accounts::read_json(&byte_path)?;
-
-                // Logic
-                account::create::signup(&mut accounts).await?;
-
-                // IO Write
-                accounts.write_json(&byte_path.as_path())?;
-            }
-            AccountCommands::Link { root_dir } => {
-                // IO Read
-                let byte_path = io::get_byte_path(&root_dir);
-                let mut accounts = Accounts::read_json(&byte_path)?;
-
-                // Logic
-                account::link::add_profile(&mut accounts).await?;
-
-                // IO Write
-                accounts.write_json(&byte_path.as_path())?;
-            }
-            AccountCommands::Switch { email, root_dir } => {
-                // IO Read
-                let byte_path = io::get_byte_path(&root_dir);
-                let mut accounts = Accounts::read_json(&byte_path)?;
-
-                // Logic
-                account::switch::switch(email, &mut accounts)?;
-
-                // IO Write
-                accounts.write_json(&byte_path.as_path())?;
-            }
-            AccountCommands::List { root_dir } => {
-                // IO Read
-                let byte_path = io::get_byte_path(&root_dir);
-                let accounts = Accounts::read_json(&byte_path)?;
-
-                // Logic
-                account::list::list(&accounts)?;
-            }
-        },
-        Commands::Collection { cmd } => {
+    match cli {
+        Cli::Collection { cmd } => {
             match cmd {
                 CollectionCommands::ConfigBasic { name, project_dir } => {
                     // Input
@@ -138,20 +95,22 @@ async fn run() -> Result<()> {
                     // Output
                     builder.write_json(&schema_path)?;
                     project.write_json(&project_path)?;
-                } // ClientCommands::GenerateContract { name, project_dir } => {
-                  //     // Input
-                  //     let schema_path =
-                  //         io::get_schema_filepath(name.as_str(), &project_dir);
-                  //     let contract_dir =
-                  //         io::get_contract_path(name.as_str(), &project_dir);
+                }
+                CollectionCommands::Codegen { name, project_dir } => {
+                    // Input
+                    let schema_path =
+                        io::get_schema_filepath(name.as_str(), &project_dir);
+                    let contract_dir =
+                        io::get_contract_path(name.as_str(), &project_dir);
 
-                  //     // Logic
-                  //     let schema = deploy_contract::parse_config(schema_path.as_path())?;
-                  //     deploy_contract::generate_contract(schema, contract_dir.as_path())?;
-                  // }
+                    // Logic
+                    let schema = codegen::parse_config(schema_path.as_path())?;
+                    codegen::gen_contract(contract_dir.as_path(), &schema)
+                        .await?;
+                }
             }
         }
-        Commands::Images { cmd } => {
+        Cli::Images { cmd } => {
             match cmd {
                 ImageCommands::Config { name, project_dir } => {
                     // IO Read
@@ -186,8 +145,8 @@ async fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Client { cmd } => match cmd {
-            ClientCommands::PublishNftCollection {
+        Cli::Client { cmd } => match cmd {
+            ClientCommands::PublishCollection {
                 name,
                 network,
                 project_dir,
@@ -205,37 +164,15 @@ async fn run() -> Result<()> {
                 );
 
                 let contract_dir =
-                    PathBuf::from(Path::new(&format!("{}/contract", name)));
-
-                io::get_contract_path(name.as_str(), &project_dir);
-
-                let schema_path =
-                    io::get_schema_filepath(name.as_str(), &project_dir);
-
-                let byte_path = io::get_byte_path(&None);
-                let accounts = Accounts::read_json(&byte_path)?;
-
-                // TODO
-                let _main_account = accounts.get_main_account();
+                    io::get_contract_path(name.as_str(), &project_dir);
 
                 // Logic
-                // TODO
-                let _theme = cli::get_dialoguer_theme();
-
                 let mut state = client::deploy_contract::parse_state(
                     project_path.as_path(),
                 )?;
 
-                let schema = client::deploy_contract::parse_config(
-                    schema_path.as_path(),
-                )?;
-                let accounts = Accounts::read_json(&byte_path)?;
-
-                client::deploy_contract::gen_code_and_publish_contract(
+                client::deploy_contract::publish_contract(
                     &mut state,
-                    &accounts,
-                    name,
-                    &schema,
                     gas_coin,
                     gas_budget,
                     network,
@@ -267,9 +204,7 @@ async fn run() -> Result<()> {
                     io::get_schema_filepath(name.as_str(), &project_dir);
 
                 // Logic
-                let schema = client::deploy_contract::parse_config(
-                    schema_path.as_path(),
-                )?;
+                let schema = codegen::parse_config(schema_path.as_path())?;
                 let mut state = client::deploy_contract::parse_state(
                     project_path.as_path(),
                 )?;
@@ -313,10 +248,8 @@ async fn run() -> Result<()> {
                 );
 
                 // Logic
-                // TODO: Replace this logic with the our IO Trait
-                let schema = client::deploy_contract::parse_config(
-                    schema_path.as_path(),
-                )?;
+                // TODO: Replace this logic with our IO Trait
+                let schema = codegen::parse_config(schema_path.as_path())?;
                 let mut state = client::deploy_contract::parse_state(
                     project_path.as_path(),
                 )?;
@@ -340,54 +273,59 @@ async fn run() -> Result<()> {
 
                 // Output
                 state.write_json(&project_path)?;
-            } // TOOD: Add back feature
-              // Commands::ParallelMint {
-              //     name,
-              //     project_dir,
-              //     gas_budget,
-              //     main_gas_id,
-              //     minor_gas_id,
-              // } => {
-              //     // Input
-              //     let _schema_path =
-              //         io::get_schema_filepath(name.as_str(), &project_dir);
+            } /* TOOD: Add back feature
+               * Commands::ParallelMint {
+               *     name,
+               *     project_dir,
+               *     gas_budget,
+               *     main_gas_id,
+               *     minor_gas_id,
+               * } => {
+               *     // Input
+               *     let _schema_path =
+               *         io::get_schema_filepath(name.as_str(),
+               * &project_dir); */
 
-              //     let project_path =
-              //         io::get_project_filepath(name.as_str(), &project_dir);
+              /*     let project_path =
+               *         io::get_project_filepath(name.as_str(),
+               * &project_dir); */
 
-              //     // Logic
-              //     // let schema = deploy_contract::parse_config(file_path.as_path())?;
-              //     let state = deploy_contract::parse_state(project_path.as_path())?;
+              /*     // Logic
+               *     // let schema = deploy_contract::parse_config(file_path.as_path())?;
+               *     let state =
+               * deploy_contract::parse_state(project_path.as_path())?; */
 
-              //     // if schema.contract.is_none() {
-              //     //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
-              //     // }
+              /*     // if schema.contract.is_none() {
+               *     //     return Err(anyhow!("Error: Could not find contract ID in config file. Make sure you run the command `deploy-contract`"));
+               *     // } */
 
-              //     // let mut state = CollectionState::try_read_config(&state_path)?;
+              /*     // let mut state = CollectionState::try_read_config(&state_path)?; */
 
-              //     let main_gas_id = ObjectID::from_str(main_gas_id.as_str())
-              //         .map_err(|err| {
-              //             anyhow!(r#"Unable to parse main-gas-id object: {err}"#)
-              //         })?;
-              //     let minor_gas_id = ObjectID::from_str(minor_gas_id.as_str())
-              //         .map_err(|err| {
-              //             anyhow!(r#"Unable to parse minor-gas-id object: {err}"#)
-              //         })?;
+              /*     let main_gas_id =
+               * ObjectID::from_str(main_gas_id.as_str())
+               *         .map_err(|err| {
+               *             anyhow!(r#"Unable to parse main-gas-id object:
+               * {err}"#)         })?;
+               *     let minor_gas_id =
+               * ObjectID::from_str(minor_gas_id.as_str())
+               *         .map_err(|err| {
+               *             anyhow!(r#"Unable to parse minor-gas-id object:
+               * {err}"#)         })?; */
 
-              //     mint_nfts::parallel_mint_nfts(
-              //         name,
-              //         gas_budget,
-              //         state,
-              //         main_gas_id,
-              //         minor_gas_id,
-              //     )
-              //     .await?;
+              /*     mint_nfts::parallel_mint_nfts(
+               *         name,
+               *         gas_budget,
+               *         state,
+               *         main_gas_id,
+               *         minor_gas_id,
+               *     )
+               *     .await?; */
 
-              //     // Output
-              //     // io::write_collection_state(&state, &state_path)?;
-              // }
+              /*     // Output
+               *     // io::write_collection_state(&state, &state_path)?;
+               * } */
         },
-        Commands::Coin { cmd } => match cmd {
+        Cli::Coin { cmd } => match cmd {
             CoinCommands::List {} => {
                 let wallet_ctx = get_context().await.unwrap();
                 let client = wallet_ctx.get_client().await?;
@@ -402,13 +340,13 @@ async fn run() -> Result<()> {
                 gas_budget,
                 amount,
                 count,
-                gas_id,
+                gas_coin,
             } => {
                 let wallet_ctx = get_context().await.unwrap();
                 let client = wallet_ctx.get_client().await?;
                 let sender = wallet_ctx.config.active_address.unwrap();
 
-                let gas_id = match gas_id {
+                let gas_id = match gas_coin {
                     Some(gas_id) => Some(
                         ObjectID::from_str(gas_id.as_str()).map_err(|err| {
                             anyhow!(r#"Unable to parse gas-id object: {err}"#)
@@ -428,13 +366,16 @@ async fn run() -> Result<()> {
                 let coin_list = coin::list_coins(&client, sender).await?;
                 println!("{}", coin_list);
             }
-            CoinCommands::Melt { gas_budget, gas_id } => {
+            CoinCommands::Melt {
+                gas_budget,
+                gas_coin,
+            } => {
                 let wallet_ctx = get_context().await.unwrap();
                 let client = wallet_ctx.get_client().await?;
                 let sender = wallet_ctx.config.active_address.unwrap();
 
                 let gas_id =
-                    ObjectID::from_str(gas_id.as_str()).map_err(|err| {
+                    ObjectID::from_str(gas_coin.as_str()).map_err(|err| {
                         anyhow!(r#"Unable to parse gas-id object: {err}"#)
                     })?;
 
@@ -444,7 +385,7 @@ async fn run() -> Result<()> {
                 println!("{}", coin_list);
             }
         },
-        Commands::Move { cmd } => {
+        Cli::Move { cmd } => {
             match cmd {
                 MoveCommands::CheckDependencies {
                     name,
@@ -479,8 +420,8 @@ async fn run() -> Result<()> {
                     file.write_all(toml_string.as_bytes())?;
                 }
                 MoveCommands::LoadEnv {
-                    network,
                     name,
+                    network,
                     project_dir,
                 } => {
                     let mut project_dir = match project_dir {
@@ -488,8 +429,9 @@ async fn run() -> Result<()> {
                             PathBuf::from(Path::new(pj_dir.as_str()))
                         }
                         None => match &name {
-                            // If there is a project name but no project dir, then
-                            // default to `.byte` directory
+                            // If there is a project name but no project dir,
+                            // then default to
+                            // `.byte` directory
                             Some(_) => dirs::home_dir()
                                 .unwrap()
                                 .join(".byte/projects/"),

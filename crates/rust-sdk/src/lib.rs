@@ -5,5 +5,6 @@ pub mod err;
 pub mod metadata;
 pub mod mint;
 pub mod models;
+pub mod pay;
 pub mod publish;
 pub mod utils;

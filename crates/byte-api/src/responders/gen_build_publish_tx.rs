@@ -41,11 +41,10 @@ pub async fn gen_build_publish_tx(
     let contract_dir =
         io::get_contract_path(&data.name, &Some(data.project_dir.to_owned()));
 
-    let mut schema = serde_json::from_str(&data.config_json)?;
+    let schema = serde_json::from_str(&data.config_json)?;
 
     gutenberg::generate_project_with_flavors(
-        false,
-        &mut schema,
+        &schema,
         &contract_dir,
         Some(String::from("1.3.0")),
     )

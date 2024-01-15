@@ -150,7 +150,8 @@ impl ContractFile {
 /// Functions for generating and managing Move language contracts and projects.
 ///
 /// Includes functions for generating contract directories, writing contracts,
-/// asserting schema, normalizing type names, and generating projects with flavors.
+/// asserting schema, normalizing type names, and generating projects with
+/// flavors.
 pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
     // Create main contract directory
     let package_name = schema.package_name();
@@ -163,33 +164,30 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
     contract_dir
 }
 
-/// Generates a contract with the given schema and optionally enforces demo constraints.
+/// Generates a contract with the given schema and optionally enforces demo
+/// constraints.
 ///
 /// # Arguments
-/// * `schema` - A mutable reference to a Schema, representing the contract's structure.
+/// * `schema` - A mutable reference to a Schema, representing the contract's
+///   structure.
 /// * `is_demo` - A boolean indicating if demo constraints should be enforced.
 ///
 /// # Returns
-/// A vector of `ContractFile` objects representing the generated contract files.
+/// A vector of `ContractFile` objects representing the generated contract
+/// files.
 ///
 /// # Functionality
 /// - If `is_demo` is true, enforces demo constraints on the schema.
 /// - Generates contract files based on the schema.
-pub fn generate_contract_with_schema(
-    schema: &mut Schema,
-    is_demo: bool,
-) -> Vec<ContractFile> {
-    if is_demo {
-        schema.enforce_demo();
-    }
-
+pub fn generate_contract_with_schema(schema: &Schema) -> Vec<ContractFile> {
     let mut files = Vec::new();
     files.push(schema.write_move());
 
     files
 }
 
-/// Generates a project with the given configuration and writes it to the specified directory.
+/// Generates a project with the given configuration and writes it to the
+/// specified directory.
 ///
 /// # Arguments
 /// * `is_demo` - A boolean indicating if the project is a demo.
@@ -205,12 +203,11 @@ pub fn generate_contract_with_schema(
 /// - Generates the contract directory and writes the project's manifest.
 /// - Generates and writes the contract files based on the schema.
 pub fn generate_project(
-    is_demo: bool,
     config_path: &Path,
     output_dir: &Path,
     version: Option<String>,
 ) -> Result<()> {
-    let mut schema = assert_schema(config_path);
+    let schema = assert_schema(config_path);
     let contract_dir = generate_contract_dir(&schema, output_dir);
 
     let registry = get_program_registry(&Network::Mainnet)?;
@@ -219,7 +216,7 @@ pub fn generate_project(
 
     write_manifest(schema.package_name(), &contract_dir, &registry, version)?;
 
-    generate_contract_with_schema(&mut schema, is_demo)
+    generate_contract_with_schema(&schema)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
@@ -236,7 +233,8 @@ pub fn generate_project(
 ///
 /// # Functionality
 /// - Opens and reads the configuration file.
-/// - Parses the file based on its extension (either YAML or JSON) to a `Schema`.
+/// - Parses the file based on its extension (either YAML or JSON) to a
+///   `Schema`.
 fn assert_schema(path: &Path) -> Schema {
     let config = File::open(path).unwrap();
     let extension =
@@ -270,12 +268,14 @@ fn assert_schema(path: &Path) -> Schema {
     }
 }
 
-/// Generates a project with flavors, setting up the project structure and writing the contract.
+/// Generates a project with flavors, setting up the project structure and
+/// writing the contract.
 ///
 /// # Arguments
 /// * `is_demo` - A boolean indicating if the project is a demo.
 /// * `schema` - A mutable reference to the Schema.
-/// * `contract_dir` - Path to the directory where the contract should be written.
+/// * `contract_dir` - Path to the directory where the contract should be
+///   written.
 /// * `version` - Optional string representing the version of the project.
 ///
 /// # Returns
@@ -286,8 +286,7 @@ fn assert_schema(path: &Path) -> Schema {
 /// - Writes the project's manifest with flavors.
 /// - Generates and writes the contract files based on the schema.
 pub fn generate_project_with_flavors(
-    is_demo: bool,
-    schema: &mut Schema,
+    schema: &Schema,
     contract_dir: &Path,
     version: Option<String>,
 ) -> Result<()> {
@@ -314,7 +313,7 @@ pub fn generate_project_with_flavors(
     )?;
 
     // Write Move contract
-    generate_contract_with_schema(schema, is_demo)
+    generate_contract_with_schema(schema)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
