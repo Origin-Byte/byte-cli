@@ -274,9 +274,26 @@ pub enum CoinCommands {
 /// Enum representing specific Move-related commands.
 #[derive(Parser)]
 pub enum MoveCommands {
+    #[clap(action, about = "Updates OriginByte and Sui dependencies")]
+    UpdateDependencies {
+        #[clap(help = "The name of the NFT collection")]
+        name: String,
+        #[clap(
+            help = "Define the network environment: 'testnet' or 'mainnet'"
+        )]
+        network: String,
+        #[clap(
+            short,
+            long,
+            action,
+            help = "The path to the project directory (defaults to the Home directory)"
+        )]
+        project_dir: Option<String>,
+    },
+
     #[clap(action, about = "Checks OriginByte and Sui dependencies")]
     CheckDependencies {
-        #[clap(help = "The name of the OriginByte library")]
+        #[clap(help = "The name of the NFT collection")]
         name: String,
         #[clap(
             help = "Define the network environment: 'testnet' or 'mainnet'"

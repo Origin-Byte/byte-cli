@@ -28,9 +28,9 @@ use crate::{
 ///   package.
 #[derive(Deserialize, Debug, Serialize)]
 pub struct MoveToml {
-    package: Package,
-    dependencies: BTreeMap<String, GitPath>,
-    addresses: BTreeMap<String, Address>,
+    pub package: Package,
+    pub dependencies: BTreeMap<String, GitPath>,
+    pub addresses: BTreeMap<String, Address>,
 }
 
 impl MoveToml {
@@ -199,6 +199,36 @@ impl MoveToml {
 
                 self.dependencies.insert(dep_name, dep);
             });
+    }
+
+    /// Checks for updates to the `MoveToml` file with the latest package
+    /// versions and dependencies.
+    ///
+    /// This function checks for updates in the package registry and updates.
+    ///
+    /// # Arguments
+    /// * `pkg_registry` - A reference to the `PackageRegistry`.
+    pub fn check_updates(&self, pkg_registry: &PackageRegistry) {
+        let dependencies = self.dependency_pkg_infos(pkg_registry);
+
+        let to_update = pkg_registry.get_packages_to_update(&dependencies);
+
+        if to_update.is_empty() {
+            println!("All packages are up to date.");
+            return;
+        }
+
+        to_update.iter().for_each(|pkg_info| {
+            println!(
+                "{}{}",
+                style("Update ").green().bold().on_bright(),
+                format!(
+                    "{} to version {}",
+                    pkg_info.package.name, pkg_info.package.version
+                )
+                .as_str()
+            );
+        });
     }
 
     /// Generates a `MoveToml` instance with specified dependencies and version.

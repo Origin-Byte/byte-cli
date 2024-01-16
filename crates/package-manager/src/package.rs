@@ -14,6 +14,16 @@ pub struct PackageRegistry(
 );
 
 impl PackageRegistry {
+    pub fn set_flavor(&mut self, flavor: Flavor) -> Result<()> {
+        self.0.iter_mut().for_each(|(_pkg_str, pkg)| {
+            pkg.iter_mut().for_each(|(_version, pkg_data)| {
+                pkg_data.package.flavor = Some(flavor);
+            })
+        });
+
+        Ok(())
+    }
+
     /// Retrieves the object ID from the specified package name and revision.
     ///
     /// # Arguments
@@ -312,19 +322,27 @@ pub struct PackagePath {
 /// This struct holds essential information about a package, such as its name,
 /// version, and optional publish date.
 #[derive(Deserialize, Debug, Serialize, Clone, PartialEq, Eq)]
-#[serde(rename_all(deserialize = "camelCase"))]
 pub struct Package {
-    name: String,
-    version: Version,
-    flavor: Flavor,
-    #[serde(rename(serialize = "published-at"))]
-    published_at: Option<Address>,
+    pub name: String,
+    pub version: Version,
+    pub flavor: Option<Flavor>,
+    #[serde(rename = "published-at", alias = "publishedAt")]
+    pub published_at: Option<Address>,
 }
 
-#[derive(Deserialize, Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum Flavor {
     Testnet,
     Mainnet,
+}
+
+impl Flavor {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Flavor::Testnet => "testnet",
+            Flavor::Mainnet => "mainnet",
+        }
+    }
 }
 
 impl Package {
@@ -346,7 +364,7 @@ impl Package {
         Self {
             name,
             version,
-            flavor,
+            flavor: Some(flavor),
             published_at,
         }
     }
@@ -562,7 +580,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.0.0")?,
-                flavor: Flavor::Mainnet,
+                flavor: Some(Flavor::Mainnet),
                 published_at: Some(Address::new("0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40")?),
             },
             contract_ref: PackagePath {
@@ -586,7 +604,7 @@ mod test {
             package: Package {
                 name: String::from("Permissions"),
                 version: Version::from_str("1.2.0")?,
-                flavor: Flavor::Mainnet,
+                flavor: Some(Flavor::Mainnet),
                 published_at: Some(Address::new("0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8")?),
             },
             contract_ref: PackagePath {

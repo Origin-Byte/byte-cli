@@ -5,7 +5,7 @@ pub mod version;
 
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use package::PackageRegistry;
+use package::{Flavor, PackageRegistry};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -77,16 +77,19 @@ pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
         Err(e) => return Err(anyhow!("failed to clone: {}", e)),
     };
 
-    if !repo.is_empty()? {
-        println!("Fetched Program Registry successfully");
-    } else {
+    if repo.is_empty()? {
         return Err(anyhow!(
             "Something went wrong while accessing the Program Registry"
         ));
     }
 
-    let main_registry = serde_json::from_reader(File::open(mainnet_path)?)?;
-    let test_registry = serde_json::from_reader(File::open(testnet_path)?)?;
+    let mut main_registry: PackageRegistry =
+        serde_json::from_reader(File::open(mainnet_path)?)?;
+    let mut test_registry: PackageRegistry =
+        serde_json::from_reader(File::open(testnet_path)?)?;
+
+    main_registry.set_flavor(Flavor::Mainnet)?;
+    test_registry.set_flavor(Flavor::Testnet)?;
 
     Ok((main_registry, test_registry))
 }
@@ -110,7 +113,8 @@ pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
 /// Generates temporary paths for main and test package registries.
 ///
 /// # Returns
-/// A tuple containing a `TempDir`, main registry `PathBuf`, and test registry `PathBuf`.
+/// A tuple containing a `TempDir`, main registry `PathBuf`, and test registry
+/// `PathBuf`.
 pub fn get_pakage_registry_paths() -> (TempDir, PathBuf, PathBuf) {
     let temp_dir =
         TempDir::new().expect("Failed to create temporary directory");

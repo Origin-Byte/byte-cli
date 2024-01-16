@@ -300,7 +300,6 @@ pub fn generate_project_with_flavors(
     version: Option<String>,
 ) -> Result<()> {
     let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
-
     let (main_registry, test_registry) =
         package_manager::get_program_registries()?;
 

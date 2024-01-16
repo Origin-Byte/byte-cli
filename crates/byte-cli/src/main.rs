@@ -387,7 +387,7 @@ async fn run() -> Result<()> {
         },
         Cli::Move { cmd } => {
             match cmd {
-                MoveCommands::CheckDependencies {
+                MoveCommands::UpdateDependencies {
                     name,
                     network,
                     project_dir,
@@ -396,7 +396,9 @@ async fn run() -> Result<()> {
                     let toml_path =
                         io::get_toml_path(name.as_str(), &project_dir);
 
-                    let network = Network::from_str(network.as_str())
+                    let network_ = network.as_str();
+
+                    let network = Network::from_str(network_)
                         .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
 
                     let registry = get_program_registry(&network)?;
@@ -408,6 +410,16 @@ async fn run() -> Result<()> {
                     let mut move_toml: MoveToml =
                         toml::from_str(toml_string.as_str()).unwrap();
 
+                    if let Some(flavor) = move_toml.package.flavor {
+                        if network_ != flavor.to_str() {
+                            return Err(anyhow!(
+                                "Network '{}' does not match flavor '{}'",
+                                network,
+                                flavor.to_str()
+                            ));
+                        }
+                    }
+
                     move_toml.update_toml(&registry);
 
                     let mut toml_string = toml::to_string_pretty(&move_toml)?;
@@ -418,6 +430,41 @@ async fn run() -> Result<()> {
                     // Output
                     let mut file = File::create(toml_path)?;
                     file.write_all(toml_string.as_bytes())?;
+                }
+                MoveCommands::CheckDependencies {
+                    name,
+                    network,
+                    project_dir,
+                } => {
+                    // Input
+                    let toml_path =
+                        io::get_toml_path(name.as_str(), &project_dir);
+
+                    let network_ = network.as_str();
+
+                    let network = Network::from_str(network_)
+                        .map_err(|err| anyhow!("Invalid network: {:?}", err))?;
+
+                    let registry = get_program_registry(&network)?;
+
+                    // Logic
+                    let toml_string: String =
+                        fs::read_to_string(toml_path.clone())?.parse()?;
+
+                    let move_toml: MoveToml =
+                        toml::from_str(toml_string.as_str()).unwrap();
+
+                    if let Some(flavor) = move_toml.package.flavor {
+                        if network_ != flavor.to_str() {
+                            return Err(anyhow!(
+                                "Network '{}' does not match flavor '{}'",
+                                network,
+                                flavor.to_str()
+                            ));
+                        }
+                    }
+
+                    move_toml.check_updates(&registry);
                 }
                 MoveCommands::LoadEnv {
                     name,
