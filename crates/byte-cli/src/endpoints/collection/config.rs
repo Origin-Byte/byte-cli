@@ -1,5 +1,5 @@
 use crate::models::FromPrompt;
-use byte_cli::SchemaBuilder;
+use byte::SchemaBuilder;
 use console::style;
 use gutenberg_types::models::{collection::CollectionData, nft::NftData};
 use rust_sdk::models::project::Project;

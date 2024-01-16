@@ -7,7 +7,7 @@ pub mod models;
 
 use crate::io::LocalRead;
 use anyhow::{anyhow, Result};
-use byte_cli::SchemaBuilder;
+use byte::SchemaBuilder;
 use clap::Parser;
 use cli::{
     Cli, ClientCommands, CoinCommands, CollectionCommands, ImageCommands,
@@ -385,7 +385,7 @@ async fn run() -> Result<()> {
                 println!("{}", coin_list);
             }
         },
-        Cli::Move { cmd } => {
+        Cli::MPM { cmd } => {
             match cmd {
                 MoveCommands::UpdateDependencies {
                     name,

@@ -1,6 +1,6 @@
 use crate::io::{write_json, LocalWrite};
 use anyhow::{anyhow, Result};
-use byte_cli::io::LocalRead;
+use byte::io::LocalRead;
 use chrono::Local;
 use console::style;
 use dotenv::dotenv;

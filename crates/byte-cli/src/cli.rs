@@ -2,14 +2,6 @@ use clap::Parser;
 use console::{style, Style};
 use dialoguer::theme::ColorfulTheme;
 
-/// Command Line Interface structure definition using clap.
-// #[derive(Parser)]
-// #[clap(author, version, about)]
-// pub struct Cli {
-//     #[clap(subcommand)]
-//     pub command: Commands,
-// }
-
 /// Enum representing different command categories.
 #[derive(Parser)]
 pub enum Cli {
@@ -37,8 +29,8 @@ pub enum Cli {
         cmd: CoinCommands,
     },
 
-    #[clap(about = "Move-related commands")]
-    Move {
+    #[clap(about = "Move Package Manager commands")]
+    MPM {
         #[clap(subcommand)]
         cmd: MoveCommands,
     },
