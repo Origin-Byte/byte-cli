@@ -25,11 +25,7 @@ Call `byte-cli init-collection-config to initialize the configuration file again
 }
 
 pub async fn gen_contract(contract_dir: &Path, schema: &Schema) -> Result<()> {
-    gutenberg::generate_project_with_flavors(
-        schema,
-        contract_dir,
-        Some(String::from("1.3.0")), // TODO: This should not be hardcoded
-    )?;
+    gutenberg::generate_project_with_flavors(schema, contract_dir)?;
 
     println!(
         "{} Contract successfully generated: {:?}",

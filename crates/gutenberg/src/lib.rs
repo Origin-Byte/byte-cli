@@ -297,11 +297,11 @@ fn assert_schema(path: &Path) -> Schema {
 pub fn generate_project_with_flavors(
     schema: &Schema,
     contract_dir: &Path,
-    version: Option<String>,
 ) -> Result<()> {
-    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
     let (main_registry, test_registry) =
         package_manager::get_program_registries()?;
+
+    let version = main_registry.get_latest_version("NftProtocol")?;
 
     let sources_dir = &contract_dir.join("sources");
     let _ = fs::remove_dir_all(sources_dir);
@@ -317,7 +317,7 @@ pub fn generate_project_with_flavors(
         &contract_dir,
         &main_registry,
         &test_registry,
-        version,
+        Some(*version),
     )?;
 
     // Write Move contract
