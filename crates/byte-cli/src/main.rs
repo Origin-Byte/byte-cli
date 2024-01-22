@@ -67,7 +67,7 @@ async fn run() -> Result<()> {
                     let schema_path =
                         io::get_schema_filepath(name.as_str(), &project_dir);
 
-                    if Path::new(&project_path).exists() {} // TODO
+                    // TODO: Add check to see if collection has already been created
 
                     let (schema, project) =
                         collection::config_basic::init_schema(&name).await?;
