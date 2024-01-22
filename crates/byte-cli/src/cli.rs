@@ -224,10 +224,11 @@ pub enum CoinCommands {
 
     #[clap(action, about = "Splits a SUI coin into equal chunks")]
     Split {
-        #[clap(short, long, action)]
+        #[clap(short, long, action, help = "The object ID of the coin to split")]
         coin_id: String,
+        #[clap(help = "The quantity of coins resulting from the split")]
         count: u64,
-        #[clap(short, long, action)]
+        #[clap(short, long, action, help = "The absolute amount to be splitted from the coin object")]
         amount: Option<u64>,
         #[clap(
             default_value_t = 10_000_000,
