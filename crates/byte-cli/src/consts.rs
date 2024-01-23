@@ -36,6 +36,7 @@ pub const LAUNCHPAD_ID_TEST: &str =
     "0xf4feb74af60c3baa3cb3c50332edf3b0c2e9e00d353120c41b86182aee342db8";
 pub const MAX_SYMBOL_LENGTH: u64 = 5;
 pub const BPS_100_PERCENT: u64 = 10_000;
+pub const DEFAULT_GAS_BUDGET: u64 = 50_000_000_000;
 
 pub const KIWI_EMOJI: Emoji<'_, '_> = Emoji("🥝 ", "");
 

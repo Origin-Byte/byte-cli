@@ -14,6 +14,8 @@ use sui_sdk::{
     SuiClient,
 };
 
+use crate::consts::DEFAULT_GAS_BUDGET;
+
 pub fn get_gas_budget(
     gas_coin: Coin,
     gas_budget: Option<usize>,
@@ -26,10 +28,10 @@ pub fn get_gas_budget(
         }
         gas_budget
     } else {
-        (if gas_coin.balance < 50000000000 {
+        (if gas_coin.balance < DEFAULT_GAS_BUDGET {
             gas_coin.balance
         } else {
-            50000000000
+            DEFAULT_GAS_BUDGET
         }) as usize
     };
 

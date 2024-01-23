@@ -1,6 +1,6 @@
 use crate::io::{write_json, LocalWrite};
 use anyhow::{anyhow, Result};
-use byte_cli::io::LocalRead;
+use byte::io::LocalRead;
 use chrono::Local;
 use console::style;
 use dotenv::dotenv;
@@ -17,6 +17,24 @@ use uploader::{
     writer::Storage,
 };
 
+/// Deploys assets to a specified storage service.
+///
+/// # Arguments
+/// * `storage` - A reference to the Storage configuration.
+/// * `assets_dir` - PathBuf to the directory containing assets.
+/// * `pre_upload_path` - PathBuf to the pre-upload metadata JSON file.
+/// * `post_upload_path` - PathBuf to the post-upload metadata JSON file.
+///
+/// # Returns
+/// Result type which is either empty (Ok) or contains an error (Err).
+///
+/// # Functionality
+/// - Prepares the assets directory and reads the metadata file.
+/// - Creates error logs and asset structures for each image file.
+/// - Skips files already uploaded and those not matching expected formats.
+/// - Uploads the assets to the specified storage (AWS or Pinata).
+/// - Writes error logs and updates the metadata post-upload.
+/// - Prints a summary of the upload process.
 pub async fn deploy_assets(
     storage: &Storage,
     assets_dir: PathBuf,

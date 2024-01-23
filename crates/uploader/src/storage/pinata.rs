@@ -32,7 +32,7 @@ fn default_limit() -> u16 {
     45
 }
 
-/// response after an nft was stored
+/// Represents the response structure after an NFT is stored on Pinata.
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "PascalCase")]
 pub struct Response {
@@ -40,6 +40,7 @@ pub struct Response {
     pub ipfs_hash: String,
 }
 
+/// Represents the Pinata configuration, including JWT token and endpoints.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PinataConfig {
     pub jwt: String,
@@ -50,6 +51,18 @@ pub struct PinataConfig {
 }
 
 impl PinataConfig {
+    /// Creates a new `PinataConfig` instance with the provided parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `jwt` - The JWT token for Pinata authentication.
+    /// * `upload_gateway` - The Pinata upload gateway URL.
+    /// * `retrieval_gateway` - The Pinata retrieval gateway URL.
+    /// * `parallel_limit` - The parallel upload limit.
+    ///
+    /// # Returns
+    ///
+    /// A `PinataConfig` instance.
     pub fn new(
         jwt: String,
         upload_gateway: String,
@@ -65,6 +78,7 @@ impl PinataConfig {
     }
 }
 
+/// Represents the Pinata setup, including the HTTP client and endpoints.
 pub struct Setup {
     pub client: Client,
     pub endpoint: url::Url,
@@ -73,9 +87,20 @@ pub struct Setup {
     pub parallel_limit: u16,
 }
 
+/// Represents the Pinata setup shared among tasks.
 pub struct PinataSetup(Arc<Setup>);
 
 impl PinataSetup {
+    /// Creates a new `PinataSetup` instance based on the provided
+    /// `PinataConfig`.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The `PinataConfig` containing Pinata settings.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `PinataSetup` instance or an error.
     pub async fn new(config: &PinataConfig) -> Result<Self> {
         let client_builder = Client::builder();
 
@@ -135,7 +160,8 @@ impl PinataSetup {
             .text("pinataOptions", "{\"wrapWithDirectory\": true}");
 
         // Note: Here for testing
-        // tokio::time::sleep(Duration::from_millis(100 * asset.index as u64)).await;
+        // tokio::time::sleep(Duration::from_millis(100 * asset.index as
+        // u64)).await;
 
         if terminate_flag.load(Ordering::SeqCst) {
             // Terminate the loop if terminate_flag is true
@@ -177,8 +203,19 @@ impl PinataSetup {
     }
 }
 
+/// Provides asynchronous functions for preparing assets and uploading them to
+/// Pinata.
 #[async_trait]
 impl Prepare for PinataSetup {
+    /// Validates and prepares assets for Pinata upload.
+    ///
+    /// # Arguments
+    ///
+    /// * `assets` - A slice of assets to be uploaded.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or an error if asset validation fails.
     async fn prepare(&self, assets: &[Asset]) -> Result<()> {
         assets.iter().try_for_each(|asset| {
             let size = {
@@ -200,8 +237,20 @@ impl Prepare for PinataSetup {
     }
 }
 
+/// Implements the `ParallelUploader` trait for PinataSetup.
 #[async_trait]
 impl ParallelUploader for PinataSetup {
+    /// Uploads an asset to Pinata in parallel.
+    ///
+    /// # Arguments
+    ///
+    /// * `asset` - The asset to be uploaded.
+    /// * `metadata` - The global metadata.
+    /// * `terminate_flag` - The termination flag for the upload process.
+    ///
+    /// # Returns
+    ///
+    /// A `JoinHandle` to the task that performs the upload operation.
     fn upload_asset(
         &self,
         asset: Asset,

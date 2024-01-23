@@ -14,12 +14,25 @@ use gutenberg_types::{
 };
 use rust_sdk::models::project::Project;
 
+/// Asynchronously initializes a schema for an NFT collection.
+///
+/// # Arguments
+/// * `name` - A reference to a String representing the name of the NFT
+///   collection.
+///
+/// # Returns
+/// A Result tuple containing the Schema and Project, or an error.
+///
+/// # Functionality
+/// - Creates a new project and sets up collection data and NFT data.
+/// - Configures royalties, mint cap, and other NFT policies.
+/// - Prints a confirmation message once the configuration is created.
 pub async fn init_schema(
     name: &String,
 ) -> Result<(Schema, Project), anyhow::Error> {
     use crate::models::FromPrompt;
 
-    let keystore = rust_sdk::utils::get_keystore().await?;
+    let keystore = rust_sdk::utils::get_keystore()?;
     let sender = rust_sdk::utils::get_active_address(&keystore)?;
     let sender_string = Address::new(&sender.to_string())?;
 

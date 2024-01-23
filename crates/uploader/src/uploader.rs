@@ -19,21 +19,24 @@ use indexmap::IndexMap;
 use rust_sdk::metadata::{GlobalMetadata, Metadata};
 use serde::{Deserialize, Serialize};
 
-/// Maximum number of concurrent tasks (this is important for tasks that handle files
-/// and network connections).
+/// Maximum number of concurrent tasks (this is important for tasks that handle
+/// files and network connections).
 pub const PARALLEL_LIMIT: usize = 45;
 
+/// Represents the outcome of an asset upload process.
 pub enum UploadEffects {
     Success(UploadedAsset),
     Failure(u32),
 }
 
+/// Structure representing an item with a hash and a link.
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Item {
     pub hash: String,
     pub link: String,
 }
 
+/// Holds the state of storage including the batch pointer and items.
 #[derive(Debug, Default)]
 pub struct StorageState {
     pub batch_pointer: u64,
@@ -41,9 +44,19 @@ pub struct StorageState {
     pub missed_items: IndexMap<String, u64>,
 }
 
+/// Represents a collection of storage items.
 #[derive(Debug, Default)]
 pub struct StorageItems(pub IndexMap<String, Item>);
 
+/// Asynchronously uploads data.
+///
+/// # Arguments
+/// * `assets` - The assets to upload.
+/// * `metadata` - The global metadata.
+/// * `uploader` - The uploader instance.
+///
+/// # Returns
+/// A result indicating success or error.
 pub async fn upload_data(
     assets: &mut Vec<Asset>,
     metadata: Arc<GlobalMetadata>,
@@ -54,6 +67,13 @@ pub async fn upload_data(
     Ok(())
 }
 
+/// Attempts to read the state from a given path.
+///
+/// # Arguments
+/// * `path_buf` - The file path to read from.
+///
+/// # Returns
+/// A result containing metadata or an error.
 pub fn try_read_state(path_buf: &PathBuf) -> Result<Metadata> {
     let f = File::open(path_buf);
 
@@ -68,6 +88,14 @@ pub fn try_read_state(path_buf: &PathBuf) -> Result<Metadata> {
     Ok(data)
 }
 
+/// Asynchronously writes the state to a file.
+///
+/// # Arguments
+/// * `state` - The metadata to write.
+/// * `output_file` - The file path to write to.
+///
+/// # Returns
+/// A result indicating success or an error.
 pub async fn write_state_file(
     state: &Metadata,
     output_file: &Path,
@@ -89,6 +117,7 @@ pub async fn write_state_file(
     })
 }
 
+/// Represents an asset with its details.
 #[derive(Debug)]
 pub struct Asset {
     /// Id of the asset
@@ -102,6 +131,16 @@ pub struct Asset {
 }
 
 impl Asset {
+    /// Constructs a new `Asset`.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the asset.
+    /// * `name` - The name of the asset.
+    /// * `path` - The file path of the asset.
+    /// * `content type` - The MIME type of the asset.
+    ///
+    /// # Returns
+    /// A new instance of `Asset`.
     pub fn new(
         index: u32,
         name: String,
@@ -126,18 +165,43 @@ pub struct UploadedAsset {
 }
 
 impl UploadedAsset {
+    /// Constructs a new `UploadedAsset`.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the asset.
+    /// * `link` - The URL link to the uploaded asset.
+    ///
+    /// # Returns
+    /// A new instance of `UploadedAsset`.
     pub fn new(index: u32, link: String) -> Self {
         UploadedAsset { index, link }
     }
 }
 
+/// Trait for preparing assets for upload.
 #[async_trait]
 pub trait Prepare {
+    /// Asynchronously prepares a set of assets for upload.
+    ///
+    /// # Arguments
+    /// * `assets` - A slice of assets to be prepared.
+    ///
+    /// # Returns
+    /// A result indicating the success or failure of the operation.
     async fn prepare(&self, assets: &[Asset]) -> Result<()>;
 }
 
+/// Trait defining functionality for uploading assets.
 #[async_trait]
 pub trait Uploader: Prepare {
+    /// Asynchronously uploads a set of assets.
+    ///
+    /// # Arguments
+    /// * `assets` - A mutable reference to a vector of assets to be uploaded.
+    /// * `nft_data` - An `Arc` pointing to `GlobalMetadata`.
+    ///
+    /// # Returns
+    /// A result containing a vector of strings or an error.
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
@@ -145,8 +209,19 @@ pub trait Uploader: Prepare {
     ) -> Result<Vec<String>>;
 }
 
+/// Trait for uploading assets in parallel.
 #[async_trait]
 pub trait ParallelUploader: Uploader + Send + Sync {
+    /// Spawns a task for uploading a single asset.
+    ///
+    /// # Arguments
+    /// * `asset` - The asset to be uploaded.
+    /// * `metadata` - An `Arc` pointing to `GlobalMetadata`.
+    /// * `terminate_flag` - An `Arc` pointing to an `AtomicBool` to signal
+    ///   termination.
+    ///
+    /// # Returns
+    /// A `JoinHandle` that resolves to a result of `UploadEffects`.
     fn upload_asset(
         &self,
         asset: Asset,
@@ -155,12 +230,23 @@ pub trait ParallelUploader: Uploader + Send + Sync {
     ) -> JoinHandle<Result<UploadEffects>>;
 }
 
-/// Default implementation of the trait ['Uploader'](Uploader) for all ['ParallelUploader'](ParallelUploader).
+/// Default implementation of the trait ['Uploader'](Uploader) for all
+/// ['ParallelUploader'](ParallelUploader).
 #[async_trait]
 impl<T: ParallelUploader> Uploader for T {
-    /// Uploads assets in parallel. It creates [`self::parallel_limit()`] tasks at a time to avoid
-    /// reaching the limit of concurrent files open and it syncs the cache file at every `self.parallel_limit() / 2`
-    /// step.
+    /// Uploads assets in parallel. It creates [`self::parallel_limit()`] tasks
+    /// at a time to avoid reaching the limit of concurrent files open and
+    /// it syncs the cache file at every `self.parallel_limit() / 2` step.
+    ///
+    /// It manages the execution of upload tasks in parallel, handling
+    /// termination flags and errors.
+    ///
+    /// # Arguments
+    /// * `assets` - A mutable reference to a vector of assets to be uploaded.
+    /// * `metadata` - An `Arc` pointing to `GlobalMetadata`.
+    ///
+    /// # Returns
+    /// A result containing a vector of error logs, if any.
     async fn upload(
         &self,
         assets: &mut Vec<Asset>,
@@ -197,7 +283,8 @@ impl<T: ParallelUploader> Uploader for T {
                             // Switch the value to true
                             flag.store(true, Ordering::SeqCst);
 
-                            // Need to wait a second before prompting this message to the user
+                            // Need to wait a second before prompting this
+                            // message to the user
                             tokio::time::sleep(Duration::from_millis(1000))
                                 .await;
                             println!("Exiting upload process. This might take a minute..");

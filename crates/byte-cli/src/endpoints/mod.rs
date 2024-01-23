@@ -1,4 +1,3 @@
-pub mod account;
+pub mod client;
 pub mod collection;
 pub mod images;
-pub mod client;

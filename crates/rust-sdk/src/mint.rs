@@ -25,17 +25,42 @@ use sui_types::{
 };
 use tokio::task::JoinHandle;
 
+/// Enum representing the possible outcomes of a mint operation.
+///
+/// # Variants
+/// * `Success(Vec<String>)` - Indicates a successful mint operation with a list
+///   of object IDs created.
+/// * `Error(String)` - Represents an error that occurred during the minting
+///   process, along with an error message.
 pub enum MintEffect {
     Success(Vec<String>),
     Error(String),
 }
 
+/// Enum defining various functions for minting.
+///
+/// # Variants
+/// * `WalletAirdrop` - Represents a wallet airdrop function.
+/// * `KioskAirdrop(ObjectRef)` - Represents a kiosk airdrop function with the
+///   object reference.
+/// * `Warehouse(ObjectRef)` - Represents a warehouse function with the object
+///   reference.
 pub enum MintFunction {
     WalletAirdrop,
     KioskAirdrop(ObjectRef),
     Warehouse(ObjectRef),
 }
 
+/// Asynchronously creates a warehouse for managing collections.
+///
+/// # Arguments
+/// * `collection_type` - The type of the collection.
+/// * `package_id` - The ID of the package.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the ObjectID of the created warehouse or an error.
 pub async fn create_warehouse(
     collection_type: MoveType,
     package_id: ObjectID,
@@ -67,6 +92,18 @@ pub async fn create_warehouse(
     Ok(warehouse_id)
 }
 
+/// Prepares transaction data for creating a warehouse.
+///
+/// # Arguments
+/// * `client` - Client interface for interacting with Sui.
+/// * `sender` - The address sending the transaction.
+/// * `collection_type` - The type of the collection.
+/// * `package_id` - The ID of the package.
+/// * `gas_coin` - The gas coin object reference.
+/// * `gas_budget` - The gas budget for the transaction.
+///
+/// # Returns
+/// A result containing the transaction data or an error.
 pub async fn prepare_create_warehouse(
     client: impl Deref<Target = SuiClient>,
     sender: SuiAddress,
@@ -99,6 +136,21 @@ pub async fn prepare_create_warehouse(
     ))
 }
 
+/// Handles the asynchronous minting of NFTs to a warehouse.
+///
+/// # Arguments
+/// * `data` - Data for minting NFTs.
+/// * `wallet_ctx` - Context of the wallet.
+/// * `package_id` - The ID of the package.
+/// * `module_name` - The name of the module.
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_coin` - Optional gas coin object reference.
+/// * `sender` - The address sending the transaction.
+/// * `warehouse` - The warehouse where NFTs will be minted.
+/// * `mint_cap` - The mint capability object reference.
+///
+/// # Returns
+/// A join handle for the asynchronous task.
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_mint_nfts_to_warehouse(
     data: Vec<(u32, Metadata)>,
@@ -127,6 +179,25 @@ pub async fn handle_mint_nfts_to_warehouse(
     })
 }
 
+/// Asynchronously mints NFTs to a specified warehouse.
+///
+/// This function manages the process of minting NFTs, including transaction
+/// preparation and execution.
+///
+/// # Arguments
+/// * `data` - A vector of tuples containing quantity and metadata for each NFT.
+/// * `wallet_ctx` - The wallet context for transaction signing and management.
+/// * `package_id` - The ID of the package containing the minting logic.
+/// * `module_name` - The name of the module within the package.
+/// * `gas_budget` - The gas budget for the transaction.
+/// * `gas_coin` - Optional object reference for the gas coin.
+/// * `sender` - The SuiAddress initiating the transaction.
+/// * `warehouse` - The ID of the warehouse where NFTs will be minted.
+/// * `mint_cap` - The mint capability object reference.
+///
+/// # Returns
+/// A result containing the minting effect (success or error) or a
+/// `RustSdkError`.
 #[allow(clippy::too_many_arguments)]
 pub async fn mint_nfts_to_warehouse(
     data: Vec<(u32, Metadata)>,
@@ -160,6 +231,23 @@ pub async fn mint_nfts_to_warehouse(
     Ok(handle_mint_effects(response, warehouse)?)
 }
 
+/// Prepares the transaction data for minting NFTs to a warehouse.
+///
+/// This function creates the transaction data required for minting NFTs,
+/// including the necessary arguments and gas settings.
+///
+/// # Type Parameters
+/// * `C` - The client type, bounded by `Deref` targeting `SuiClient` and
+///   `CloneClient`.
+///
+/// # Arguments
+/// * `data` - A vector of tuples containing quantity and metadata for each NFT.
+/// * `client` - The client used for retrieving network-related information.
+/// * `package_id`, `module_name`, `gas_budget`, `gas_coin`, `sender`,
+///   `warehouse`, `mint_cap` - Parameters for the minting transaction.
+///
+/// # Returns
+/// A result containing the prepared transaction data or a `RustSdkError`.
 #[allow(clippy::too_many_arguments)]
 pub async fn prepare_mint_nfts_to_warehouse<C>(
     mut data: Vec<(u32, Metadata)>,
@@ -237,6 +325,18 @@ where
     ))
 }
 
+/// Handles the effects of a mint transaction.
+///
+/// This function processes the response of a mint transaction, extracting the
+/// results or the error based on the transaction status.
+///
+/// # Arguments
+/// * `response` - The transaction block response from executing the mint
+///   transaction.
+/// * `warehouse_id` - The ID of the warehouse where NFTs are minted.
+///
+/// # Returns
+/// A result containing the mint effect (success or error) or a `RustSdkError`.
 pub fn handle_mint_effects(
     response: SuiTransactionBlockResponse,
     warehouse_id: Arc<String>,

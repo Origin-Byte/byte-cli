@@ -5,7 +5,7 @@ pub mod version;
 
 use anyhow::{anyhow, Result};
 use git2::Repository;
-use package::PackageRegistry;
+use package::{Flavor, PackageRegistry};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -15,6 +15,7 @@ use std::{
 };
 use tempfile::TempDir;
 
+/// Constant representing the available Origin Byte packages.
 pub const OB_PACKAGES: [&str; 12] = [
     "Pseudorandom",
     "Utils",
@@ -26,10 +27,11 @@ pub const OB_PACKAGES: [&str; 12] = [
     "Authlist",
     "Launchpad",
     "LiquidityLayerV1",
-    "LiquidityLayer",
+    "LiquidityLayer", // TODO: remove
     "NftProtocol",
 ];
 
+/// Enum representing the different network environments.
 #[derive(Deserialize, Serialize, PartialEq, Eq)]
 pub enum Network {
     Mainnet,
@@ -39,6 +41,7 @@ pub enum Network {
 impl FromStr for Network {
     type Err = ();
 
+    /// Parses a string into a Network type.
     fn from_str(input: &str) -> Result<Network, Self::Err> {
         match input {
             "mainnet" => Ok(Network::Mainnet),
@@ -49,6 +52,7 @@ impl FromStr for Network {
 }
 
 impl Display for Network {
+    /// Implements formatting for displaying the Network type.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let string = match self {
             Network::Mainnet => "mainnet",
@@ -59,6 +63,10 @@ impl Display for Network {
     }
 }
 
+/// Retrieves package registries for both Mainnet and Testnet.
+///
+/// # Returns
+/// Result containing a tuple of `PackageRegistry` for Mainnet and Testnet.
 pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
     let (temp_dir, mainnet_path, testnet_path) = get_pakage_registry_paths();
 
@@ -69,20 +77,30 @@ pub fn get_program_registries() -> Result<(PackageRegistry, PackageRegistry)> {
         Err(e) => return Err(anyhow!("failed to clone: {}", e)),
     };
 
-    if !repo.is_empty()? {
-        println!("Fetched Program Registry successfully");
-    } else {
+    if repo.is_empty()? {
         return Err(anyhow!(
             "Something went wrong while accessing the Program Registry"
         ));
     }
 
-    let main_registry = serde_json::from_reader(File::open(mainnet_path)?)?;
-    let test_registry = serde_json::from_reader(File::open(testnet_path)?)?;
+    let mut main_registry: PackageRegistry =
+        serde_json::from_reader(File::open(mainnet_path)?)?;
+    let mut test_registry: PackageRegistry =
+        serde_json::from_reader(File::open(testnet_path)?)?;
+
+    main_registry.set_flavor(Flavor::Mainnet)?;
+    test_registry.set_flavor(Flavor::Testnet)?;
 
     Ok((main_registry, test_registry))
 }
 
+/// Retrieves a program registry for a specified network.
+///
+/// # Arguments
+/// * `network` - The network for which to retrieve the package registry.
+///
+/// # Returns
+/// Result containing the `PackageRegistry` for the specified network.
 pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
     let (main_registry, test_registry) = get_program_registries()?;
 
@@ -92,6 +110,11 @@ pub fn get_program_registry(network: &Network) -> Result<PackageRegistry> {
     })
 }
 
+/// Generates temporary paths for main and test package registries.
+///
+/// # Returns
+/// A tuple containing a `TempDir`, main registry `PathBuf`, and test registry
+/// `PathBuf`.
 pub fn get_pakage_registry_paths() -> (TempDir, PathBuf, PathBuf) {
     let temp_dir =
         TempDir::new().expect("Failed to create temporary directory");

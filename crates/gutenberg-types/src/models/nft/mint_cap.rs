@@ -5,24 +5,47 @@ use serde::{
     Serialize,
 };
 
+/// `MintCap` struct represents the minting capacity of an NFT.
+/// It can be either limited to a specific supply or unlimited.
 #[derive(Debug, Clone)]
 pub struct MintCap {
+    /// Optional field representing the supply cap for minting.
+    /// If `None`, it indicates an unlimited minting capacity.
     pub supply: Option<u64>,
 }
 
 impl MintCap {
+    /// Creates a `MintCap` with a specified supply limit.
+    ///
+    /// # Arguments
+    /// * `supply` - A u64 value indicating the maximum number of tokens that can be minted.
+    ///
+    /// # Returns
+    /// A `MintCap` instance with a defined supply limit.
     pub fn limited(supply: u64) -> Self {
         Self {
             supply: Some(supply),
         }
     }
 
+    /// Creates a `MintCap` without a supply limit, indicating unlimited minting capacity.
+    ///
+    /// # Returns
+    /// A `MintCap` instance with no supply limit.
     pub fn unlimited() -> Self {
         Self { supply: None }
     }
 }
 
+/// Implementation of `Deserialize` trait for `MintCap` to facilitate deserialization.
 impl<'de> Deserialize<'de> for MintCap {
+    /// Deserializes a `MintCap` from a deserializer.
+    ///
+    /// # Arguments
+    /// * `deserializer` - The deserializer to use.
+    ///
+    /// # Returns
+    /// * `Result<Self, D::Error>` - Result object containing `MintCap` if successful or an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -72,7 +95,15 @@ impl<'de> Deserialize<'de> for MintCap {
     }
 }
 
+/// Implementation of `Serialize` trait for `MintCap` to facilitate serialization.
 impl Serialize for MintCap {
+    /// Serializes the `MintCap` instance to a serializer.
+    ///
+    /// # Arguments
+    /// * `serializer` - The serializer to use.
+    ///
+    /// # Returns
+    /// * `Result<S::Ok, S::Error>` - Result of the serialization process.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

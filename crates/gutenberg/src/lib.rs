@@ -9,7 +9,9 @@ use gutenberg_types::{
 };
 pub use manifest::write_manifest;
 use manifest::write_manifest_with_flavours;
-use package_manager::{get_program_registry, version::Version, Network};
+use package_manager::{
+    get_program_registry, package::Flavor, version::Version, Network,
+};
 use std::{
     ffi::OsStr,
     fs::{self, File},
@@ -17,18 +19,28 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Trait for writing Move language contract's `init` function.
 pub trait MoveInit {
     fn write_move_init(&self, args: InitArgs) -> String;
 }
 
+/// Trait for writing Move language contract's function definitions
 pub trait MoveDefs {
     fn write_move_defs(&self, args: DefArgs) -> String;
 }
 
+/// Trait for writing Move language contract's tests
+pub trait MoveTests {
+    fn write_move_tests(&self, args: TestArgs) -> String;
+}
+
+/// Trait for writing Move language contract. It serves as a wrapper trait as it
+/// orchestrates the high-level codegen
 pub trait WriteMove {
     fn write_move(&self) -> ContractFile;
 }
 
+// Enums for arguments passed to the `MoveInit` trait...
 pub enum InitArgs<'a> {
     MintCap {
         witness: &'a str,
@@ -46,6 +58,7 @@ pub enum InitArgs<'a> {
     None,
 }
 
+// Enums for arguments passed to the `MoveDefs` trait...
 pub enum DefArgs<'a> {
     Burn {
         fields: &'a Fields,
@@ -69,10 +82,7 @@ pub enum DefArgs<'a> {
     None,
 }
 
-pub trait MoveTests {
-    fn write_move_tests(&self, args: TestArgs) -> String;
-}
-
+// Enums for arguments passed to the `MoveTests` trait...
 pub enum TestArgs<'a> {
     Burn {
         fields: &'a Fields,
@@ -139,6 +149,11 @@ impl ContractFile {
     }
 }
 
+/// Functions for generating and managing Move language contracts and projects.
+///
+/// Includes functions for generating contract directories, writing contracts,
+/// asserting schema, normalizing type names, and generating projects with
+/// flavors.
 pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
     // Create main contract directory
     let package_name = schema.package_name();
@@ -151,44 +166,84 @@ pub fn generate_contract_dir(schema: &Schema, output_dir: &Path) -> PathBuf {
     contract_dir
 }
 
-// Consume `Schema` since we are modifying it
-pub fn generate_contract_with_schema(
-    schema: &mut Schema,
-    is_demo: bool,
-) -> Vec<ContractFile> {
-    if is_demo {
-        schema.enforce_demo();
-    }
-
+/// Generates a contract with the given schema and optionally enforces demo
+/// constraints.
+///
+/// # Arguments
+/// * `schema` - A mutable reference to a Schema, representing the contract's
+///   structure.
+/// * `is_demo` - A boolean indicating if demo constraints should be enforced.
+///
+/// # Returns
+/// A vector of `ContractFile` objects representing the generated contract
+/// files.
+///
+/// # Functionality
+/// - If `is_demo` is true, enforces demo constraints on the schema.
+/// - Generates contract files based on the schema.
+pub fn generate_contract_with_schema(schema: &Schema) -> Vec<ContractFile> {
     let mut files = Vec::new();
     files.push(schema.write_move());
 
     files
 }
 
+/// Generates a project with the given configuration and writes it to the
+/// specified directory.
+///
+/// # Arguments
+/// * `config_path` - Path to the configuration file.
+/// * `flavor` - The network flavor, whether `Mainnet` or `Testnet`.
+/// * `output_dir` - Path to the output directory for writing the project.
+/// * `version` - Optional string representing the version of the project.
+///
+/// # Returns
+/// Result indicating success or error.
+///
+/// # Functionality
+/// - Asserts the schema from the configuration file.
+/// - Generates the contract directory and writes the project's manifest.
+/// - Generates and writes the contract files based on the schema.
 pub fn generate_project(
-    is_demo: bool,
     config_path: &Path,
+    flavor: Flavor,
     output_dir: &Path,
     version: Option<String>,
 ) -> Result<()> {
-    let mut schema = assert_schema(config_path);
+    let schema = assert_schema(config_path);
     let contract_dir = generate_contract_dir(&schema, output_dir);
 
     let registry = get_program_registry(&Network::Mainnet)?;
 
     let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
 
-    write_manifest(schema.package_name(), &contract_dir, &registry, version)?;
+    write_manifest(
+        schema.package_name(),
+        flavor,
+        &contract_dir,
+        &registry,
+        version,
+    )?;
 
-    generate_contract_with_schema(&mut schema, is_demo)
+    generate_contract_with_schema(&schema)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 
     Ok(())
 }
 
-/// Asserts that the config file has correct schema
+/// Asserts that the given configuration file has a correct schema.
+///
+/// # Arguments
+/// * `path` - Path to the configuration file.
+///
+/// # Returns
+/// The parsed `Schema` if successful.
+///
+/// # Functionality
+/// - Opens and reads the configuration file.
+/// - Parses the file based on its extension (either YAML or JSON) to a
+///   `Schema`.
 fn assert_schema(path: &Path) -> Schema {
     let config = File::open(path).unwrap();
     let extension =
@@ -222,34 +277,31 @@ fn assert_schema(path: &Path) -> Schema {
     }
 }
 
-/// Normalizes text into valid type name
-pub fn normalize_type(type_name: &str) -> String {
-    deunicode(type_name)
-        .chars()
-        .filter_map(|char| match char {
-            '_' => Some('_'),
-            '-' => Some('_'),
-            ' ' => Some('_'),
-            char => char.is_ascii_alphanumeric().then_some(char),
-        })
-        .collect()
-}
-
-/// De-unicodes and removes all unknown characters
-pub fn deunicode(unicode: &str) -> String {
-    deunicode::deunicode_with_tofu(unicode, "")
-}
-
+/// Generates a project with flavors, setting up the project structure and
+/// writing the contract.
+///
+/// # Arguments
+/// * `is_demo` - A boolean indicating if the project is a demo.
+/// * `schema` - A mutable reference to the Schema.
+/// * `contract_dir` - Path to the directory where the contract should be
+///   written.
+/// * `version` - Optional string representing the version of the project.
+///
+/// # Returns
+/// Result indicating success or error.
+///
+/// # Functionality
+/// - Sets up the project structure, including source directories.
+/// - Writes the project's manifest with flavors.
+/// - Generates and writes the contract files based on the schema.
 pub fn generate_project_with_flavors(
-    is_demo: bool,
-    schema: &mut Schema,
+    schema: &Schema,
     contract_dir: &Path,
-    version: Option<String>,
 ) -> Result<()> {
-    let version: Option<Version> = version.map(|s| s.parse().ok()).flatten();
-
     let (main_registry, test_registry) =
         package_manager::get_program_registries()?;
+
+    let version = main_registry.get_latest_version("NftProtocol")?;
 
     let sources_dir = &contract_dir.join("sources");
     let _ = fs::remove_dir_all(sources_dir);
@@ -265,11 +317,11 @@ pub fn generate_project_with_flavors(
         &contract_dir,
         &main_registry,
         &test_registry,
-        version,
+        Some(*version),
     )?;
 
     // Write Move contract
-    generate_contract_with_schema(schema, is_demo)
+    generate_contract_with_schema(schema)
         .into_iter()
         .try_for_each(|file| file.write_to_file(&contract_dir))?;
 

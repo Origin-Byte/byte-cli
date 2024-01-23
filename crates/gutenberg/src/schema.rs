@@ -6,6 +6,8 @@ use crate::{ContractFile, DefArgs, MoveDefs, MoveTests, TestArgs, WriteMove};
 use gutenberg_types::Schema;
 use std::path::PathBuf;
 
+/// Implementation of `MoveDefs` trait for `Schema`.
+/// Provides functionality to generate Move definitions from a `Schema`.
 impl MoveDefs for Schema {
     fn write_move_defs(&self, _args: DefArgs) -> String {
         self.nft.write_move_defs(DefArgs::NftData {
@@ -14,7 +16,10 @@ impl MoveDefs for Schema {
     }
 }
 
+/// Implementation of `MoveTests` trait for `Schema`.
+/// Enables writing of Move test cases based on the `Schema`.
 impl MoveTests for Schema {
+    /// Generates a string containing Move test cases.
     fn write_move_tests(&self, _args: TestArgs) -> String {
         let type_name = self.nft().type_name();
         let witness_name = self.nft().witness_name();
@@ -55,7 +60,12 @@ impl MoveTests for Schema {
     }
 }
 
+/// Implementation of `WriteMove` trait for `Schema`.
+/// This trait implementation is responsible for generating the complete Move code.
 impl WriteMove for Schema {
+    /// Generates a `ContractFile` containing Move code based on the `Schema`.
+    /// This function takes care of integrating definitions and tests into the Move module.
+    ///
     /// Higher level method responsible for generating Move code from the
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
