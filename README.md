@@ -1,3 +1,9 @@
+<a href="https://originbyte.io/">
+    <h1><img src="./assets/logo.svg" alt="OriginByte" width="50%"></h1>
+</a>
+
+<h3>A new approach to NFTs</h3>
+
 # Byte-CLI
 
 ## Introduction
