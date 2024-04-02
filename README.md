@@ -20,7 +20,8 @@ Each category is equipped with subcommands tailored to provide comprehensive fun
 
 
 ## Installation
-[Instructions on how to install Byte-CLI]
+
+`cargo install --locked --git https://github.com/Origin-Byte/byte-cli.git --tag v1.0.0 byte`
 
 ## Usage
 To use Byte-CLI, run it from your command line. Here's a brief overview of the command categories:

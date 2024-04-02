@@ -10,8 +10,8 @@ package-manager = { path = "../package-manager" }
 gutenberg-types = { path = "../gutenberg-types" }
 gutenberg = { path = "../gutenberg" }
 
-sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-move-package = { git = "https://github.com/MystenLabs/sui", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
+sui-sdk = { git = "https://github.com/MystenLabs/sui", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+move-package = { git = "https://github.com/MystenLabs/sui", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
 reqwest = { version = "0.11", features = ["json"]}
 git2 = "0.17"
 dialoguer = "0.10"
@@ -30,6 +30,7 @@ convert_case = "0.6.0"
 tempfile = "3.2"
 dirs = "5.0"
 chrono = "0.4"
+num-traits = { version = "0.2.18" }
 terminal-link = "0.1"
 indicatif = "0.16"
 

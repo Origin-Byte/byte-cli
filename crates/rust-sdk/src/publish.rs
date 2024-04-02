@@ -223,7 +223,6 @@ fn get_dependencies(
         config: build_config,
         run_bytecode_verifier: true,
         print_diags_to_stderr: true,
-        lint: false,
     }
     .build(package_path.to_path_buf())?;
 

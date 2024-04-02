@@ -55,7 +55,7 @@ pub async fn get_client(uri: &str) -> Result<SuiClient, RustSdkError> {
 pub async fn get_context() -> Result<WalletContext, RustSdkError> {
     let config_path = sui_config_dir()?.join(SUI_CLIENT_CONFIG);
 
-    let ctx = WalletContext::new(&config_path, None, None).await?;
+    let ctx = WalletContext::new(&config_path, None, None)?;
 
     Ok(ctx)
 }
@@ -266,9 +266,7 @@ pub async fn execute_tx(
 
     let response = wallet_ctx
         .execute_transaction_may_fail(Transaction::from_data(
-            tx_data,
-            Intent::sui_transaction(),
-            signatures,
+            tx_data, signatures,
         ))
         .await?;
 
@@ -305,11 +303,7 @@ pub async fn execute_tx_with_client(
     let response = client
         .quorum_driver_api()
         .execute_transaction_block(
-            Transaction::from_data(
-                tx_data,
-                Intent::sui_transaction(),
-                signatures,
-            ),
+            Transaction::from_data(tx_data, signatures),
             SuiTransactionBlockResponseOptions::new(),
             Some(ExecuteTransactionRequestType::WaitForEffectsCert),
         )

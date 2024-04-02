@@ -6,17 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-keys = { git = "https://github.com/MystenLabs/sui", package = "sui-keys", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-types = { git = "https://github.com/MystenLabs/sui", package = "sui-types", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-move-build = { git = "https://github.com/MystenLabs/sui", package = "sui-move-build", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui", package = "sui-json-rpc-types", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-config = { git = "https://github.com/MystenLabs/sui", package = "sui-config", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-source-validation = { git = "https://github.com/MystenLabs/sui", package = "sui-source-validation", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-shared-crypto = { git = "https://github.com/MystenLabs/sui", package = "shared-crypto", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-move-core-types = { git = "https://github.com/MystenLabs/sui", package = "move-core-types", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-move-package = { git = "https://github.com/MystenLabs/sui", package = "move-package", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed" }
-sui-move = { git = "https://github.com/MystenLabs/sui", package = "sui-move", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", features = ["build"] }
+sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-keys = { git = "https://github.com/MystenLabs/sui", package = "sui-keys", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-types = { git = "https://github.com/MystenLabs/sui", package = "sui-types", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-move-build = { git = "https://github.com/MystenLabs/sui", package = "sui-move-build", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui", package = "sui-json-rpc-types", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-config = { git = "https://github.com/MystenLabs/sui", package = "sui-config", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-source-validation = { git = "https://github.com/MystenLabs/sui", package = "sui-source-validation", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+shared-crypto = { git = "https://github.com/MystenLabs/sui", package = "shared-crypto", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+move-core-types = { git = "https://github.com/MystenLabs/sui", package = "move-core-types", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+move-package = { git = "https://github.com/MystenLabs/sui", package = "move-package", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b" }
+sui-move = { git = "https://github.com/MystenLabs/sui", package = "sui-move", rev = "a67a73bcfab3eab5568b7d8f8393bcb9e5bddc5b", features = ["build"] }
 
 bcs = "0.1"
 thiserror = "1.0"
